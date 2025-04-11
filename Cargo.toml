@@ -1,0 +1,39 @@
+[package]
+name = "odos-rs"
+version = "0.1.0"
+description = "Rust client library for the Odos API"
+authors = ["Joseph Livesey <joseph@semiotic.ai>"]
+readme = "README.md"
+edition = "2021"
+
+[dependencies]
+alloy-chains = "0.2.0"
+alloy-contract = { version = "0.14.0", default-features = false }
+alloy-json-rpc = { version = "0.14.0", default-features = false }
+alloy-network = { version = "0.14.0", default-features = false }
+alloy-primitives = { version = "1.0.0", default-features = false, features = [
+    "std",
+    "rlp",
+] }
+alloy-provider = { version = "0.14.0", default-features = false, features = [
+    "anvil-node",
+    "reqwest",
+] }
+alloy-rpc-client = "0.14.0"
+alloy-rpc-types = "0.14.0"
+alloy-signer = { version = "0.14.0", default-features = false }
+alloy-signer-local = { version = "0.14.0", default-features = false }
+alloy-sol-types = { version = "1.0.0", features = ["json"] }
+alloy-sol-type-parser = "1.0.0"
+alloy-transport = { version = "0.14.0", default-features = false }
+alloy-transport-http = { version = "0.14.0", default-features = false, features = [
+    "reqwest",
+] }
+anyhow = "1.0.97"
+bon = "3.4.0"
+
+reqwest = { version = "0.12.12", features = ["json"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+thiserror = "2.0.12"
+tracing = "0.1.41"
