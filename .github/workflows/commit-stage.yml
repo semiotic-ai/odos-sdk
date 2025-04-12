@@ -1,0 +1,128 @@
+name: commit-stage
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  conventional-commits:
+    name: commitizen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # For PRs, fetch based on number of commits, for push to main use small default
+          fetch-depth: ${{ github.event_name == 'pull_request' && github.event.pull_request.commits || 10 }}
+
+      - name: Fetch base for PRs
+        if: github.event_name == 'pull_request'
+        run: git fetch origin ${{ github.base_ref }}
+        
+      - name: Fetch for push to main
+        if: github.event_name == 'push'
+        run: |
+          git fetch origin ${{ github.event.before }}
+          
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          
+      - name: Install commitizen
+        run: pip install commitizen
+        
+      - name: Determine Commit Range
+        id: commit_range
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PRs, check commits between base ref and HEAD
+            echo "COMMIT_RANGE=origin/${{ github.base_ref }}..HEAD" >> $GITHUB_ENV
+          elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            # For non-force-pushed commits to main
+            echo "COMMIT_RANGE=${{ github.event.before }}..HEAD" >> $GITHUB_ENV
+          else
+            # Fallback for force pushes or initial commits
+            echo "COMMIT_RANGE=HEAD~1..HEAD" >> $GITHUB_ENV
+          fi
+          
+      - name: Check Conventional Commits
+        env:
+          COMMIT_RANGE: ${{ env.COMMIT_RANGE }}
+        run: cz check --rev-range $COMMIT_RANGE
+
+  fmt:
+    name: cargo fmt
+    runs-on: ubuntu-latest
+    container:
+      image: rust:1.85-bookworm
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          rustup component add rustfmt
+          cargo fmt --all -- --check
+
+  clippy:
+    name: cargo clippy
+    runs-on: ubuntu-latest
+    container:
+      image: rust:1.85-bookworm
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-clippy
+      - run: |
+          rustup component add clippy
+          cargo clippy --all-targets --all-features -- -D warnings
+
+  cargo-audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    container:
+      image: rust:1.85-bookworm
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-audit
+      - run: cargo install cargo-audit
+      - run: cargo audit
+
+  test:
+    name: cargo test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    container:
+      image: rust:1.85-bookworm
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-test
+      - name: Run tests
+        run: cargo test --all-features
