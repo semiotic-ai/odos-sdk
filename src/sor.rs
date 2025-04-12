@@ -1,11 +1,11 @@
 use alloy_network::TransactionBuilder;
-use alloy_primitives::{hex, Address};
+use alloy_primitives::{Address, hex};
 use alloy_rpc_types::TransactionRequest;
 use reqwest::{Client, Response};
 use serde_json::Value;
 use tracing::{debug, info, instrument};
 
-use crate::{parse_value, AssembleRequest, AssemblyResponse, Swap, ASSEMBLE_URL};
+use crate::{ASSEMBLE_URL, AssembleRequest, AssemblyResponse, Swap, parse_value};
 
 use super::TransactionData;
 
