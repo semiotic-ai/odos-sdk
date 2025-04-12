@@ -1,10 +1,21 @@
 [package]
-name = "odos-rs"
+name = "odos-sdk"
 version = "0.1.0"
-description = "Rust client library for the Odos API"
+categories = ["finance", "api-bindings"]
+description = "Rust SDK for Odos"
 authors = ["Joseph Livesey <joseph@semiotic.ai>"]
 readme = "README.md"
-edition = "2021"
+edition = "2024"
+keywords = [
+    "defi",
+    "ethereum",
+    "web3",
+    "blockchain",
+    "smart-contracts",
+    "solidity",
+]
+license = "Apache-2.0"
+repository = "https://github.com/semiotic-ai/odos-rs"
 
 [dependencies]
 alloy-chains = "0.2.0"
