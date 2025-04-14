@@ -1,6 +1,6 @@
 # Odos Rust SDK
 
-This is a [Rust](https://www.rust-lang.org/) SDK [Odos](https://docs.odos.xyz/).
+This is a [Rust](https://www.rust-lang.org/) SDK for [Odos](https://docs.odos.xyz/).
 
 ## Docs
 
