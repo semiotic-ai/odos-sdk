@@ -18,7 +18,7 @@ pub struct InputToken {
 }
 
 impl InputToken {
-    fn new(token_address: Address, amount: U256) -> Self {
+    pub fn new(token_address: Address, amount: U256) -> Self {
         Self {
             token_address: token_address.to_string(),
             amount: amount.to_string(),
@@ -41,7 +41,7 @@ pub struct OutputToken {
 }
 
 impl OutputToken {
-    fn new(token_address: Address, proportion: u32) -> Self {
+    pub fn new(token_address: Address, proportion: u32) -> Self {
         Self {
             token_address: token_address.to_string(),
             proportion,
