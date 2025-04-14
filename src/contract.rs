@@ -34,6 +34,9 @@ pub const ODOS_V2_MODE_ROUTER: &str = "0x7E15EB462cdc67Cf92Af1f7102465a8F8c78487
 /// <https://explorer.scroll.io/address/0xbFe03C9E20a9Fc0b37de01A172F207004935E0b1>
 pub const ODOS_V2_SCROLL_ROUTER: &str = "0xbFe03C9E20a9Fc0b37de01A172F207004935E0b1";
 
+/// <https://explorer.zksync.io/address/0x4bBa932E9792A2b917D47830C93a9BC79320E4f7>
+pub const ODOS_V2_ZKSYNC_ROUTER: &str = "0x4bBa932E9792A2b917D47830C93a9BC79320E4f7";
+
 pub trait OdosContract {
     fn v2_router_address(&self) -> Address;
 }
@@ -53,6 +56,7 @@ impl OdosContract for NamedChain {
             Linea => ODOS_V2_LINEA_ROUTER,
             Mode => ODOS_V2_MODE_ROUTER,
             Scroll => ODOS_V2_SCROLL_ROUTER,
+            ZkSync => ODOS_V2_ZKSYNC_ROUTER,
             _ => unimplemented!(),
         }
         .parse()
