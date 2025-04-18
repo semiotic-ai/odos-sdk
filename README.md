@@ -79,6 +79,8 @@ let tx_request = sor_client
     .await
     .unwrap();
 
+// User can apply custom gas parameters to the transaction as they see fit
+
 let pending_tx = signer_provider.send_transaction(tx_request).await.unwrap();
 
 let receipt = pending_tx.get_receipt().await.unwrap();
