@@ -25,8 +25,14 @@ pub const ODOS_V2_POLYGON_ROUTER: &str = "0x4e3288c9ca110bcc82bf38f09a7b425c095d
 /// <https://ftmscan.com/address/0xD0c22A5435F4E8E5770C1fAFb5374015FC12F7cD>
 pub const ODOS_V2_FANTOM_ROUTER: &str = "0xD0c22A5435F4E8E5770C1fAFb5374015FC12F7cD";
 
+/// <https://fraxscan.com/address/0x56c85a254DD12eE8D9C04049a4ab62769Ce98210>
+pub const ODOS_V2_FRAXTAL_ROUTER: &str = "0x56c85a254DD12eE8D9C04049a4ab62769Ce98210";
+
 /// <https://linea.blockscout.com/address/0x2d8879046f1559E53eb052E949e9544bCB72f414>
 pub const ODOS_V2_LINEA_ROUTER: &str = "0x2d8879046f1559E53eb052E949e9544bCB72f414";
+
+/// <https://mantlescan.xyz/address/0xD9F4e85489aDCD0bAF0Cd63b4231c6af58c26745>
+pub const ODOS_V2_MANTLE_ROUTER: &str = "0xD9F4e85489aDCD0bAF0Cd63b4231c6af58c26745";
 
 /// <https://explorer.mode.network/address/0x7E15EB462cdc67Cf92Af1f7102465a8F8c784874>
 pub const ODOS_V2_MODE_ROUTER: &str = "0x7E15EB462cdc67Cf92Af1f7102465a8F8c784874";
@@ -49,14 +55,16 @@ impl OdosContract for NamedChain {
         use NamedChain::*;
         match self {
             Arbitrum => ODOS_V2_ARBITRUM_ROUTER,
+            Avalanche => ODOS_V2_AVALANCHE_ROUTER,
             Base => ODOS_V2_BASE_ROUTER,
             BinanceSmartChain => ODOS_V2_BSC_ROUTER,
+            Fantom => ODOS_V2_FANTOM_ROUTER,
+            Fraxtal => ODOS_V2_FRAXTAL_ROUTER,
             Mainnet => ODOS_V2_ETHEREUM_ROUTER,
             Optimism => ODOS_V2_OP_ROUTER,
-            Avalanche => ODOS_V2_AVALANCHE_ROUTER,
             Polygon => ODOS_V2_POLYGON_ROUTER,
-            Fantom => ODOS_V2_FANTOM_ROUTER,
             Linea => ODOS_V2_LINEA_ROUTER,
+            Mantle => ODOS_V2_MANTLE_ROUTER,
             Mode => ODOS_V2_MODE_ROUTER,
             Scroll => ODOS_V2_SCROLL_ROUTER,
             Sonic => ODOS_V2_SONIC_ROUTER,
