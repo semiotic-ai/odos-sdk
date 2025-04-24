@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use alloy_primitives::{Address, Bytes, U256};
 use bon::Builder;
 use serde::{Deserialize, Serialize};
@@ -8,7 +10,7 @@ use crate::{
     OdosV2Router::{OdosV2RouterCalls, swapCall},
 };
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InputToken {
     // Haven't looked much into it, but there's trouble if you try to make this a `Address`
@@ -32,7 +34,17 @@ impl From<(Address, U256)> for InputToken {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+impl Display for InputToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "InputToken {{ token_address: {}, amount: {} }}",
+            self.token_address, self.amount
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OutputToken {
     // Haven't looked much into it, but there's trouble if you try to make this a `Address`
@@ -55,8 +67,18 @@ impl From<(Address, u32)> for OutputToken {
     }
 }
 
+impl Display for OutputToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "OutputToken {{ token_address: {}, proportion: {} }}",
+            self.token_address, self.proportion
+        )
+    }
+}
+
 /// Request to the Odos quote API: <https://docs.odos.xyz/build/api-docs>
-#[derive(Builder, Debug, Serialize)]
+#[derive(Builder, Clone, Debug, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QuoteRequest {
     chain_id: u64,
@@ -72,7 +94,7 @@ pub struct QuoteRequest {
 }
 
 /// Single quote response from the Odos quote API: <https://docs.odos.xyz/build/api-docs>
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SingleQuoteResponse {
     block_number: u64,
@@ -186,7 +208,7 @@ impl SingleQuoteResponse {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct SwapInputs {
     executor: Address,
     path_definition: Bytes,

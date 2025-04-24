@@ -1,9 +1,12 @@
+use std::fmt::Display;
+
 use alloy_chains::NamedChain;
 use alloy_primitives::{Address, U256};
 use bon::Builder;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// A transfer of a token from one address to another.
-#[derive(Builder, Debug, Clone)]
+#[derive(Builder, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Swap {
     chain: NamedChain,
     router_address: Address,
@@ -41,5 +44,70 @@ impl Swap {
 
     pub fn path_id(&self) -> &str {
         &self.path_id
+    }
+}
+
+impl Serialize for Swap {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let chain_id: u64 = self.chain.into();
+        let data = (
+            chain_id,
+            self.router_address,
+            self.signer_address,
+            self.output_recipient,
+            self.token_address,
+            self.token_amount,
+            &self.path_id,
+        );
+        data.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Swap {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let (
+            chain_id,
+            router_address,
+            signer_address,
+            output_recipient,
+            token_address,
+            token_amount,
+            path_id,
+        ): (u64, Address, Address, Address, Address, U256, String) =
+            Deserialize::deserialize(deserializer)?;
+
+        let chain = NamedChain::try_from(chain_id).map_err(serde::de::Error::custom)?;
+
+        Ok(Swap {
+            chain,
+            router_address,
+            signer_address,
+            output_recipient,
+            token_address,
+            token_amount,
+            path_id,
+        })
+    }
+}
+
+impl Display for Swap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Swap {{ chain: {}, router_address: {}, signer_address: {}, output_recipient: {}, token_address: {}, token_amount: {}, path_id: {} }}",
+            self.chain,
+            self.router_address,
+            self.signer_address,
+            self.output_recipient,
+            self.token_address,
+            self.token_amount,
+            self.path_id
+        )
     }
 }

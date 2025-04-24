@@ -8,7 +8,7 @@ use alloy_sol_types::sol;
 use crate::ERC20::ERC20Instance;
 
 /// The ERC20 contract.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Erc20<P: Provider<Ethereum>> {
     instance: ERC20Instance<P>,
 }
