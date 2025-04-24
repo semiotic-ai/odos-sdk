@@ -1,5 +1,6 @@
 mod api;
 mod assemble;
+mod chain;
 mod contract;
 mod erc20;
 mod limit_order_v2;
@@ -10,6 +11,7 @@ mod v2_router;
 
 pub use api::*;
 pub use assemble::*;
+pub use chain::*;
 pub use contract::*;
 pub use erc20::*;
 pub use limit_order_v2::*;

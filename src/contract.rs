@@ -1,6 +1,3 @@
-use alloy_chains::NamedChain;
-use alloy_primitives::Address;
-
 /// <https://arbiscan.io/address/0xa669e7a0d4b3e4fa48af2de86bd4cd7126be4e13>
 pub const ODOS_V2_ARBITRUM_ROUTER: &str = "0xa669e7a0d4b3e4fa48af2de86bd4cd7126be4e13";
 
@@ -45,33 +42,3 @@ pub const ODOS_V2_SONIC_ROUTER: &str = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e
 
 /// <https://explorer.zksync.io/address/0x4bBa932E9792A2b917D47830C93a9BC79320E4f7>
 pub const ODOS_V2_ZKSYNC_ROUTER: &str = "0x4bBa932E9792A2b917D47830C93a9BC79320E4f7";
-
-pub trait OdosContract {
-    fn v2_router_address(&self) -> Address;
-}
-
-impl OdosContract for NamedChain {
-    fn v2_router_address(&self) -> Address {
-        use NamedChain::*;
-        match self {
-            Arbitrum => ODOS_V2_ARBITRUM_ROUTER,
-            Avalanche => ODOS_V2_AVALANCHE_ROUTER,
-            Base => ODOS_V2_BASE_ROUTER,
-            BinanceSmartChain => ODOS_V2_BSC_ROUTER,
-            Fantom => ODOS_V2_FANTOM_ROUTER,
-            Fraxtal => ODOS_V2_FRAXTAL_ROUTER,
-            Mainnet => ODOS_V2_ETHEREUM_ROUTER,
-            Optimism => ODOS_V2_OP_ROUTER,
-            Polygon => ODOS_V2_POLYGON_ROUTER,
-            Linea => ODOS_V2_LINEA_ROUTER,
-            Mantle => ODOS_V2_MANTLE_ROUTER,
-            Mode => ODOS_V2_MODE_ROUTER,
-            Scroll => ODOS_V2_SCROLL_ROUTER,
-            Sonic => ODOS_V2_SONIC_ROUTER,
-            ZkSync => ODOS_V2_ZKSYNC_ROUTER,
-            _ => unimplemented!(),
-        }
-        .parse()
-        .unwrap()
-    }
-}
