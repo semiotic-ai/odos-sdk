@@ -45,8 +45,9 @@ jobs:
             # For non-force-pushed commits to main
             echo "COMMIT_RANGE=${{ github.event.before }}..HEAD" >> $GITHUB_ENV
           else
-            # Fallback for force pushes or initial commits
-            echo "COMMIT_RANGE=HEAD~1..HEAD" >> $GITHUB_ENV
+            # Skip validation for force pushes or initial commits
+            echo "No commit range found. Skipping validation."
+            echo "SKIP_VALIDATION=true" >> $GITHUB_ENV
           fi
           
       - name: Check Conventional Commits
