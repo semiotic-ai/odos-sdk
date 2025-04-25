@@ -1,7 +1,7 @@
 use std::{fmt::Debug, marker::PhantomData};
 
 use OdosRouterV2::{inputTokenInfo, outputTokenInfo, swapTokenInfo};
-use OdosV2Router::{OdosV2RouterCalls, OdosV2RouterInstance, swapCall};
+use OdosV2Router::{OdosV2RouterCalls, OdosV2RouterInstance, SwapMulti, swapCall};
 use alloy_contract::CallBuilder;
 use alloy_network::Ethereum;
 use alloy_primitives::{Address, Bytes, U256};
@@ -125,6 +125,18 @@ impl Debug for swapTokenInfo {
             .field("outputMin", &self.outputMin)
             .field("outputQuote", &self.outputQuote)
             .field("outputReceiver", &self.outputReceiver)
+            .finish()
+    }
+}
+
+impl Debug for SwapMulti {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SwapMulti")
+            .field("sender", &self.sender)
+            .field("amountsIn", &self.amountsIn)
+            .field("tokensIn", &self.tokensIn)
+            .field("amountsOut", &self.amountsOut)
+            .field("tokensOut", &self.tokensOut)
             .finish()
     }
 }
