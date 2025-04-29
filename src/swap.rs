@@ -5,15 +5,22 @@ use alloy_primitives::{Address, U256};
 use bon::Builder;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-/// A transfer of a token from one address to another.
+/// A token swap.
 #[derive(Builder, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Swap {
+    /// The chain of the swap.
     chain: NamedChain,
+    /// The address of the router.
     router_address: Address,
+    /// The address of the signer.
     signer_address: Address,
+    /// The address of the recipient of the output token.
     output_recipient: Address,
+    /// The address of the token to swap.
     token_address: Address,
+    /// The amount of tokens to swap.
     token_amount: U256,
+    /// The path ID of the swap.
     path_id: String,
 }
 
