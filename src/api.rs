@@ -91,6 +91,7 @@ pub struct QuoteRequest {
     simple: bool,
     referral_code: u32,
     disable_rfqs: bool,
+    source_blacklist: Vec<String>,
 }
 
 /// Single quote response from the Odos quote API: <https://docs.odos.xyz/build/api-docs>
