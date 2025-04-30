@@ -78,7 +78,7 @@ impl Display for OutputToken {
 }
 
 /// Request to the Odos quote API: <https://docs.odos.xyz/build/api-docs>
-#[derive(Builder, Clone, Debug, PartialEq, PartialOrd, Deserialize, Serialize)]
+#[derive(Builder, Clone, Debug, Default, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QuoteRequest {
     chain_id: u64,
@@ -91,6 +91,7 @@ pub struct QuoteRequest {
     simple: bool,
     referral_code: u32,
     disable_rfqs: bool,
+    #[builder(default)]
     source_blacklist: Vec<String>,
 }
 
