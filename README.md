@@ -7,7 +7,7 @@ This is a [Rust](https://www.rust-lang.org/) SDK for [Odos](https://docs.odos.xy
 ```rust
 use alloy_chains::NamedChain;
 use alloy_primitives::{Address, U256};
-use odos_sdk::{Erc20, OdosSorV2, QuoteRequest, Swap};
+use odos_sdk::{Erc20, OdosSorV2, QuoteRequest, SwapContext};
 
 /// Token address of the token to swap
 const TOKEN: &str = "0x4200000000000000000000000000000000000006";
@@ -60,7 +60,7 @@ let receipt = pending_tx.get_receipt().await.unwrap();
 // Assert the transaction was successful
 assert!(receipt.status());
 
-let swap_params = Swap::builder()
+let swap_params = SwapContext::builder()
     .chain(chain)
     .router_address(ROUTER.parse::<Address>().unwrap())
     .signer_address(signer_provider.signer_address())

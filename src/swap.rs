@@ -7,7 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// A token swap.
 #[derive(Builder, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Swap {
+pub struct SwapContext {
     /// The chain of the swap.
     chain: NamedChain,
     /// The address of the router.
@@ -24,7 +24,7 @@ pub struct Swap {
     path_id: String,
 }
 
-impl Swap {
+impl SwapContext {
     pub fn chain(&self) -> NamedChain {
         self.chain
     }
@@ -54,7 +54,7 @@ impl Swap {
     }
 }
 
-impl Serialize for Swap {
+impl Serialize for SwapContext {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -73,7 +73,7 @@ impl Serialize for Swap {
     }
 }
 
-impl<'de> Deserialize<'de> for Swap {
+impl<'de> Deserialize<'de> for SwapContext {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -91,7 +91,7 @@ impl<'de> Deserialize<'de> for Swap {
 
         let chain = NamedChain::try_from(chain_id).map_err(serde::de::Error::custom)?;
 
-        Ok(Swap {
+        Ok(Self {
             chain,
             router_address,
             signer_address,
@@ -103,7 +103,7 @@ impl<'de> Deserialize<'de> for Swap {
     }
 }
 
-impl Display for Swap {
+impl Display for SwapContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

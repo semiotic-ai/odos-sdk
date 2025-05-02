@@ -5,7 +5,7 @@ use reqwest::{Client, Response};
 use serde_json::Value;
 use tracing::{debug, info, instrument};
 
-use crate::{ASSEMBLE_URL, AssembleRequest, AssemblyResponse, Swap, parse_value};
+use crate::{ASSEMBLE_URL, AssembleRequest, AssemblyResponse, SwapContext, parse_value};
 
 use super::TransactionData;
 
@@ -99,7 +99,10 @@ impl OdosSorV2 {
     /// Build a base transaction from a swap using the Odos Assemble API,
     /// leaving gas parameters to be set by the caller.
     #[instrument(skip(self), ret(Debug))]
-    pub async fn build_base_transaction(&self, swap: &Swap) -> anyhow::Result<TransactionRequest> {
+    pub async fn build_base_transaction(
+        &self,
+        swap: &SwapContext,
+    ) -> anyhow::Result<TransactionRequest> {
         let TransactionData { data, value, .. } = self
             .assemble_tx_data(
                 swap.signer_address(),
