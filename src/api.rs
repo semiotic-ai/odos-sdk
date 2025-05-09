@@ -7,7 +7,7 @@ use tracing::debug;
 
 use crate::{
     OdosRouterV2::{inputTokenInfo, outputTokenInfo, swapTokenInfo},
-    OdosV2Router::{OdosV2RouterCalls, swapCall},
+    OdosV2Router::{swapCall, OdosV2RouterCalls},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]

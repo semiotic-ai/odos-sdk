@@ -1,12 +1,12 @@
 use std::{fmt::Debug, marker::PhantomData};
 
-use OdosRouterV2::{inputTokenInfo, outputTokenInfo, swapTokenInfo};
-use OdosV2Router::{OdosV2RouterCalls, OdosV2RouterInstance, Swap, SwapMulti, swapCall};
 use alloy_contract::CallBuilder;
 use alloy_network::Ethereum;
 use alloy_primitives::{Address, Bytes, U256};
 use alloy_provider::Provider;
-use alloy_sol_types::{SolInterface, sol};
+use alloy_sol_types::{sol, SolInterface};
+use OdosRouterV2::{inputTokenInfo, outputTokenInfo, swapTokenInfo};
+use OdosV2Router::{swapCall, OdosV2RouterCalls, OdosV2RouterInstance, Swap, SwapMulti};
 
 use crate::SwapInputs;
 

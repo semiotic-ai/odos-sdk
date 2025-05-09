@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use alloy_network::TransactionBuilder;
-use alloy_primitives::{Address, U256, hex};
+use alloy_primitives::{hex, Address, U256};
 use alloy_rpc_types::TransactionRequest;
 use serde::{Deserialize, Serialize};
 
