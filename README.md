@@ -1,7 +1,10 @@
 # Odos Rust SDK
 
-This is a [Rust](https://www.rust-lang.org/) SDK for [Odos](https://docs.odos.xyz/).
+A [Rust](https://www.rust-lang.org/) SDK for [Odos](https://docs.odos.xyz/)
 
+[![Crates.io](https://img.shields.io/crates/v/odos-sdk.svg)](https://crates.io/crates/odos-sdk)
+
+---
 ## One-to-one Swap Example
 
 ```rust
