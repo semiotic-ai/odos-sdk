@@ -10,6 +10,7 @@ A [Rust](https://www.rust-lang.org/) SDK for [Odos](https://docs.odos.xyz/)
 ```rust
 use alloy_chains::NamedChain;
 use alloy_primitives::{Address, U256};
+use erc20_rs::Erc20;
 use odos_sdk::{Erc20, OdosSorV2, QuoteRequest, SwapContext};
 
 /// Token address of the token to swap
