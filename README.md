@@ -3,8 +3,13 @@
 A [Rust](https://www.rust-lang.org/) SDK for [Odos](https://docs.odos.xyz/)
 
 [![Crates.io](https://img.shields.io/crates/v/odos-sdk.svg)](https://crates.io/crates/odos-sdk)
+[![Crates.io Downloads](https://img.shields.io/crates/d/odos-sdk.svg)](https://crates.io/crates/odos-sdk)
+[![License](https://img.shields.io/crates/l/odos-sdk.svg)](https://github.com/semiotic-ai/odos-rs/blob/main/LICENSE)
+[![Rust Version](https://img.shields.io/badge/rust-2021-blue.svg?logo=rust)](https://www.rust-lang.org)
+[![Maintenance](https://img.shields.io/badge/maintenance-actively--developed-brightgreen.svg)](https://github.com/semiotic-ai/odos-rs/)
 
 ---
+
 ## One-to-one Swap Example
 
 ```rust
