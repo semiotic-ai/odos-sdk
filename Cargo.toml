@@ -14,30 +14,30 @@ repository = "https://github.com/semiotic-ai/odos-rs"
 
 [dependencies]
 alloy-chains = "0.2.0"
-alloy-contract = { version = "1.0.3", default-features = false }
-alloy-json-rpc = { version = "1.0.3", default-features = false }
-alloy-network = { version = "1.0.3", default-features = false }
+alloy-contract = { version = "1.0.19", default-features = false }
+alloy-json-rpc = { version = "1.0.19", default-features = false }
+alloy-network = { version = "1.0.19", default-features = false }
 alloy-primitives = { version = "1.1.0", default-features = false, features = [
     "std",
     "rlp",
 ] }
-alloy-provider = { version = "1.0.3", default-features = false, features = [
+alloy-provider = { version = "1.0.19", default-features = false, features = [
     "anvil-node",
     "reqwest",
 ] }
-alloy-rpc-client = "1.0.3"
-alloy-rpc-types = "1.0.3"
-alloy-signer = { version = "1.0.3", default-features = false }
-alloy-signer-local = { version = "1.0.3", default-features = false }
+alloy-rpc-client = "1.0.19"
+alloy-rpc-types = "1.0.19"
+alloy-signer = { version = "1.0.19", default-features = false }
+alloy-signer-local = { version = "1.0.19", default-features = false }
 alloy-sol-types = { version = "1.1.0", features = ["json"] }
 alloy-sol-type-parser = "1.1.0"
-alloy-transport = { version = "1.0.3", default-features = false }
-alloy-transport-http = { version = "1.0.3", default-features = false, features = [
+alloy-transport = { version = "1.0.19", default-features = false }
+alloy-transport-http = { version = "1.0.19", default-features = false, features = [
     "reqwest",
 ] }
 anyhow = "1.0.97"
 bon = "3.4.0"
-reqwest = { version = "0.12.12", features = ["json"] }
+reqwest = { version = "0.12.22", features = ["json"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 thiserror = "2.0.12"
