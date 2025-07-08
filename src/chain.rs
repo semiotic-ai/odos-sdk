@@ -42,7 +42,7 @@ pub type OdosChainResult<T> = Result<T, OdosChainError>;
 /// # Examples
 ///
 /// ```rust
-/// use odos_rs::OdosChain;
+/// use odos_sdk::OdosChain;
 /// use alloy_chains::NamedChain;
 ///
 /// // Get V2 router address
@@ -57,7 +57,7 @@ pub type OdosChainResult<T> = Result<T, OdosChainError>;
 /// // Check support
 /// assert!(NamedChain::Mainnet.supports_odos());
 /// assert!(NamedChain::Mainnet.supports_v3());
-/// # Ok::<(), odos_rs::OdosChainError>(())
+/// # Ok::<(), odos_sdk::OdosChainError>(())
 /// ```
 pub trait OdosChain {
     /// Get the V2 router address for this chain
@@ -70,11 +70,11 @@ pub trait OdosChain {
     /// # Example
     ///
     /// ```rust
-    /// use odos_rs::OdosChain;
+    /// use odos_sdk::OdosChain;
     /// use alloy_chains::NamedChain;
     ///
     /// let address = NamedChain::Mainnet.v2_router_address()?;
-    /// # Ok::<(), odos_rs::OdosChainError>(())
+    /// # Ok::<(), odos_sdk::OdosChainError>(())
     /// ```
     fn v2_router_address(&self) -> OdosChainResult<Address>;
 
@@ -91,11 +91,11 @@ pub trait OdosChain {
     /// # Example
     ///
     /// ```rust
-    /// use odos_rs::OdosChain;
+    /// use odos_sdk::OdosChain;
     /// use alloy_chains::NamedChain;
     ///
     /// let address = NamedChain::Mainnet.v3_router_address()?;
-    /// # Ok::<(), odos_rs::OdosChainError>(())
+    /// # Ok::<(), odos_sdk::OdosChainError>(())
     /// ```
     fn v3_router_address(&self) -> OdosChainResult<Address>;
 
@@ -109,11 +109,11 @@ pub trait OdosChain {
     /// # Example
     ///
     /// ```rust
-    /// use odos_rs::OdosChain;
+    /// use odos_sdk::OdosChain;
     /// use alloy_chains::NamedChain;
     ///
     /// let (v2, v3) = NamedChain::Arbitrum.both_router_addresses()?;
-    /// # Ok::<(), odos_rs::OdosChainError>(())
+    /// # Ok::<(), odos_sdk::OdosChainError>(())
     /// ```
     fn both_router_addresses(&self) -> OdosChainResult<(Address, Address)> {
         Ok((self.v2_router_address()?, self.v3_router_address()?))
@@ -258,11 +258,11 @@ pub trait OdosRouterSelection: OdosChain {
     /// # Example
     ///
     /// ```rust
-    /// use odos_rs::{OdosChain, OdosRouterSelection};
+    /// use odos_sdk::{OdosChain, OdosRouterSelection};
     /// use alloy_chains::NamedChain;
     ///
     /// let address = NamedChain::Base.recommended_router_address()?;
-    /// # Ok::<(), odos_rs::OdosChainError>(())
+    /// # Ok::<(), odos_sdk::OdosChainError>(())
     /// ```
     fn recommended_router_address(&self) -> OdosChainResult<Address> {
         self.v3_router_address()
@@ -281,11 +281,11 @@ pub trait OdosRouterSelection: OdosChain {
     /// # Example
     ///
     /// ```rust
-    /// use odos_rs::{OdosChain, OdosRouterSelection};
+    /// use odos_sdk::{OdosChain, OdosRouterSelection};
     /// use alloy_chains::NamedChain;
     ///
     /// let address = NamedChain::Mainnet.router_address_with_fallback()?;
-    /// # Ok::<(), odos_rs::OdosChainError>(())
+    /// # Ok::<(), odos_sdk::OdosChainError>(())
     /// ```
     fn router_address_with_fallback(&self) -> OdosChainResult<Address> {
         self.v3_router_address()
@@ -306,12 +306,12 @@ pub trait OdosRouterSelection: OdosChain {
     /// # Example
     ///
     /// ```rust
-    /// use odos_rs::{OdosChain, OdosRouterSelection};
+    /// use odos_sdk::{OdosChain, OdosRouterSelection};
     /// use alloy_chains::NamedChain;
     ///
     /// let v3_address = NamedChain::Mainnet.router_address_by_preference(true)?;
     /// let v2_address = NamedChain::Mainnet.router_address_by_preference(false)?;
-    /// # Ok::<(), odos_rs::OdosChainError>(())
+    /// # Ok::<(), odos_sdk::OdosChainError>(())
     /// ```
     fn router_address_by_preference(&self, prefer_v3: bool) -> OdosChainResult<Address> {
         if prefer_v3 {

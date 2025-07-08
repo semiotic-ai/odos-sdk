@@ -15,7 +15,7 @@
 //!
 //! **Recommended: Type-safe trait-based approach**
 //! ```rust
-//! use odos_rs::{OdosChain, V2Router};
+//! use odos_sdk::{OdosChain, OdosRouterSelection};
 //! use alloy_chains::NamedChain;
 //!
 //! // Type-safe router address lookup
@@ -27,17 +27,18 @@
 //!
 //! // Safe lookups that don't panic
 //! if let Some(router_addr) = NamedChain::Mainnet.try_v3_router_address() {
-//!     let router = V2Router::new(router_addr, provider);
+//!     // Use the router address with your provider
+//!     println!("V3 router address: {router_addr}");
 //! }
 //!
 //! // Smart router selection
 //! let recommended = NamedChain::Base.recommended_router_address()?;
-//! # Ok::<(), odos_rs::OdosChainError>(())
+//! # Ok::<(), odos_sdk::OdosChainError>(())
 //! ```
 //!
 //! **Alternative: Chain ID-based approach**
 //! ```rust
-//! use odos_rs::{get_v2_router_by_chain_id, get_v3_router_by_chain_id};
+//! use odos_sdk::{get_v2_router_by_chain_id, get_v3_router_by_chain_id};
 //!
 //! // For cases where you only have chain IDs
 //! if let Some(router_addr) = get_v3_router_by_chain_id(1) {
@@ -231,7 +232,7 @@ pub const ODOS_V3: &str = "0x0D05a7D3448512B78fa8A9e46c4872C88C4a0D05";
 /// # Example
 ///
 /// ```rust
-/// use odos_rs::get_v2_router_by_chain_id;
+/// use odos_sdk::get_v2_router_by_chain_id;
 ///
 /// let ethereum_router = get_v2_router_by_chain_id(1);
 /// assert!(ethereum_router.is_some());
@@ -289,7 +290,7 @@ pub fn get_v2_router_by_chain_id(chain_id: u64) -> Option<&'static str> {
 /// # Example
 ///
 /// ```rust
-/// use odos_rs::get_v3_router_by_chain_id;
+/// use odos_sdk::get_v3_router_by_chain_id;
 ///
 /// // Check if V3 is available on Ethereum
 /// if let Some(v3_address) = get_v3_router_by_chain_id(1) {
@@ -321,7 +322,7 @@ pub fn get_v3_router_by_chain_id(chain_id: u64) -> Option<&'static str> {
 /// # Example
 ///
 /// ```rust
-/// use odos_rs::get_supported_chains;
+/// use odos_sdk::get_supported_chains;
 ///
 /// let chains = get_supported_chains();
 /// assert!(chains.contains(&1)); // Ethereum
@@ -393,7 +394,7 @@ pub fn get_supported_v3_chains() -> Vec<u64> {
 /// # Example
 ///
 /// ```rust
-/// use odos_rs::get_both_router_addresses;
+/// use odos_sdk::get_both_router_addresses;
 ///
 /// if let Some((v2_addr, v3_addr)) = get_both_router_addresses(1) {
 ///     println!("Ethereum - V2: {v2_addr}, V3: {v3_addr}");
