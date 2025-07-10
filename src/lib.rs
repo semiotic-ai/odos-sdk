@@ -4,6 +4,8 @@ mod chain;
 mod client;
 mod contract;
 mod error;
+#[cfg(test)]
+mod integration_tests;
 mod limit_order_v2;
 mod sor;
 mod swap;

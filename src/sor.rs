@@ -32,6 +32,11 @@ impl OdosSorV2 {
         })
     }
 
+    /// Get the client configuration
+    pub fn config(&self) -> &ClientConfig {
+        self.client.config()
+    }
+
     /// Get a swap quote using Odos API
     ///
     /// Takes a [`QuoteRequest`] and returns a [`SingleQuoteResponse`].
