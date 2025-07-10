@@ -6,8 +6,10 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::{
+    OdosError,
     OdosRouterV2::{inputTokenInfo, outputTokenInfo, swapTokenInfo},
     OdosV2Router::{swapCall, OdosV2RouterCalls},
+    Result,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
@@ -140,12 +142,14 @@ impl SingleQuoteResponse {
     }
 
     /// Get the in amount of the quote
-    pub fn in_amount_u256(&self) -> anyhow::Result<U256> {
+    pub fn in_amount_u256(&self) -> Result<U256> {
         let amount_str = self
             .in_amounts_iter()
             .next()
-            .ok_or(anyhow::anyhow!("Missing input amount"))?;
-        let amount: u128 = amount_str.parse()?;
+            .ok_or_else(|| OdosError::missing_data("Missing input amount"))?;
+        let amount: u128 = amount_str
+            .parse()
+            .map_err(|_| OdosError::invalid_input("Invalid input amount format"))?;
         Ok(U256::from(amount))
     }
 
@@ -194,11 +198,11 @@ impl SingleQuoteResponse {
     }
 
     /// Get the swap input token and amount
-    pub fn swap_input_token_and_amount(&self) -> anyhow::Result<(Address, U256)> {
+    pub fn swap_input_token_and_amount(&self) -> Result<(Address, U256)> {
         let input_token = *self
             .in_tokens_iter()
             .next()
-            .ok_or(anyhow::anyhow!("Missing input token"))?;
+            .ok_or_else(|| OdosError::missing_data("Missing input token"))?;
         let input_amount_in_u256 = self.in_amount_u256()?;
 
         Ok((input_token, input_amount_in_u256))
@@ -220,9 +224,9 @@ pub struct SwapInputs {
 }
 
 impl TryFrom<OdosV2RouterCalls> for SwapInputs {
-    type Error = anyhow::Error;
+    type Error = OdosError;
 
-    fn try_from(swap: OdosV2RouterCalls) -> Result<Self, Self::Error> {
+    fn try_from(swap: OdosV2RouterCalls) -> std::result::Result<Self, Self::Error> {
         match swap {
             OdosV2RouterCalls::swap(call) => {
                 debug!(call = ?call);
@@ -264,7 +268,7 @@ impl TryFrom<OdosV2RouterCalls> for SwapInputs {
                     value_out_min: outputMin,
                 })
             }
-            _ => Err(anyhow::anyhow!("Unexpected OdosV2RouterCalls")),
+            _ => Err(OdosError::invalid_input("Unexpected OdosV2RouterCalls")),
         }
     }
 }
