@@ -12,6 +12,7 @@ use crate::{
     Result,
 };
 
+/// Input token for the Odos quote API
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InputToken {
@@ -46,6 +47,7 @@ impl Display for InputToken {
     }
 }
 
+/// Output token for the Odos quote API
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OutputToken {
@@ -214,6 +216,7 @@ impl SingleQuoteResponse {
     }
 }
 
+/// Swap inputs for the Odos assemble API
 #[derive(Clone, Debug)]
 pub struct SwapInputs {
     executor: Address,

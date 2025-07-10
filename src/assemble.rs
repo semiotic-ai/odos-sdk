@@ -5,6 +5,7 @@ use alloy_primitives::{hex, Address, U256};
 use alloy_rpc_types::TransactionRequest;
 use serde::{Deserialize, Serialize};
 
+/// The URL for the Odos Assemble API
 pub const ASSEMBLE_URL: &str = "https://api.odos.xyz/sor/assemble";
 
 /// Request to the Odos Assemble API: <https://docs.odos.xyz/build/api-docs>

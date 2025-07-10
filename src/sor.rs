@@ -14,6 +14,7 @@ use super::TransactionData;
 
 use crate::{QuoteRequest, SingleQuoteResponse};
 
+/// The Odos Smart Order Routing V2 API client
 #[derive(Debug, Clone)]
 pub struct OdosSorV2 {
     client: OdosHttpClient,

@@ -2,10 +2,52 @@ use alloy_primitives::hex;
 use reqwest::StatusCode;
 use thiserror::Error;
 
+use crate::OdosChainError;
+
 /// Result type alias for Odos SDK operations
 pub type Result<T> = std::result::Result<T, OdosError>;
 
 /// Comprehensive error types for the Odos SDK
+///
+/// This enum provides detailed error types for different failure scenarios,
+/// allowing users to handle specific error conditions appropriately.
+///
+/// ## Error Categories
+///
+/// - **Network Errors**: HTTP, timeout, and connectivity issues
+/// - **API Errors**: Responses from the Odos service indicating various failures
+/// - **Input Errors**: Invalid parameters or missing required data
+/// - **System Errors**: Circuit breaker, rate limiting, and internal failures
+///
+/// ## Retryable Errors
+///
+/// Some error types are marked as retryable (see [`OdosError::is_retryable`]):
+/// - Timeout errors
+/// - Certain HTTP errors (5xx status codes, connection issues)
+/// - Rate limiting errors
+/// - Some API errors (server errors, rate limits)
+///
+/// ## Examples
+///
+/// ```rust
+/// use odos_sdk::{OdosError, Result};
+/// use reqwest::StatusCode;
+///
+/// // Create different error types
+/// let api_error = OdosError::api_error(StatusCode::BAD_REQUEST, "Invalid input".to_string());
+/// let timeout_error = OdosError::timeout_error("Request timed out");
+/// let circuit_breaker_error = OdosError::circuit_breaker_error("Circuit breaker is open");
+///
+/// // Check if errors are retryable
+/// assert!(!api_error.is_retryable());  // 4xx errors are not retryable
+/// assert!(timeout_error.is_retryable()); // Timeouts are retryable
+/// assert!(!circuit_breaker_error.is_retryable()); // Circuit breaker prevents retries
+///
+/// // Get error categories for metrics
+/// assert_eq!(api_error.category(), "api");
+/// assert_eq!(timeout_error.category(), "timeout");
+/// assert_eq!(circuit_breaker_error.category(), "circuit_breaker");
+/// ```
 #[derive(Error, Debug)]
 pub enum OdosError {
     /// HTTP request errors
@@ -61,6 +103,25 @@ pub enum OdosError {
     RateLimit(String),
 
     /// Circuit breaker is open
+    ///
+    /// This error occurs when the circuit breaker has detected too many failures
+    /// and has opened to prevent further requests. The circuit breaker will
+    /// automatically transition to half-open state after a timeout period,
+    /// allowing a limited number of requests to test if the service has recovered.
+    ///
+    /// ## When this occurs:
+    /// - When the failure count exceeds the configured threshold
+    /// - During the open state of the circuit breaker
+    /// - Before the reset timeout has elapsed
+    ///
+    /// ## How to handle:
+    /// - Wait for the circuit breaker to reset (typically 60 seconds by default)
+    /// - Check the circuit breaker status using [`OdosSorV2::circuit_breaker_status`]
+    /// - Implement exponential backoff in your retry logic
+    /// - Consider using alternative service endpoints if available
+    ///
+    /// This error is **not retryable** as the circuit breaker is specifically
+    /// designed to prevent additional load on a failing service.
     #[error("Circuit breaker is open: {0}")]
     CircuitBreakerOpen(String),
 
@@ -193,6 +254,26 @@ impl OdosError {
 impl From<anyhow::Error> for OdosError {
     fn from(err: anyhow::Error) -> Self {
         Self::Internal(err.to_string())
+    }
+}
+
+// Convert chain errors to appropriate error types
+impl From<OdosChainError> for OdosError {
+    fn from(err: OdosChainError) -> Self {
+        match err {
+            OdosChainError::V2NotAvailable { chain } => {
+                Self::contract_error(format!("V2 router not available on chain: {chain}"))
+            }
+            OdosChainError::V3NotAvailable { chain } => {
+                Self::contract_error(format!("V3 router not available on chain: {chain}"))
+            }
+            OdosChainError::UnsupportedChain { chain } => {
+                Self::contract_error(format!("Unsupported chain: {chain}"))
+            }
+            OdosChainError::InvalidAddress { address } => {
+                Self::invalid_input(format!("Invalid address format: {address}"))
+            }
+        }
     }
 }
 
