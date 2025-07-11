@@ -31,5 +31,11 @@ jobs:
     - name: Run tests before publish
       run: cargo test --all-features
     
+    - name: Install cargo-semver-checks
+      run: cargo install cargo-semver-checks --locked
+    
+    - name: Check semver compatibility
+      run: cargo semver-checks check-release
+    
     - name: Publish to crates.io
       run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
