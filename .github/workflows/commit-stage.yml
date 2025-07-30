@@ -59,7 +59,7 @@ jobs:
     name: cargo fmt
     runs-on: ubuntu-latest
     container:
-      image: rust:1.85-bookworm
+      image: rust:1.88-bookworm
     steps:
       - uses: actions/checkout@v3
       - run: |
@@ -70,7 +70,7 @@ jobs:
     name: cargo clippy
     runs-on: ubuntu-latest
     container:
-      image: rust:1.85-bookworm
+      image: rust:1.88-bookworm
     steps:
       - uses: actions/checkout@v3
       - uses: actions/cache@v3
@@ -90,7 +90,7 @@ jobs:
     name: cargo audit
     runs-on: ubuntu-latest
     container:
-      image: rust:1.85-bookworm
+      image: rust:1.88-bookworm
     steps:
       - uses: actions/checkout@v3
       - uses: actions/cache@v3
@@ -113,7 +113,7 @@ jobs:
       pull-requests: write
       actions: read
     container:
-      image: rust:1.85-bookworm
+      image: rust:1.88-bookworm
     steps:
       - uses: actions/checkout@v3
       - uses: actions/cache@v3
