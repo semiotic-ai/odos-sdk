@@ -1,11 +1,9 @@
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use std::time::Duration;
 
 use backoff::{backoff::Backoff, ExponentialBackoff};
 use reqwest::{Client, RequestBuilder, Response};
 use tokio::time::timeout;
-use tracing::{debug, info, instrument, warn};
+use tracing::{debug, instrument, warn};
 
 use crate::error::{OdosError, Result};
 
@@ -22,10 +20,6 @@ pub struct ClientConfig {
     pub initial_retry_delay: Duration,
     /// Maximum retry delay
     pub max_retry_delay: Duration,
-    /// Circuit breaker failure threshold
-    pub circuit_breaker_threshold: u32,
-    /// Circuit breaker reset timeout
-    pub circuit_breaker_reset_timeout: Duration,
     /// Maximum concurrent connections
     pub max_connections: usize,
     /// Connection pool idle timeout
@@ -40,98 +34,17 @@ impl Default for ClientConfig {
             max_retries: 3,
             initial_retry_delay: Duration::from_millis(100),
             max_retry_delay: Duration::from_secs(5),
-            circuit_breaker_threshold: 5,
-            circuit_breaker_reset_timeout: Duration::from_secs(60),
             max_connections: 20,
             pool_idle_timeout: Duration::from_secs(90),
         }
     }
 }
 
-/// Circuit breaker state
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum CircuitBreakerState {
-    Closed,
-    Open,
-    HalfOpen,
-}
-
-/// Enhanced HTTP client with retry logic, timeouts, and circuit breaker
+/// Enhanced HTTP client with retry logic and timeouts
 #[derive(Debug, Clone)]
 pub struct OdosHttpClient {
     client: Client,
     config: ClientConfig,
-    circuit_breaker: Arc<CircuitBreaker>,
-}
-
-#[derive(Debug)]
-struct CircuitBreaker {
-    state: std::sync::RwLock<CircuitBreakerState>,
-    failure_count: AtomicU64,
-    last_failure_time: std::sync::RwLock<Option<std::time::Instant>>,
-    config: ClientConfig,
-}
-
-impl CircuitBreaker {
-    fn new(config: ClientConfig) -> Self {
-        Self {
-            state: std::sync::RwLock::new(CircuitBreakerState::Closed),
-            failure_count: AtomicU64::new(0),
-            last_failure_time: std::sync::RwLock::new(None),
-            config,
-        }
-    }
-
-    fn can_execute(&self) -> Result<()> {
-        let state = *self.state.read().unwrap();
-        match state {
-            CircuitBreakerState::Closed => Ok(()),
-            CircuitBreakerState::Open => {
-                // Check if we should transition to half-open
-                if let Some(last_failure) = *self.last_failure_time.read().unwrap() {
-                    if last_failure.elapsed() > self.config.circuit_breaker_reset_timeout {
-                        *self.state.write().unwrap() = CircuitBreakerState::HalfOpen;
-                        info!("Circuit breaker transitioning to half-open state");
-                        Ok(())
-                    } else {
-                        Err(OdosError::circuit_breaker_error("Circuit breaker is open"))
-                    }
-                } else {
-                    Ok(())
-                }
-            }
-            CircuitBreakerState::HalfOpen => Ok(()),
-        }
-    }
-
-    fn record_success(&self) {
-        let current_state = *self.state.read().unwrap();
-        match current_state {
-            CircuitBreakerState::HalfOpen => {
-                *self.state.write().unwrap() = CircuitBreakerState::Closed;
-                self.failure_count.store(0, Ordering::SeqCst);
-                info!("Circuit breaker closed after successful request");
-            }
-            CircuitBreakerState::Closed => {
-                // Reset failure count on successful request
-                self.failure_count.store(0, Ordering::SeqCst);
-            }
-            CircuitBreakerState::Open => {
-                // Should not happen, but handle gracefully
-                warn!("Recorded success while circuit breaker is open");
-            }
-        }
-    }
-
-    fn record_failure(&self) {
-        let failure_count = self.failure_count.fetch_add(1, Ordering::SeqCst) + 1;
-        *self.last_failure_time.write().unwrap() = Some(std::time::Instant::now());
-
-        if failure_count >= self.config.circuit_breaker_threshold as u64 {
-            *self.state.write().unwrap() = CircuitBreakerState::Open;
-            warn!("Circuit breaker opened after {} failures", failure_count);
-        }
-    }
 }
 
 impl OdosHttpClient {
@@ -150,22 +63,15 @@ impl OdosHttpClient {
             .build()
             .map_err(OdosError::Http)?;
 
-        Ok(Self {
-            client,
-            config: config.clone(),
-            circuit_breaker: Arc::new(CircuitBreaker::new(config)),
-        })
+        Ok(Self { client, config })
     }
 
-    /// Execute a request with retry logic and circuit breaker
+    /// Execute a request with retry logic
     #[instrument(skip(self, request_builder_fn), level = "debug")]
     pub async fn execute_with_retry<F>(&self, request_builder_fn: F) -> Result<Response>
     where
         F: Fn() -> RequestBuilder + Clone,
     {
-        // Check circuit breaker
-        self.circuit_breaker.can_execute()?;
-
         // Configure backoff strategy
         let mut backoff = ExponentialBackoff {
             initial_interval: self.config.initial_retry_delay,
@@ -194,7 +100,6 @@ impl OdosHttpClient {
                     // Check if response indicates success
                     if response.status().is_success() {
                         debug!(attempt = attempt, status = %response.status(), "Request successful");
-                        self.circuit_breaker.record_success();
                         return Ok(response);
                     } else {
                         // API error - check if retryable
@@ -206,7 +111,6 @@ impl OdosHttpClient {
                         let error = OdosError::api_error(status, error_text);
 
                         if !error.is_retryable() {
-                            self.circuit_breaker.record_failure();
                             return Err(error);
                         }
 
@@ -221,7 +125,6 @@ impl OdosHttpClient {
                 Ok(Err(reqwest_error)) => {
                     let error = OdosError::Http(reqwest_error);
                     if !error.is_retryable() {
-                        self.circuit_breaker.record_failure();
                         return Err(error);
                     }
 
@@ -256,7 +159,6 @@ impl OdosHttpClient {
         }
 
         // All retries exhausted
-        self.circuit_breaker.record_failure();
         Err(last_error.unwrap_or_else(|| OdosError::internal_error("All retry attempts failed")))
     }
 
@@ -268,13 +170,6 @@ impl OdosHttpClient {
     /// Get the client configuration
     pub fn config(&self) -> &ClientConfig {
         &self.config
-    }
-
-    /// Get circuit breaker status
-    pub fn circuit_breaker_status(&self) -> String {
-        let state = *self.circuit_breaker.state.read().unwrap();
-        let failure_count = self.circuit_breaker.failure_count.load(Ordering::SeqCst);
-        format!("State: {state:?}, Failures: {failure_count}")
     }
 }
 
@@ -294,49 +189,7 @@ mod tests {
         let config = ClientConfig::default();
         assert_eq!(config.timeout, Duration::from_secs(30));
         assert_eq!(config.max_retries, 3);
-        assert_eq!(config.circuit_breaker_threshold, 5);
-    }
-
-    #[test]
-    fn test_circuit_breaker_creation() {
-        let config = ClientConfig::default();
-        let cb = CircuitBreaker::new(config);
-        assert_eq!(cb.failure_count.load(Ordering::SeqCst), 0);
-        assert_eq!(*cb.state.read().unwrap(), CircuitBreakerState::Closed);
-    }
-
-    #[test]
-    fn test_circuit_breaker_can_execute() {
-        let config = ClientConfig::default();
-        let cb = CircuitBreaker::new(config);
-        assert!(cb.can_execute().is_ok());
-    }
-
-    #[test]
-    fn test_circuit_breaker_record_success() {
-        let config = ClientConfig::default();
-        let cb = CircuitBreaker::new(config);
-        cb.record_success();
-        assert_eq!(cb.failure_count.load(Ordering::SeqCst), 0);
-    }
-
-    #[test]
-    fn test_circuit_breaker_record_failure() {
-        let config = ClientConfig {
-            circuit_breaker_threshold: 2,
-            ..Default::default()
-        };
-        let cb = CircuitBreaker::new(config);
-
-        // First failure
-        cb.record_failure();
-        assert_eq!(cb.failure_count.load(Ordering::SeqCst), 1);
-        assert_eq!(*cb.state.read().unwrap(), CircuitBreakerState::Closed);
-
-        // Second failure should open circuit
-        cb.record_failure();
-        assert_eq!(cb.failure_count.load(Ordering::SeqCst), 2);
-        assert_eq!(*cb.state.read().unwrap(), CircuitBreakerState::Open);
+        assert_eq!(config.max_connections, 20);
     }
 
     #[tokio::test]

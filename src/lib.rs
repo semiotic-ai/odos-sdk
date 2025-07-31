@@ -75,8 +75,6 @@
 //!     max_retries: 3,
 //!     initial_retry_delay: Duration::from_millis(100),
 //!     max_retry_delay: Duration::from_secs(5),
-//!     circuit_breaker_threshold: 5,
-//!     circuit_breaker_reset_timeout: Duration::from_secs(60),
 //!     max_connections: 20,
 //!     pool_idle_timeout: Duration::from_secs(90),
 //! };
@@ -112,10 +110,6 @@
 //!     Err(OdosError::RateLimit(msg)) => {
 //!         // Handle rate limiting (retryable)
 //!         eprintln!("Rate limited: {}", msg);
-//!     }
-//!     Err(OdosError::CircuitBreakerOpen(msg)) => {
-//!         // Handle circuit breaker
-//!         eprintln!("Circuit breaker open: {}", msg);
 //!     }
 //!     Err(err) => {
 //!         // Handle other errors

@@ -17,7 +17,7 @@ pub type Result<T> = std::result::Result<T, OdosError>;
 /// - **Network Errors**: HTTP, timeout, and connectivity issues
 /// - **API Errors**: Responses from the Odos service indicating various failures
 /// - **Input Errors**: Invalid parameters or missing required data
-/// - **System Errors**: Circuit breaker, rate limiting, and internal failures
+/// - **System Errors**: Rate limiting and internal failures
 ///
 /// ## Retryable Errors
 ///
@@ -36,17 +36,17 @@ pub type Result<T> = std::result::Result<T, OdosError>;
 /// // Create different error types
 /// let api_error = OdosError::api_error(StatusCode::BAD_REQUEST, "Invalid input".to_string());
 /// let timeout_error = OdosError::timeout_error("Request timed out");
-/// let circuit_breaker_error = OdosError::circuit_breaker_error("Circuit breaker is open");
+/// let rate_limit_error = OdosError::rate_limit_error("Too many requests");
 ///
 /// // Check if errors are retryable
 /// assert!(!api_error.is_retryable());  // 4xx errors are not retryable
 /// assert!(timeout_error.is_retryable()); // Timeouts are retryable
-/// assert!(!circuit_breaker_error.is_retryable()); // Circuit breaker prevents retries
+/// assert!(rate_limit_error.is_retryable()); // Rate limits are retryable
 ///
 /// // Get error categories for metrics
 /// assert_eq!(api_error.category(), "api");
 /// assert_eq!(timeout_error.category(), "timeout");
-/// assert_eq!(circuit_breaker_error.category(), "circuit_breaker");
+/// assert_eq!(rate_limit_error.category(), "rate_limit");
 /// ```
 #[derive(Error, Debug)]
 pub enum OdosError {
@@ -101,29 +101,6 @@ pub enum OdosError {
     /// Rate limit exceeded
     #[error("Rate limit exceeded: {0}")]
     RateLimit(String),
-
-    /// Circuit breaker is open
-    ///
-    /// This error occurs when the circuit breaker has detected too many failures
-    /// and has opened to prevent further requests. The circuit breaker will
-    /// automatically transition to half-open state after a timeout period,
-    /// allowing a limited number of requests to test if the service has recovered.
-    ///
-    /// ## When this occurs:
-    /// - When the failure count exceeds the configured threshold
-    /// - During the open state of the circuit breaker
-    /// - Before the reset timeout has elapsed
-    ///
-    /// ## How to handle:
-    /// - Wait for the circuit breaker to reset (typically 60 seconds by default)
-    /// - Check the circuit breaker status using [`OdosSorV2::circuit_breaker_status`]
-    /// - Implement exponential backoff in your retry logic
-    /// - Consider using alternative service endpoints if available
-    ///
-    /// This error is **not retryable** as the circuit breaker is specifically
-    /// designed to prevent additional load on a failing service.
-    #[error("Circuit breaker is open: {0}")]
-    CircuitBreakerOpen(String),
 
     /// Generic internal error
     #[error("Internal error: {0}")]
@@ -181,11 +158,6 @@ impl OdosError {
         Self::RateLimit(message.into())
     }
 
-    /// Create a circuit breaker error
-    pub fn circuit_breaker_error(message: impl Into<String>) -> Self {
-        Self::CircuitBreakerOpen(message.into())
-    }
-
     /// Create an internal error
     pub fn internal_error(message: impl Into<String>) -> Self {
         Self::Internal(message.into())
@@ -223,7 +195,6 @@ impl OdosError {
             | OdosError::TransactionAssembly(_)
             | OdosError::QuoteRequest(_)
             | OdosError::Configuration(_)
-            | OdosError::CircuitBreakerOpen(_)
             | OdosError::Internal(_) => false,
         }
     }
@@ -244,7 +215,6 @@ impl OdosError {
             OdosError::Configuration(_) => "configuration",
             OdosError::Timeout(_) => "timeout",
             OdosError::RateLimit(_) => "rate_limit",
-            OdosError::CircuitBreakerOpen(_) => "circuit_breaker",
             OdosError::Internal(_) => "internal",
         }
     }

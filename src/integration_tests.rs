@@ -11,7 +11,6 @@ mod tests {
         let config = ClientConfig {
             timeout: Duration::from_secs(10),
             max_retries: 2,
-            circuit_breaker_threshold: 3,
             ..Default::default()
         };
 
@@ -20,7 +19,6 @@ mod tests {
         // Verify the client was created successfully
         assert_eq!(sor_client.config().timeout, Duration::from_secs(10));
         assert_eq!(sor_client.config().max_retries, 2);
-        assert_eq!(sor_client.config().circuit_breaker_threshold, 3);
     }
 
     #[tokio::test]
@@ -30,7 +28,6 @@ mod tests {
         // Verify default configuration
         assert_eq!(sor_client.config().timeout, Duration::from_secs(30));
         assert_eq!(sor_client.config().max_retries, 3);
-        assert_eq!(sor_client.config().circuit_breaker_threshold, 5);
     }
 
     #[test]
@@ -50,21 +47,6 @@ mod tests {
         let rate_limit_error = OdosError::rate_limit_error("Too many requests");
         assert_eq!(rate_limit_error.category(), "rate_limit");
         assert!(rate_limit_error.is_retryable());
-    }
-
-    #[test]
-    fn test_circuit_breaker_integration() {
-        let config = ClientConfig {
-            circuit_breaker_threshold: 2,
-            ..Default::default()
-        };
-
-        let client = OdosHttpClient::with_config(config).expect("Failed to create client");
-
-        // Verify initial state
-        let status = client.circuit_breaker_status();
-        assert!(status.contains("State: Closed"));
-        assert!(status.contains("Failures: 0"));
     }
 
     #[test]
@@ -143,8 +125,5 @@ mod tests {
 
         let missing_data = OdosError::missing_data("Missing data");
         assert!(!missing_data.is_retryable());
-
-        let circuit_breaker = OdosError::circuit_breaker_error("Circuit open");
-        assert!(!circuit_breaker.is_retryable());
     }
 }
