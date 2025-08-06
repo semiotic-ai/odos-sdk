@@ -80,8 +80,6 @@ impl OdosHttpClient {
         };
 
         let mut attempt = 0;
-        #[allow(unused_assignments)]
-        let mut last_error: Option<OdosError> = None;
 
         loop {
             attempt += 1;
@@ -92,7 +90,8 @@ impl OdosHttpClient {
                 Err(e) => return Err(OdosError::Http(e)),
             };
 
-            match timeout(self.config.timeout, self.client.execute(request)).await {
+            let last_error = match timeout(self.config.timeout, self.client.execute(request)).await
+            {
                 Ok(Ok(response)) if response.status().is_success() => {
                     debug!(attempt, status = %response.status(), "Request successful");
                     return Ok(response);
@@ -114,8 +113,6 @@ impl OdosHttpClient {
                             return Err(error);
                         }
 
-                        last_error = Some(error);
-
                         warn!(
                             attempt,
                             status = %status,
@@ -128,6 +125,7 @@ impl OdosHttpClient {
                             tokio::time::sleep(delay).await;
                             continue;
                         }
+                        error
                     } else {
                         let body = response
                             .text()
@@ -140,9 +138,8 @@ impl OdosHttpClient {
                             return Err(error);
                         }
 
-                        last_error = Some(error);
-
                         warn!(attempt, status = %status, "Retryable API error, retrying");
+                        error
                     }
                 }
                 Ok(Err(e)) => {
@@ -152,29 +149,27 @@ impl OdosHttpClient {
                         return Err(error);
                     }
                     warn!(attempt, error = %error, "Retryable HTTP error, retrying");
-                    last_error = Some(error);
+                    error
                 }
                 Err(_) => {
                     let error = OdosError::timeout_error("Request timed out");
-                    last_error = Some(error);
                     warn!(attempt, timeout = ?self.config.timeout, "Request timed out, retrying");
+                    error
                 }
-            }
+            };
 
             // Check if we've exhausted retries
             if attempt >= self.config.max_retries {
-                break;
+                return Err(last_error);
             }
 
             if let Some(delay) = backoff.next_backoff() {
                 debug!(?delay, "Waiting before retry");
                 tokio::time::sleep(delay).await;
             } else {
-                break;
+                return Err(last_error);
             }
         }
-
-        Err(last_error.unwrap_or_else(|| OdosError::internal_error("All retry attempts failed")))
     }
 
     /// Get a reference to the underlying reqwest client
