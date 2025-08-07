@@ -138,7 +138,7 @@ impl OdosHttpClient {
                             return Err(error);
                         }
 
-                        warn!(attempt, status = %status, "Retryable API error, retrying");
+                        debug!(attempt, status = %status, "Retryable API error, retrying");
                         error
                     }
                 }
