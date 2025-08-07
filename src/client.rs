@@ -121,9 +121,14 @@ impl OdosHttpClient {
                         );
 
                         if let Some(delay) = retry_after {
-                            debug!(?delay, "Respecting Retry-After header");
-                            tokio::time::sleep(delay).await;
-                            continue;
+                            // If retry-after is 0, use exponential backoff instead
+                            if delay.is_zero() {
+                                debug!("Retry-After is 0, will use exponential backoff");
+                            } else {
+                                debug!(?delay, "Respecting Retry-After header");
+                                tokio::time::sleep(delay).await;
+                                continue;
+                            }
                         }
                         error
                     } else {
