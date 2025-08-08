@@ -2426,7 +2426,7 @@ dependencies = [
 
 [[package]]
 name = "odos-sdk"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "alloy-chains",
  "alloy-contract",
