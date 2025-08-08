@@ -113,22 +113,31 @@ impl OdosHttpClient {
                             return Err(error);
                         }
 
-                        warn!(
-                            attempt,
-                            status = %status,
-                            retry_after_secs = ?retry_after.map(|d| d.as_secs()),
-                            "Rate limit exceeded (429), will retry after delay"
-                        );
-
                         if let Some(delay) = retry_after {
                             // If retry-after is 0, use exponential backoff instead
                             if delay.is_zero() {
-                                debug!("Retry-After is 0, will use exponential backoff");
+                                debug!(
+                                    attempt,
+                                    status = %status,
+                                    "Rate limit exceeded (429) with Retry-After: 0, will use exponential backoff"
+                                );
+                                // Fall through to use exponential backoff
                             } else {
-                                debug!(?delay, "Respecting Retry-After header");
+                                debug!(
+                                    attempt,
+                                    status = %status,
+                                    retry_after_secs = delay.as_secs(),
+                                    "Rate limit exceeded (429), respecting Retry-After header"
+                                );
                                 tokio::time::sleep(delay).await;
                                 continue;
                             }
+                        } else {
+                            debug!(
+                                attempt,
+                                status = %status,
+                                "Rate limit exceeded (429) without Retry-After header, will use exponential backoff"
+                            );
                         }
                         error
                     } else {
@@ -640,6 +649,41 @@ mod tests {
 
         let retry_after = extract_retry_after(&response);
         assert_eq!(retry_after, Some(Duration::from_secs(0)));
+    }
+
+    #[tokio::test]
+    async fn test_rate_limit_with_retry_after_zero_uses_backoff() {
+        let mock_server = MockServer::start().await;
+
+        // Mock that returns 429 with Retry-After: 0 on first call, then succeeds
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(create_rate_limit_mock(Some(0)))
+            .mount(&mock_server)
+            .await;
+
+        let client = create_test_client(3, 30000);
+        let start = std::time::Instant::now();
+
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(
+            response.is_ok(),
+            "Request should succeed after retry with backoff, but got: {response:?}"
+        );
+
+        // Should have used exponential backoff (at least 10ms from initial_retry_delay)
+        let elapsed = start.elapsed();
+        assert!(
+            elapsed >= Duration::from_millis(10),
+            "Should use exponential backoff when Retry-After is 0, elapsed: {elapsed:?}"
+        );
+        assert!(
+            elapsed < Duration::from_secs(1),
+            "Should not wait a full second when Retry-After is 0, elapsed: {elapsed:?}"
+        );
     }
 
     #[test]
