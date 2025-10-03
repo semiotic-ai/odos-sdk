@@ -223,6 +223,7 @@ impl OdosChain for NamedChain {
             Arbitrum
                 | Avalanche
                 | Base
+                | Berachain
                 | BinanceSmartChain
                 | Fantom
                 | Fraxtal
@@ -373,6 +374,7 @@ mod tests {
     fn test_supports_odos() {
         assert!(NamedChain::Mainnet.supports_odos());
         assert!(NamedChain::Arbitrum.supports_odos());
+        assert!(NamedChain::Berachain.supports_odos());
         assert!(!NamedChain::Sepolia.supports_odos());
     }
 
