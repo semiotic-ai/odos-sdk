@@ -105,7 +105,7 @@ impl OdosHttpClient {
                         let body = response
                             .text()
                             .await
-                            .unwrap_or_else(|_| "Unknown error".to_string());
+                            .unwrap_or_else(|e| format!("Failed to read response body: {}", e));
 
                         let error = OdosError::rate_limit_error(body);
 
@@ -144,7 +144,7 @@ impl OdosHttpClient {
                         let body = response
                             .text()
                             .await
-                            .unwrap_or_else(|_| "Unknown error".to_string());
+                            .unwrap_or_else(|e| format!("Failed to read response body: {}", e));
 
                         let error = OdosError::api_error(status, body);
 
@@ -208,6 +208,17 @@ fn extract_retry_after(response: &Response) -> Option<Duration> {
 }
 
 impl Default for OdosHttpClient {
+    /// Creates a default HTTP client with standard configuration.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the underlying HTTP client cannot be initialized.
+    /// This should only fail in extremely rare cases such as:
+    /// - TLS initialization failure
+    /// - System resource exhaustion
+    /// - Invalid system configuration
+    ///
+    /// In practice, this almost never fails and is safe for most use cases.
     fn default() -> Self {
         Self::new().expect("Failed to create default HTTP client")
     }

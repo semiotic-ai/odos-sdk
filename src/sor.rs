@@ -67,7 +67,7 @@ impl OdosSorV2 {
             let error_text = response
                 .text()
                 .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
+                .unwrap_or_else(|e| format!("Failed to read response body: {}", e));
             Err(OdosError::quote_request_error(format!(
                 "API error (status: {status}): {error_text}"
             )))
@@ -142,13 +142,25 @@ impl OdosSorV2 {
 
         Ok(TransactionRequest::default()
             .with_input(hex::decode(&data)?)
-            .with_value(parse_value(&value))
+            .with_value(parse_value(&value)?)
             .with_to(swap.router_address())
             .with_from(swap.signer_address()))
     }
 }
 
 impl Default for OdosSorV2 {
+    /// Creates a default Odos SOR V2 client with standard configuration.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the underlying HTTP client cannot be initialized.
+    /// This should only fail in extremely rare cases such as:
+    /// - TLS initialization failure
+    /// - System resource exhaustion
+    /// - Invalid system configuration
+    ///
+    /// In practice, this almost never fails and is safe for most use cases.
+    /// See [`OdosHttpClient::default`] for more details.
     fn default() -> Self {
         Self::new().expect("Failed to create default OdosSorV2 client")
     }

@@ -232,7 +232,16 @@ impl TryFrom<OdosV2RouterCalls> for SwapInputs {
     fn try_from(swap: OdosV2RouterCalls) -> std::result::Result<Self, Self::Error> {
         match swap {
             OdosV2RouterCalls::swap(call) => {
-                debug!(call = ?call);
+                debug!(
+                    executor = %call.executor,
+                    path_definition_len = call.pathDefinition.len(),
+                    referral_code = call.referralCode,
+                    input_token = %call.tokenInfo.inputToken,
+                    input_amount = %call.tokenInfo.inputAmount,
+                    output_token = %call.tokenInfo.outputToken,
+                    output_min = %call.tokenInfo.outputMin,
+                    "Processing swap call"
+                );
 
                 let swapCall {
                     executor,
