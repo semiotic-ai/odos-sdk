@@ -123,17 +123,22 @@ pub trait OdosChain {
     ///
     /// # Returns
     ///
-    /// `true` if both V2 and V3 are supported on this chain
+    /// `true` if either V2 or V3 (or both) are supported on this chain
     fn supports_odos(&self) -> bool;
+
+    /// Check if this chain supports Odos V2
+    ///
+    /// # Returns
+    ///
+    /// `true` if V2 is supported on this chain
+    fn supports_v2(&self) -> bool;
 
     /// Check if this chain supports Odos V3
     ///
     /// # Returns
     ///
     /// `true` if V3 is supported on this chain
-    fn supports_v3(&self) -> bool {
-        self.supports_odos() // V2 and V3 have identical coverage
-    }
+    fn supports_v3(&self) -> bool;
 
     /// Try to get the V2 router address without errors
     ///
@@ -173,6 +178,11 @@ impl OdosChain for NamedChain {
             });
         }
 
+        // If V2 is not available on this chain, fall back to V3
+        if !self.supports_v2() {
+            return self.v3_router_address();
+        }
+
         let address_str = match self {
             Arbitrum => ODOS_V2_ARBITRUM_ROUTER,
             Avalanche => ODOS_V2_AVALANCHE_ROUTER,
@@ -205,10 +215,15 @@ impl OdosChain for NamedChain {
     }
 
     fn v3_router_address(&self) -> OdosChainResult<Address> {
-        if !self.supports_v3() {
+        if !self.supports_odos() {
             return Err(OdosChainError::V3NotAvailable {
                 chain: format!("{self:?}"),
             });
+        }
+
+        // If V3 is not available on this chain, fall back to V2
+        if !self.supports_v3() {
+            return self.v2_router_address();
         }
 
         ODOS_V3.parse().map_err(|_| OdosChainError::InvalidAddress {
@@ -217,6 +232,53 @@ impl OdosChain for NamedChain {
     }
 
     fn supports_odos(&self) -> bool {
+        use NamedChain::*;
+        matches!(
+            self,
+            Arbitrum
+                | Avalanche
+                | Base
+                | Berachain
+                | BinanceSmartChain
+                | Fantom
+                | Fraxtal
+                | Mainnet
+                | Optimism
+                | Polygon
+                | Linea
+                | Mantle
+                | Mode
+                | Scroll
+                | Sonic
+                | ZkSync
+                | Unichain
+        )
+    }
+
+    fn supports_v2(&self) -> bool {
+        use NamedChain::*;
+        matches!(
+            self,
+            Arbitrum
+                | Avalanche
+                | Base
+                | BinanceSmartChain
+                | Fantom
+                | Fraxtal
+                | Mainnet
+                | Optimism
+                | Polygon
+                | Linea
+                | Mantle
+                | Mode
+                | Scroll
+                | Sonic
+                | ZkSync
+                | Unichain
+        )
+    }
+
+    fn supports_v3(&self) -> bool {
         use NamedChain::*;
         matches!(
             self,
@@ -376,6 +438,37 @@ mod tests {
         assert!(NamedChain::Arbitrum.supports_odos());
         assert!(NamedChain::Berachain.supports_odos());
         assert!(!NamedChain::Sepolia.supports_odos());
+    }
+
+    #[test]
+    fn test_supports_v2() {
+        assert!(NamedChain::Mainnet.supports_v2());
+        assert!(NamedChain::Arbitrum.supports_v2());
+        assert!(!NamedChain::Berachain.supports_v2()); // Berachain only has V3
+        assert!(!NamedChain::Sepolia.supports_v2());
+    }
+
+    #[test]
+    fn test_supports_v3() {
+        assert!(NamedChain::Mainnet.supports_v3());
+        assert!(NamedChain::Arbitrum.supports_v3());
+        assert!(NamedChain::Berachain.supports_v3());
+        assert!(!NamedChain::Sepolia.supports_v3());
+    }
+
+    #[test]
+    fn test_berachain_v3_only() {
+        // Berachain only has V3, not V2
+        assert!(!NamedChain::Berachain.supports_v2());
+        assert!(NamedChain::Berachain.supports_v3());
+
+        // Requesting V2 should fallback to V3
+        let v2_result = NamedChain::Berachain.v2_router_address();
+        let v3_result = NamedChain::Berachain.v3_router_address();
+
+        assert!(v2_result.is_ok());
+        assert!(v3_result.is_ok());
+        assert_eq!(v2_result.unwrap(), v3_result.unwrap());
     }
 
     #[test]
