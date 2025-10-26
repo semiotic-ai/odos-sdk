@@ -118,6 +118,85 @@
 //! }
 //! # }
 //! ```
+//!
+//! ## Rate Limiting
+//!
+//! The Odos API enforces rate limits to ensure fair usage. This SDK handles rate limiting automatically:
+//!
+//! - **HTTP 429 responses** are detected and classified as [`OdosError::RateLimit`]
+//! - Requests are **automatically retried** with exponential backoff
+//! - The SDK **respects `Retry-After` headers** when provided by the API
+//! - Default configuration: **3 retry attempts** with exponential backoff (100ms, 200ms, 400ms)
+//!
+//! ### Best Practices for Avoiding Rate Limits
+//!
+//! 1. **Share a single client** across your application instead of creating new clients per request
+//! 2. **Implement application-level rate limiting** if making many concurrent requests
+//! 3. **Handle rate limit errors gracefully** and back off at the application level if needed
+//!
+//! ### Example: Handling Rate Limits
+//!
+//! ```rust,no_run
+//! use odos_sdk::*;
+//! use alloy_primitives::{Address, U256};
+//! use std::time::Duration;
+//!
+//! # async fn example() -> Result<()> {
+//! # let client = OdosSorV2::new()?;
+//! # let quote_request = QuoteRequest::builder()
+//! #     .chain_id(1)
+//! #     .input_tokens(vec![])
+//! #     .output_tokens(vec![])
+//! #     .slippage_limit_percent(1.0)
+//! #     .user_addr("test".to_string())
+//! #     .compact(false)
+//! #     .simple(false)
+//! #     .referral_code(0)
+//! #     .disable_rfqs(false)
+//! #     .build();
+//! match client.get_swap_quote(&quote_request).await {
+//!     Ok(quote) => {
+//!         println!("Got quote: {}", quote.path_id());
+//!     }
+//!     Err(e) if e.is_rate_limit() => {
+//!         // Rate limit exceeded even after SDK retries
+//!         // Consider backing off at application level
+//!         eprintln!("Rate limited - waiting before retry");
+//!         tokio::time::sleep(Duration::from_secs(5)).await;
+//!         // Retry or handle accordingly
+//!     }
+//!     Err(e) => {
+//!         eprintln!("Error: {}", e);
+//!     }
+//! }
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ### Configuring Retry Behavior
+//!
+//! You can customize retry behavior for your use case:
+//!
+//! ```rust,no_run
+//! use odos_sdk::*;
+//! use std::time::Duration;
+//!
+//! # fn example() -> Result<()> {
+//! let config = ClientConfig {
+//!     max_retries: 5,  // Increase from default 3
+//!     initial_retry_delay: Duration::from_millis(200),
+//!     max_retry_delay: Duration::from_secs(10),
+//!     ..Default::default()
+//! };
+//!
+//! let client = OdosSorV2::with_config(config)?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! **Trade-offs:**
+//! - **Higher retry counts**: More resilient to transient rate limits, but slower failure in persistent scenarios
+//! - **Longer delays**: Less likely to hit rate limits again, but slower overall throughput
 
 mod api;
 mod assemble;

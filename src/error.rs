@@ -199,6 +199,32 @@ impl OdosError {
         }
     }
 
+    /// Check if this error is specifically a rate limit error
+    ///
+    /// This is a convenience method to help with error handling patterns.
+    /// Rate limit errors indicate that the Odos API has rejected the request
+    /// due to too many requests being made in a given time period.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::{OdosError, OdosSorV2, QuoteRequest};
+    ///
+    /// # async fn example(client: &OdosSorV2, request: &QuoteRequest) {
+    /// match client.get_swap_quote(request).await {
+    ///     Ok(quote) => { /* handle quote */ }
+    ///     Err(e) if e.is_rate_limit() => {
+    ///         // Specific handling for rate limits
+    ///         eprintln!("Rate limited - consider backing off");
+    ///     }
+    ///     Err(e) => { /* handle other errors */ }
+    /// }
+    /// # }
+    /// ```
+    pub fn is_rate_limit(&self) -> bool {
+        matches!(self, OdosError::RateLimit(_))
+    }
+
     /// Get the error category for metrics
     pub fn category(&self) -> &'static str {
         match self {
