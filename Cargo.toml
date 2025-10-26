@@ -13,26 +13,26 @@ readme = "README.md"
 repository = "https://github.com/semiotic-ai/odos-rs"
 
 [dependencies]
-alloy-chains = "0.2.0"
-alloy-contract = { version = "1.0.19", default-features = false }
-alloy-json-rpc = { version = "1.0.19", default-features = false }
-alloy-network = { version = "1.0.19", default-features = false }
+alloy-chains = "0.2.15"
+alloy-contract = { version = "1.0.41", default-features = false }
+alloy-json-rpc = { version = "1.0.41", default-features = false }
+alloy-network = { version = "1.0.41", default-features = false }
 alloy-primitives = { version = "1.4.0", default-features = false, features = [
     "std",
     "rlp",
 ] }
-alloy-provider = { version = "1.0.19", default-features = false, features = [
+alloy-provider = { version = "1.0.41", default-features = false, features = [
     "anvil-node",
     "reqwest",
 ] }
-alloy-rpc-client = "1.0.19"
-alloy-rpc-types = "1.0.19"
-alloy-signer = { version = "1.0.19", default-features = false }
-alloy-signer-local = { version = "1.0.19", default-features = false }
+alloy-rpc-client = "1.0.41"
+alloy-rpc-types = "1.0.41"
+alloy-signer = { version = "1.0.41", default-features = false }
+alloy-signer-local = { version = "1.0.41", default-features = false }
 alloy-sol-types = { version = "1.4.0", features = ["json"] }
 alloy-sol-type-parser = "1.4.0"
-alloy-transport = { version = "1.0.19", default-features = false }
-alloy-transport-http = { version = "1.0.19", default-features = false, features = [
+alloy-transport = { version = "1.0.41", default-features = false }
+alloy-transport-http = { version = "1.0.41", default-features = false, features = [
     "reqwest",
 ] }
 anyhow = "1.0.97"
