@@ -10,7 +10,10 @@ mod tests {
     async fn test_odos_sor_with_custom_config() {
         let config = ClientConfig {
             timeout: Duration::from_secs(10),
-            max_retries: 2,
+            retry_config: RetryConfig {
+                max_retries: 2,
+                ..Default::default()
+            },
             ..Default::default()
         };
 
@@ -18,7 +21,7 @@ mod tests {
 
         // Verify the client was created successfully
         assert_eq!(sor_client.config().timeout, Duration::from_secs(10));
-        assert_eq!(sor_client.config().max_retries, 2);
+        assert_eq!(sor_client.config().retry_config.max_retries, 2);
     }
 
     #[tokio::test]
@@ -27,7 +30,7 @@ mod tests {
 
         // Verify default configuration
         assert_eq!(sor_client.config().timeout, Duration::from_secs(30));
-        assert_eq!(sor_client.config().max_retries, 3);
+        assert_eq!(sor_client.config().retry_config.max_retries, 3);
     }
 
     #[test]
@@ -46,7 +49,8 @@ mod tests {
 
         let rate_limit_error = OdosError::rate_limit_error("Too many requests");
         assert_eq!(rate_limit_error.category(), "rate_limit");
-        assert!(rate_limit_error.is_retryable());
+        // Rate limits are NOT retryable - must be handled globally
+        assert!(!rate_limit_error.is_retryable());
     }
 
     #[test]
@@ -100,7 +104,8 @@ mod tests {
         assert!(timeout_err.is_retryable());
 
         let rate_limit_err = OdosError::rate_limit_error("Rate limited");
-        assert!(rate_limit_err.is_retryable());
+        // Rate limits are NOT retryable - must be handled globally
+        assert!(!rate_limit_err.is_retryable());
 
         // Test API errors with different status codes
         let server_error = OdosError::api_error(

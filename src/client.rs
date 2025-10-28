@@ -7,19 +7,101 @@ use tracing::{debug, instrument, warn};
 
 use crate::error::{OdosError, Result};
 
+/// Configuration for retry behavior
+///
+/// Controls which errors should be retried and how retries are executed.
+///
+/// # Examples
+///
+/// ```rust
+/// use odos_sdk::RetryConfig;
+///
+/// // No retries - all errors return immediately
+/// let config = RetryConfig::no_retries();
+///
+/// // Conservative retries - only network errors
+/// let config = RetryConfig::conservative();
+///
+/// // Default retries - network errors and server errors
+/// let config = RetryConfig::default();
+///
+/// // Custom retry logic
+/// let config = RetryConfig {
+///     max_retries: 2,
+///     retry_server_errors: false,
+///     retry_predicate: Some(|err| {
+///         // Custom logic to determine if error should be retried
+///         err.is_retryable()
+///     }),
+///     ..Default::default()
+/// };
+/// ```
+#[derive(Debug, Clone)]
+pub struct RetryConfig {
+    /// Maximum retry attempts for retryable errors
+    pub max_retries: u32,
+
+    /// Initial backoff duration in milliseconds
+    pub initial_backoff_ms: u64,
+
+    /// Whether to retry server errors (5xx)
+    pub retry_server_errors: bool,
+
+    /// Custom retry predicate (advanced use)
+    ///
+    /// When provided, this function overrides the default retry logic.
+    /// Return `true` to retry the error, `false` to return it immediately.
+    pub retry_predicate: Option<fn(&OdosError) -> bool>,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            initial_backoff_ms: 100,
+            retry_server_errors: true,
+            retry_predicate: None,
+        }
+    }
+}
+
+impl RetryConfig {
+    /// No retries - return errors immediately
+    ///
+    /// Use this when you want to handle all errors at the application level,
+    /// or when implementing your own retry logic.
+    pub fn no_retries() -> Self {
+        Self {
+            max_retries: 0,
+            ..Default::default()
+        }
+    }
+
+    /// Conservative retries - only network errors
+    ///
+    /// This configuration retries only transient network failures
+    /// (timeouts, connection errors) but not server errors (5xx).
+    /// Use this when you want to be cautious about retry behavior.
+    pub fn conservative() -> Self {
+        Self {
+            max_retries: 2,
+            retry_server_errors: false,
+            ..Default::default()
+        }
+    }
+}
+
 /// Configuration for the HTTP client
+///
+/// Combines connection settings with retry behavior configuration.
 #[derive(Debug, Clone)]
 pub struct ClientConfig {
     /// Request timeout duration
     pub timeout: Duration,
     /// Connection timeout duration
     pub connect_timeout: Duration,
-    /// Maximum number of retry attempts
-    pub max_retries: u32,
-    /// Initial retry delay
-    pub initial_retry_delay: Duration,
-    /// Maximum retry delay
-    pub max_retry_delay: Duration,
+    /// Retry behavior configuration
+    pub retry_config: RetryConfig,
     /// Maximum concurrent connections
     pub max_connections: usize,
     /// Connection pool idle timeout
@@ -31,11 +113,31 @@ impl Default for ClientConfig {
         Self {
             timeout: Duration::from_secs(30),
             connect_timeout: Duration::from_secs(10),
-            max_retries: 3,
-            initial_retry_delay: Duration::from_millis(100),
-            max_retry_delay: Duration::from_secs(5),
+            retry_config: RetryConfig::default(),
             max_connections: 20,
             pool_idle_timeout: Duration::from_secs(90),
+        }
+    }
+}
+
+impl ClientConfig {
+    /// Create a configuration with no retries
+    ///
+    /// Useful when you want to handle all errors at the application level.
+    pub fn no_retries() -> Self {
+        Self {
+            retry_config: RetryConfig::no_retries(),
+            ..Default::default()
+        }
+    }
+
+    /// Create a configuration with conservative retry behavior
+    ///
+    /// Only retries transient network failures, not server errors or rate limits.
+    pub fn conservative() -> Self {
+        Self {
+            retry_config: RetryConfig::conservative(),
+            ..Default::default()
         }
     }
 }
@@ -72,9 +174,11 @@ impl OdosHttpClient {
     where
         F: Fn() -> RequestBuilder + Clone,
     {
+        let initial_backoff_duration =
+            Duration::from_millis(self.config.retry_config.initial_backoff_ms);
         let mut backoff = ExponentialBackoff {
-            initial_interval: self.config.initial_retry_delay,
-            max_interval: self.config.max_retry_delay,
+            initial_interval: initial_backoff_duration,
+            max_interval: Duration::from_secs(30), // Max backoff of 30 seconds
             max_elapsed_time: Some(self.config.timeout),
             ..Default::default()
         };
@@ -107,9 +211,10 @@ impl OdosHttpClient {
                             .await
                             .unwrap_or_else(|e| format!("Failed to read response body: {}", e));
 
-                        let error = OdosError::rate_limit_error(body);
+                        let error = OdosError::rate_limit_error_with_retry_after(body, retry_after);
 
-                        if !error.is_retryable() {
+                        // Rate limits are never retried - return immediately
+                        if !self.should_retry(&error, attempt) {
                             return Err(error);
                         }
 
@@ -148,7 +253,7 @@ impl OdosHttpClient {
 
                         let error = OdosError::api_error(status, body);
 
-                        if !error.is_retryable() {
+                        if !self.should_retry(&error, attempt) {
                             return Err(error);
                         }
 
@@ -159,7 +264,7 @@ impl OdosHttpClient {
                 Ok(Err(e)) => {
                     let error = OdosError::Http(e);
 
-                    if !error.is_retryable() {
+                    if !self.should_retry(&error, attempt) {
                         return Err(error);
                     }
                     warn!(attempt, error = %error, "Retryable HTTP error, retrying");
@@ -173,7 +278,7 @@ impl OdosHttpClient {
             };
 
             // Check if we've exhausted retries
-            if attempt >= self.config.max_retries {
+            if attempt >= self.config.retry_config.max_retries {
                 return Err(last_error);
             }
 
@@ -194,6 +299,60 @@ impl OdosHttpClient {
     /// Get the client configuration
     pub fn config(&self) -> &ClientConfig {
         &self.config
+    }
+
+    /// Determine if an error should be retried based on retry configuration
+    ///
+    /// Uses the retry configuration to decide whether a specific error warrants
+    /// another attempt. This implements smart retry logic that:
+    /// - NEVER retries rate limits (must be handled globally)
+    /// - NEVER retries client errors (4xx - invalid input)
+    /// - CONDITIONALLY retries server errors (5xx - based on config)
+    /// - ALWAYS retries network/timeout errors (transient failures)
+    ///
+    /// # Arguments
+    ///
+    /// * `error` - The error to evaluate
+    /// * `attempts` - Number of attempts made so far
+    ///
+    /// # Returns
+    ///
+    /// `true` if the error should be retried, `false` otherwise
+    fn should_retry(&self, error: &OdosError, attempts: u32) -> bool {
+        let retry_config = &self.config.retry_config;
+
+        // Check attempt limit
+        if attempts >= retry_config.max_retries {
+            return false;
+        }
+
+        // Check custom predicate first
+        if let Some(predicate) = retry_config.retry_predicate {
+            return predicate(error);
+        }
+
+        // Default retry logic
+        match error {
+            // NEVER retry rate limits - application must handle globally
+            OdosError::RateLimit { .. } => false,
+
+            // NEVER retry client errors - invalid input
+            OdosError::Api { status, .. } if status.is_client_error() => false,
+
+            // MAYBE retry server errors - configurable
+            OdosError::Api { status, .. } if status.is_server_error() => {
+                retry_config.retry_server_errors
+            }
+
+            // ALWAYS retry network errors - transient
+            OdosError::Http(err) => err.is_timeout() || err.is_connect() || err.is_request(),
+
+            // ALWAYS retry timeout errors
+            OdosError::Timeout(_) => true,
+
+            // Don't retry anything else by default
+            _ => false,
+        }
     }
 }
 
@@ -253,35 +412,15 @@ mod tests {
         }
     }
 
-    /// Helper to create a mock with retry-after header
-    fn create_rate_limit_mock(
-        retry_after_secs: Option<u64>,
-    ) -> impl Fn(&Request) -> ResponseTemplate {
-        let attempt_count = Arc::new(Mutex::new(0));
-        move |_req: &Request| {
-            let mut count = attempt_count.lock().unwrap();
-            *count += 1;
-
-            if *count == 1 {
-                let mut response =
-                    ResponseTemplate::new(429).set_body_string("Rate limit exceeded");
-                if let Some(secs) = retry_after_secs {
-                    response = response.insert_header("retry-after", secs.to_string());
-                }
-                response
-            } else {
-                ResponseTemplate::new(200).set_body_string("Success")
-            }
-        }
-    }
-
     /// Helper to create a test client with custom config
     fn create_test_client(max_retries: u32, timeout_ms: u64) -> OdosHttpClient {
         let config = ClientConfig {
-            max_retries,
             timeout: Duration::from_millis(timeout_ms),
-            initial_retry_delay: Duration::from_millis(10),
-            max_retry_delay: Duration::from_millis(50),
+            retry_config: RetryConfig {
+                max_retries,
+                initial_backoff_ms: 10,
+                ..Default::default()
+            },
             ..Default::default()
         };
         OdosHttpClient::with_config(config).unwrap()
@@ -291,7 +430,7 @@ mod tests {
     fn test_client_config_default() {
         let config = ClientConfig::default();
         assert_eq!(config.timeout, Duration::from_secs(30));
-        assert_eq!(config.max_retries, 3);
+        assert_eq!(config.retry_config.max_retries, 3);
         assert_eq!(config.max_connections, 20);
     }
 
@@ -305,7 +444,10 @@ mod tests {
     async fn test_client_with_custom_config() {
         let config = ClientConfig {
             timeout: Duration::from_secs(60),
-            max_retries: 5,
+            retry_config: RetryConfig {
+                max_retries: 5,
+                ..Default::default()
+            },
             ..Default::default()
         };
         let client = OdosHttpClient::with_config(config.clone());
@@ -313,46 +455,57 @@ mod tests {
 
         let client = client.unwrap();
         assert_eq!(client.config().timeout, Duration::from_secs(60));
-        assert_eq!(client.config().max_retries, 5);
+        assert_eq!(client.config().retry_config.max_retries, 5);
     }
 
     #[tokio::test]
     async fn test_rate_limit_with_retry_after() {
         let mock_server = MockServer::start().await;
 
+        // Mock returns 429 with Retry-After: 1 second
         Mock::given(method("GET"))
             .and(path("/test"))
-            .respond_with(create_rate_limit_mock(Some(1)))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .set_body_string("Rate limit exceeded")
+                    .insert_header("retry-after", "1"),
+            )
+            .expect(1) // Should only be called once (no retries)
             .mount(&mock_server)
             .await;
 
         let client = create_test_client(3, 30000);
-        let start = std::time::Instant::now();
-
         let response = client
             .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
             .await;
 
+        // Rate limits should return immediately without retry
         assert!(
-            response.is_ok(),
-            "Request should succeed after retry, but got: {response:?}"
+            response.is_err(),
+            "Rate limit should return error immediately"
         );
 
-        // Should have waited at least 1 second (from Retry-After header)
-        let elapsed = start.elapsed();
-        assert!(
-            elapsed >= Duration::from_millis(900),
-            "Should respect Retry-After header, elapsed: {elapsed:?}"
-        );
+        if let Err(OdosError::RateLimit {
+            message,
+            retry_after,
+        }) = response
+        {
+            assert!(message.contains("Rate limit"));
+            assert_eq!(retry_after, Some(Duration::from_secs(1)));
+        } else {
+            panic!("Expected RateLimit error, got: {response:?}");
+        }
     }
 
     #[tokio::test]
     async fn test_rate_limit_without_retry_after() {
         let mock_server = MockServer::start().await;
 
+        // Mock returns 429 without Retry-After header
         Mock::given(method("GET"))
             .and(path("/test"))
-            .respond_with(create_rate_limit_mock(None))
+            .respond_with(ResponseTemplate::new(429).set_body_string("Rate limit exceeded"))
+            .expect(1) // Should only be called once (no retries)
             .mount(&mock_server)
             .await;
 
@@ -361,10 +514,22 @@ mod tests {
             .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
             .await;
 
+        // Rate limits should return immediately without retry
         assert!(
-            response.is_ok(),
-            "Request should succeed after retry, but got: {response:?}"
+            response.is_err(),
+            "Rate limit should return error immediately"
         );
+
+        if let Err(OdosError::RateLimit {
+            message,
+            retry_after,
+        }) = response
+        {
+            assert!(message.contains("Rate limit"));
+            assert_eq!(retry_after, None);
+        } else {
+            panic!("Expected RateLimit error, got: {response:?}");
+        }
     }
 
     #[tokio::test]
@@ -379,11 +544,7 @@ mod tests {
             .mount(&mock_server)
             .await;
 
-        let config = ClientConfig {
-            max_retries: 3,
-            ..Default::default()
-        };
-        let client = OdosHttpClient::with_config(config).unwrap();
+        let client = OdosHttpClient::with_config(ClientConfig::default()).unwrap();
 
         let response = client
             .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
@@ -407,13 +568,7 @@ mod tests {
             .mount(&mock_server)
             .await;
 
-        let config = ClientConfig {
-            max_retries: 2,
-            initial_retry_delay: Duration::from_millis(10),
-            max_retry_delay: Duration::from_millis(50),
-            ..Default::default()
-        };
-        let client = OdosHttpClient::with_config(config).unwrap();
+        let client = create_test_client(2, 30000);
 
         let response = client
             .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
@@ -443,13 +598,7 @@ mod tests {
             .mount(&mock_server)
             .await;
 
-        let config = ClientConfig {
-            timeout: Duration::from_millis(100),
-            max_retries: 2,
-            initial_retry_delay: Duration::from_millis(10),
-            ..Default::default()
-        };
-        let client = OdosHttpClient::with_config(config).unwrap();
+        let client = create_test_client(2, 100);
 
         let response = client
             .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
@@ -566,13 +715,7 @@ mod tests {
     #[tokio::test]
     async fn test_network_error_retryable() {
         // Test with an invalid URL that will cause a connection error
-        let config = ClientConfig {
-            max_retries: 2,
-            initial_retry_delay: Duration::from_millis(10),
-            timeout: Duration::from_millis(100),
-            ..Default::default()
-        };
-        let client = OdosHttpClient::with_config(config).unwrap();
+        let client = create_test_client(2, 100);
 
         let response = client
             .execute_with_retry(|| client.inner().get("http://localhost:1"))
@@ -589,14 +732,17 @@ mod tests {
     fn test_accessor_methods() {
         let config = ClientConfig {
             timeout: Duration::from_secs(45),
-            max_retries: 5,
+            retry_config: RetryConfig {
+                max_retries: 5,
+                ..Default::default()
+            },
             ..Default::default()
         };
         let client = OdosHttpClient::with_config(config.clone()).unwrap();
 
         // Test config() accessor
         assert_eq!(client.config().timeout, Duration::from_secs(45));
-        assert_eq!(client.config().max_retries, 5);
+        assert_eq!(client.config().retry_config.max_retries, 5);
 
         // Test inner() accessor - just verify it returns a Client
         let _inner: &reqwest::Client = client.inner();
@@ -608,7 +754,7 @@ mod tests {
 
         // Should use default config
         assert_eq!(client.config().timeout, Duration::from_secs(30));
-        assert_eq!(client.config().max_retries, 3);
+        assert_eq!(client.config().retry_config.max_retries, 3);
     }
 
     #[test]
@@ -663,38 +809,42 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_rate_limit_with_retry_after_zero_uses_backoff() {
+    async fn test_rate_limit_with_retry_after_zero() {
         let mock_server = MockServer::start().await;
 
-        // Mock that returns 429 with Retry-After: 0 on first call, then succeeds
+        // Mock returns 429 with Retry-After: 0
         Mock::given(method("GET"))
             .and(path("/test"))
-            .respond_with(create_rate_limit_mock(Some(0)))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .set_body_string("Rate limit exceeded")
+                    .insert_header("retry-after", "0"),
+            )
+            .expect(1) // Should only be called once (no retries)
             .mount(&mock_server)
             .await;
 
         let client = create_test_client(3, 30000);
-        let start = std::time::Instant::now();
-
         let response = client
             .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
             .await;
 
+        // Rate limits should return immediately without retry (even with Retry-After: 0)
         assert!(
-            response.is_ok(),
-            "Request should succeed after retry with backoff, but got: {response:?}"
+            response.is_err(),
+            "Rate limit should return error immediately"
         );
 
-        // Should have used exponential backoff (at least 10ms from initial_retry_delay)
-        let elapsed = start.elapsed();
-        assert!(
-            elapsed >= Duration::from_millis(10),
-            "Should use exponential backoff when Retry-After is 0, elapsed: {elapsed:?}"
-        );
-        assert!(
-            elapsed < Duration::from_secs(1),
-            "Should not wait a full second when Retry-After is 0, elapsed: {elapsed:?}"
-        );
+        if let Err(OdosError::RateLimit {
+            message,
+            retry_after,
+        }) = response
+        {
+            assert!(message.contains("Rate limit"));
+            assert_eq!(retry_after, Some(Duration::from_secs(0)));
+        } else {
+            panic!("Expected RateLimit error, got: {response:?}");
+        }
     }
 
     #[test]
@@ -753,8 +903,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_client_config_failure() {
-        // Test creating a client with an invalid configuration
-        // Using an extremely high connection limit that might cause issues
+        // Test that invalid configs are handled gracefully
+        // Using an extremely high connection limit
         let config = ClientConfig {
             max_connections: usize::MAX,
             ..Default::default()

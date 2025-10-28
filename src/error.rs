@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use alloy_primitives::hex;
 use reqwest::StatusCode;
 use thiserror::Error;
@@ -24,8 +26,10 @@ pub type Result<T> = std::result::Result<T, OdosError>;
 /// Some error types are marked as retryable (see [`OdosError::is_retryable`]):
 /// - Timeout errors
 /// - Certain HTTP errors (5xx status codes, connection issues)
-/// - Rate limiting errors
-/// - Some API errors (server errors, rate limits)
+/// - Some API errors (server errors)
+///
+/// **Note**: Rate limiting errors (429) are NOT retryable. Applications must handle
+/// rate limits globally with proper coordination rather than retrying individual requests.
 ///
 /// ## Examples
 ///
@@ -41,7 +45,7 @@ pub type Result<T> = std::result::Result<T, OdosError>;
 /// // Check if errors are retryable
 /// assert!(!api_error.is_retryable());  // 4xx errors are not retryable
 /// assert!(timeout_error.is_retryable()); // Timeouts are retryable
-/// assert!(rate_limit_error.is_retryable()); // Rate limits are retryable
+/// assert!(!rate_limit_error.is_retryable()); // Rate limits are NOT retryable
 ///
 /// // Get error categories for metrics
 /// assert_eq!(api_error.category(), "api");
@@ -99,8 +103,14 @@ pub enum OdosError {
     Timeout(String),
 
     /// Rate limit exceeded
-    #[error("Rate limit exceeded: {0}")]
-    RateLimit(String),
+    ///
+    /// Contains an optional `retry_after` duration from the Retry-After HTTP header,
+    /// which indicates how long to wait before making another request.
+    #[error("Rate limit exceeded: {message}")]
+    RateLimit {
+        message: String,
+        retry_after: Option<Duration>,
+    },
 
     /// Generic internal error
     #[error("Internal error: {0}")]
@@ -153,9 +163,23 @@ impl OdosError {
         Self::Timeout(message.into())
     }
 
-    /// Create a rate limit error
+    /// Create a rate limit error with optional retry-after duration
     pub fn rate_limit_error(message: impl Into<String>) -> Self {
-        Self::RateLimit(message.into())
+        Self::RateLimit {
+            message: message.into(),
+            retry_after: None,
+        }
+    }
+
+    /// Create a rate limit error with retry-after duration
+    pub fn rate_limit_error_with_retry_after(
+        message: impl Into<String>,
+        retry_after: Option<Duration>,
+    ) -> Self {
+        Self::RateLimit {
+            message: message.into(),
+            retry_after,
+        }
     }
 
     /// Create an internal error
@@ -184,7 +208,8 @@ impl OdosError {
             }
             // Other retryable errors
             OdosError::Timeout(_) => true,
-            OdosError::RateLimit(_) => true,
+            // NEVER retry rate limits - application must handle globally
+            OdosError::RateLimit { .. } => false,
             // Non-retryable errors
             OdosError::Json(_)
             | OdosError::Hex(_)
@@ -222,7 +247,34 @@ impl OdosError {
     /// # }
     /// ```
     pub fn is_rate_limit(&self) -> bool {
-        matches!(self, OdosError::RateLimit(_))
+        matches!(self, OdosError::RateLimit { .. })
+    }
+
+    /// Get the retry-after duration for rate limit errors
+    ///
+    /// Returns `Some(duration)` if this is a rate limit error with a retry-after value,
+    /// `None` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::OdosError;
+    /// use std::time::Duration;
+    ///
+    /// let error = OdosError::rate_limit_error_with_retry_after(
+    ///     "Rate limited",
+    ///     Some(Duration::from_secs(30))
+    /// );
+    ///
+    /// if let Some(duration) = error.retry_after() {
+    ///     println!("Retry after {} seconds", duration.as_secs());
+    /// }
+    /// ```
+    pub fn retry_after(&self) -> Option<Duration> {
+        match self {
+            OdosError::RateLimit { retry_after, .. } => *retry_after,
+            _ => None,
+        }
     }
 
     /// Get the error category for metrics
@@ -240,7 +292,7 @@ impl OdosError {
             OdosError::QuoteRequest(_) => "quote_request",
             OdosError::Configuration(_) => "configuration",
             OdosError::Timeout(_) => "timeout",
-            OdosError::RateLimit(_) => "rate_limit",
+            OdosError::RateLimit { .. } => "rate_limit",
             OdosError::Internal(_) => "internal",
         }
     }
@@ -295,9 +347,9 @@ mod tests {
         let invalid_err = OdosError::invalid_input("Bad parameter");
         assert!(!invalid_err.is_retryable());
 
-        // Rate limit should be retryable
+        // Rate limit should NOT be retryable (application must handle globally)
         let rate_limit_err = OdosError::rate_limit_error("Too many requests");
-        assert!(rate_limit_err.is_retryable());
+        assert!(!rate_limit_err.is_retryable());
     }
 
     #[test]

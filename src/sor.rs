@@ -7,7 +7,7 @@ use tracing::{debug, info, instrument};
 
 use crate::{
     parse_value, AssembleRequest, AssemblyResponse, ClientConfig, OdosError, OdosHttpClient,
-    Result, SwapContext, ASSEMBLE_URL,
+    Result, RetryConfig, SwapContext, ASSEMBLE_URL,
 };
 
 use super::TransactionData;
@@ -31,6 +31,38 @@ impl OdosSorV2 {
         Ok(Self {
             client: OdosHttpClient::with_config(config)?,
         })
+    }
+
+    /// Create a client with custom retry configuration
+    ///
+    /// This is a convenience constructor that creates a client with the specified
+    /// retry behavior while using default values for other configuration options.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::{OdosSorV2, RetryConfig};
+    ///
+    /// // No retries - handle all errors at application level
+    /// let client = OdosSorV2::with_retry_config(RetryConfig::no_retries()).unwrap();
+    ///
+    /// // Conservative retries - only network errors
+    /// let client = OdosSorV2::with_retry_config(RetryConfig::conservative()).unwrap();
+    ///
+    /// // Custom retry behavior
+    /// let retry_config = RetryConfig {
+    ///     max_retries: 5,
+    ///     retry_server_errors: true,
+    ///     ..Default::default()
+    /// };
+    /// let client = OdosSorV2::with_retry_config(retry_config).unwrap();
+    /// ```
+    pub fn with_retry_config(retry_config: RetryConfig) -> Result<Self> {
+        let config = ClientConfig {
+            retry_config,
+            ..Default::default()
+        };
+        Self::with_config(config)
     }
 
     /// Get the client configuration

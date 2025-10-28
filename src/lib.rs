@@ -69,17 +69,23 @@
 //! use std::time::Duration;
 //!
 //! # fn example() -> Result<()> {
+//! // Full configuration
 //! let config = ClientConfig {
 //!     timeout: Duration::from_secs(30),
 //!     connect_timeout: Duration::from_secs(10),
-//!     max_retries: 3,
-//!     initial_retry_delay: Duration::from_millis(100),
-//!     max_retry_delay: Duration::from_secs(5),
+//!     retry_config: RetryConfig {
+//!         max_retries: 3,
+//!         initial_backoff_ms: 100,
+//!         retry_server_errors: true,
+//!         retry_predicate: None,
+//!     },
 //!     max_connections: 20,
 //!     pool_idle_timeout: Duration::from_secs(90),
 //! };
-//!
 //! let client = OdosSorV2::with_config(config)?;
+//!
+//! // Or use convenience constructors
+//! let client = OdosSorV2::with_retry_config(RetryConfig::conservative())?;
 //! # Ok(())
 //! # }
 //! ```
@@ -107,9 +113,13 @@
 //!         // Handle timeout errors (retryable)
 //!         eprintln!("Request timed out: {}", msg);
 //!     }
-//!     Err(OdosError::RateLimit(msg)) => {
-//!         // Handle rate limiting (retryable)
-//!         eprintln!("Rate limited: {}", msg);
+//!     Err(OdosError::RateLimit { message, retry_after }) => {
+//!         // Handle rate limiting (NOT retried by SDK)
+//!         if let Some(duration) = retry_after {
+//!             eprintln!("Rate limited: {}. Retry after {} seconds", message, duration.as_secs());
+//!         } else {
+//!             eprintln!("Rate limited: {}", message);
+//!         }
 //!     }
 //!     Err(err) => {
 //!         // Handle other errors
@@ -121,12 +131,12 @@
 //!
 //! ## Rate Limiting
 //!
-//! The Odos API enforces rate limits to ensure fair usage. This SDK handles rate limiting automatically:
+//! The Odos API enforces rate limits to ensure fair usage. The SDK handles rate limits intelligently:
 //!
 //! - **HTTP 429 responses** are detected and classified as [`OdosError::RateLimit`]
-//! - Requests are **automatically retried** with exponential backoff
-//! - The SDK **respects `Retry-After` headers** when provided by the API
-//! - Default configuration: **3 retry attempts** with exponential backoff (100ms, 200ms, 400ms)
+//! - Rate limit errors are **NOT retried** (return immediately with `Retry-After` header)
+//! - The SDK **captures `Retry-After` headers** for application-level handling
+//! - Applications should handle rate limits globally with proper backoff coordination
 //!
 //! ### Best Practices for Avoiding Rate Limits
 //!
@@ -179,24 +189,28 @@
 //!
 //! ```rust,no_run
 //! use odos_sdk::*;
-//! use std::time::Duration;
 //!
 //! # fn example() -> Result<()> {
-//! let config = ClientConfig {
-//!     max_retries: 5,  // Increase from default 3
-//!     initial_retry_delay: Duration::from_millis(200),
-//!     max_retry_delay: Duration::from_secs(10),
-//!     ..Default::default()
-//! };
+//! // Conservative: only retry network errors
+//! let client = OdosSorV2::with_retry_config(RetryConfig::conservative())?;
 //!
-//! let client = OdosSorV2::with_config(config)?;
+//! // No retries: handle all errors at application level
+//! let client = OdosSorV2::with_retry_config(RetryConfig::no_retries())?;
+//!
+//! // Custom configuration
+//! let retry_config = RetryConfig {
+//!     max_retries: 5,
+//!     initial_backoff_ms: 200,
+//!     retry_server_errors: false,  // Don't retry 5xx errors
+//!     retry_predicate: None,
+//! };
+//! let client = OdosSorV2::with_retry_config(retry_config)?;
 //! # Ok(())
 //! # }
 //! ```
 //!
-//! **Trade-offs:**
-//! - **Higher retry counts**: More resilient to transient rate limits, but slower failure in persistent scenarios
-//! - **Longer delays**: Less likely to hit rate limits again, but slower overall throughput
+//! **Note:** Rate limit errors (429) are never retried regardless of configuration.
+//! This prevents retry cascades that make rate limiting worse.
 
 mod api;
 mod assemble;
