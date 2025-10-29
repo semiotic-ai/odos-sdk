@@ -3,7 +3,7 @@ use alloy_primitives::{hex, Address};
 use alloy_rpc_types::TransactionRequest;
 use reqwest::Response;
 use serde_json::Value;
-use tracing::{debug, instrument};
+use tracing::instrument;
 
 use crate::{
     api::OdosApiErrorResponse, error_code::OdosErrorCode, parse_value, AssembleRequest,
@@ -74,7 +74,7 @@ impl OdosSorV2 {
     /// Get a swap quote using Odos API
     ///
     /// Takes a [`QuoteRequest`] and returns a [`SingleQuoteResponse`].
-    #[instrument(skip(self), level = "debug", ret(Debug))]
+    #[instrument(skip(self), level = "debug")]
     pub async fn get_swap_quote(
         &self,
         quote_request: &QuoteRequest,
@@ -121,7 +121,7 @@ impl OdosSorV2 {
         }
     }
 
-    #[instrument(skip(self), level = "debug", ret(Debug))]
+    #[instrument(skip(self), level = "debug")]
     pub async fn get_assemble_response(
         &self,
         assemble_request: AssembleRequest,
@@ -138,7 +138,7 @@ impl OdosSorV2 {
     }
 
     /// Assemble transaction data from a quote using the Odos Assemble API.
-    #[instrument(skip(self), level = "debug", ret(Debug))]
+    #[instrument(skip(self), level = "debug")]
     pub async fn assemble_tx_data(
         &self,
         signer_address: Address,
@@ -190,7 +190,7 @@ impl OdosSorV2 {
 
     /// Build a base transaction from a swap using the Odos Assemble API,
     /// leaving gas parameters to be set by the caller.
-    #[instrument(skip(self), level = "debug", ret(Debug))]
+    #[instrument(skip(self), level = "debug")]
     pub async fn build_base_transaction(&self, swap: &SwapContext) -> Result<TransactionRequest> {
         let TransactionData { data, value, .. } = self
             .assemble_tx_data(
@@ -199,8 +199,6 @@ impl OdosSorV2 {
                 swap.path_id(),
             )
             .await?;
-
-        debug!(value = %value);
 
         Ok(TransactionRequest::default()
             .with_input(hex::decode(&data)?)
