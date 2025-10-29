@@ -5,7 +5,11 @@ use reqwest::{Client, RequestBuilder, Response, StatusCode};
 use tokio::time::timeout;
 use tracing::{debug, instrument, warn};
 
-use crate::error::{OdosError, Result};
+use crate::{
+    api::OdosApiErrorResponse,
+    error::{OdosError, Result},
+    error_code::OdosErrorCode,
+};
 
 /// Configuration for retry behavior
 ///
@@ -206,12 +210,11 @@ impl OdosHttpClient {
                     if status == StatusCode::TOO_MANY_REQUESTS {
                         let retry_after = extract_retry_after(&response);
 
-                        let body = response
-                            .text()
-                            .await
-                            .unwrap_or_else(|e| format!("Failed to read response body: {}", e));
+                        // Parse structured error response
+                        let (message, _code, _trace_id) = parse_error_response(response).await;
 
-                        let error = OdosError::rate_limit_error_with_retry_after(body, retry_after);
+                        let error =
+                            OdosError::rate_limit_error_with_retry_after(message, retry_after);
 
                         // Rate limits are never retried - return immediately
                         if !self.should_retry(&error, attempt) {
@@ -246,12 +249,10 @@ impl OdosHttpClient {
                         }
                         error
                     } else {
-                        let body = response
-                            .text()
-                            .await
-                            .unwrap_or_else(|e| format!("Failed to read response body: {}", e));
+                        // Parse structured error response
+                        let (message, code, trace_id) = parse_error_response(response).await;
 
-                        let error = OdosError::api_error(status, body);
+                        let error = OdosError::api_error_with_code(status, message, code, trace_id);
 
                         if !self.should_retry(&error, attempt) {
                             return Err(error);
@@ -364,6 +365,42 @@ fn extract_retry_after(response: &Response) -> Option<Duration> {
         .and_then(|v| v.to_str().ok())
         .and_then(|s| s.parse::<u64>().ok())
         .map(Duration::from_secs)
+}
+
+/// Parse structured error response from Odos API
+///
+/// Attempts to parse the response body as a structured error JSON.
+/// Returns the error message, optional error code, and optional trace ID.
+/// Falls back to the raw body text if JSON parsing fails.
+async fn parse_error_response(
+    response: Response,
+) -> (
+    String,
+    Option<OdosErrorCode>,
+    Option<crate::error_code::TraceId>,
+) {
+    // Get the response body as text
+    let body_text = match response.text().await {
+        Ok(text) => text,
+        Err(e) => return (format!("Failed to read response body: {}", e), None, None),
+    };
+
+    // Try to parse as structured error JSON
+    match serde_json::from_str::<OdosApiErrorResponse>(&body_text) {
+        Ok(error_response) => {
+            // Successfully parsed structured error
+            let error_code = OdosErrorCode::from(error_response.error_code);
+            (
+                error_response.detail,
+                Some(error_code),
+                Some(error_response.trace_id),
+            )
+        }
+        Err(_) => {
+            // Failed to parse as structured error, return raw body
+            (body_text, None, None)
+        }
+    }
 }
 
 impl Default for OdosHttpClient {
@@ -898,6 +935,91 @@ mod tests {
             assert!(
                 matches!(e, OdosError::Api { status, .. } if status == StatusCode::INTERNAL_SERVER_ERROR)
             );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_parse_structured_error_response() {
+        use crate::error_code::OdosErrorCode;
+
+        // Create a mock response with structured error
+        let error_json = r#"{
+            "detail": "Error getting quote, please try again",
+            "traceId": "10becdc8-a021-4491-8201-a17b657204e0",
+            "errorCode": 2999
+        }"#;
+
+        let http_response = http::Response::builder()
+            .status(500)
+            .body(error_json)
+            .unwrap();
+        let response = reqwest::Response::from(http_response);
+
+        let (message, code, trace_id) = parse_error_response(response).await;
+
+        assert_eq!(message, "Error getting quote, please try again");
+        assert!(code.is_some());
+        assert_eq!(code.unwrap(), OdosErrorCode::AlgoInternal);
+        assert!(trace_id.is_some());
+        assert_eq!(
+            trace_id.unwrap().to_string(),
+            "10becdc8-a021-4491-8201-a17b657204e0"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_parse_unstructured_error_response() {
+        // Create a mock response with plain text error
+        let http_response = http::Response::builder()
+            .status(500)
+            .body("Internal server error")
+            .unwrap();
+        let response = reqwest::Response::from(http_response);
+
+        let (message, code, trace_id) = parse_error_response(response).await;
+
+        assert_eq!(message, "Internal server error");
+        assert!(code.is_none());
+        assert!(trace_id.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_api_error_with_structured_response() {
+        let mock_server = MockServer::start().await;
+
+        let error_json = r#"{
+            "detail": "Invalid chain ID",
+            "traceId": "a0b1c2d3-e4f5-6789-0abc-def123456789",
+            "errorCode": 4001
+        }"#;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(400).set_body_string(error_json))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = create_test_client(0, 30000);
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(response.is_err());
+        if let Err(e) = response {
+            // Check that it's an API error
+            assert!(matches!(e, OdosError::Api { .. }));
+
+            // Check error code
+            let error_code = e.error_code();
+            assert!(error_code.is_some());
+            assert!(error_code.unwrap().is_invalid_chain_id());
+
+            // Check trace ID
+            let trace_id = e.trace_id();
+            assert!(trace_id.is_some());
+        } else {
+            panic!("Expected error, got success");
         }
     }
 

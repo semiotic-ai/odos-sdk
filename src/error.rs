@@ -4,7 +4,10 @@ use alloy_primitives::hex;
 use reqwest::StatusCode;
 use thiserror::Error;
 
-use crate::OdosChainError;
+use crate::{
+    error_code::{OdosErrorCode, TraceId},
+    OdosChainError,
+};
 
 /// Result type alias for Odos SDK operations
 pub type Result<T> = std::result::Result<T, OdosError>;
@@ -59,8 +62,13 @@ pub enum OdosError {
     Http(#[from] reqwest::Error),
 
     /// API errors returned by the Odos service
-    #[error("Odos API error (status: {status}): {message}")]
-    Api { status: StatusCode, message: String },
+    #[error("Odos API error (status: {status}): {message}{}", trace_id.map(|tid| format!(" [trace: {}]", tid)).unwrap_or_default())]
+    Api {
+        status: StatusCode,
+        message: String,
+        code: Option<OdosErrorCode>,
+        trace_id: Option<TraceId>,
+    },
 
     /// JSON serialization/deserialization errors
     #[error("JSON processing error: {0}")]
@@ -118,9 +126,29 @@ pub enum OdosError {
 }
 
 impl OdosError {
-    /// Create an API error from response
+    /// Create an API error from response (without error code or trace ID)
     pub fn api_error(status: StatusCode, message: String) -> Self {
-        Self::Api { status, message }
+        Self::Api {
+            status,
+            message,
+            code: None,
+            trace_id: None,
+        }
+    }
+
+    /// Create an API error with error code and trace ID
+    pub fn api_error_with_code(
+        status: StatusCode,
+        message: String,
+        code: Option<OdosErrorCode>,
+        trace_id: Option<TraceId>,
+    ) -> Self {
+        Self::Api {
+            status,
+            message,
+            code,
+            trace_id,
+        }
     }
 
     /// Create an invalid input error
@@ -188,6 +216,9 @@ impl OdosError {
     }
 
     /// Check if the error is retryable
+    ///
+    /// For API errors with error codes, the retryability is determined by the error code.
+    /// For API errors without error codes, falls back to HTTP status code checking.
     pub fn is_retryable(&self) -> bool {
         match self {
             // HTTP errors that are typically retryable
@@ -195,16 +226,22 @@ impl OdosError {
                 // Timeout, connection errors, etc.
                 err.is_timeout() || err.is_connect() || err.is_request()
             }
-            // API errors that might be retryable
-            OdosError::Api { status, .. } => {
-                matches!(
-                    *status,
-                    StatusCode::TOO_MANY_REQUESTS
-                        | StatusCode::INTERNAL_SERVER_ERROR
-                        | StatusCode::BAD_GATEWAY
-                        | StatusCode::SERVICE_UNAVAILABLE
-                        | StatusCode::GATEWAY_TIMEOUT
-                )
+            // API errors - check error code first, then status code
+            OdosError::Api { status, code, .. } => {
+                // If we have an error code, use its retryability logic
+                if let Some(error_code) = code {
+                    error_code.is_retryable()
+                } else {
+                    // Fall back to status code checking
+                    matches!(
+                        *status,
+                        StatusCode::TOO_MANY_REQUESTS
+                            | StatusCode::INTERNAL_SERVER_ERROR
+                            | StatusCode::BAD_GATEWAY
+                            | StatusCode::SERVICE_UNAVAILABLE
+                            | StatusCode::GATEWAY_TIMEOUT
+                    )
+                }
             }
             // Other retryable errors
             OdosError::Timeout(_) => true,
@@ -273,6 +310,60 @@ impl OdosError {
     pub fn retry_after(&self) -> Option<Duration> {
         match self {
             OdosError::RateLimit { retry_after, .. } => *retry_after,
+            _ => None,
+        }
+    }
+
+    /// Get the Odos API error code if available
+    ///
+    /// Returns the strongly-typed error code for API errors, or `None` for other error types
+    /// or if the error code was not included in the API response.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::{OdosError, error_code::OdosErrorCode};
+    /// use reqwest::StatusCode;
+    ///
+    /// let error = OdosError::api_error_with_code(
+    ///     StatusCode::BAD_REQUEST,
+    ///     "Invalid chain ID".to_string(),
+    ///     Some(OdosErrorCode::from(4001)),
+    ///     None
+    /// );
+    ///
+    /// if let Some(code) = error.error_code() {
+    ///     if code.is_invalid_chain_id() {
+    ///         println!("Chain ID validation failed");
+    ///     }
+    /// }
+    /// ```
+    pub fn error_code(&self) -> Option<&OdosErrorCode> {
+        match self {
+            OdosError::Api { code, .. } => code.as_ref(),
+            _ => None,
+        }
+    }
+
+    /// Get the Odos API trace ID if available
+    ///
+    /// Returns the trace ID for debugging API errors, or `None` for other error types
+    /// or if the trace ID was not included in the API response.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::OdosError;
+    ///
+    /// # fn handle_error(error: &OdosError) {
+    /// if let Some(trace_id) = error.trace_id() {
+    ///     eprintln!("Error trace ID for support: {}", trace_id);
+    /// }
+    /// # }
+    /// ```
+    pub fn trace_id(&self) -> Option<TraceId> {
+        match self {
+            OdosError::Api { trace_id, .. } => *trace_id,
             _ => None,
         }
     }

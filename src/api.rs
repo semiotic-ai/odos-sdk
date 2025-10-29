@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::{
+    error_code::TraceId,
     OdosError,
     OdosRouterV2::{inputTokenInfo, outputTokenInfo, swapTokenInfo},
     OdosV2Router::{swapCall, OdosV2RouterCalls},
@@ -214,6 +215,32 @@ impl SingleQuoteResponse {
     pub fn price_impact(&self) -> f64 {
         self.price_impact
     }
+}
+
+/// Error response from the Odos API
+///
+/// When the Odos API returns an error, it includes:
+/// - `detail`: Human-readable error message
+/// - `traceId`: UUID for tracking the error in Odos logs
+/// - `errorCode`: Numeric error code indicating the specific error type
+///
+/// Example error response:
+/// ```json
+/// {
+///   "detail": "Error getting quote, please try again",
+///   "traceId": "10becdc8-a021-4491-8201-a17b657204e0",
+///   "errorCode": 2999
+/// }
+/// ```
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OdosApiErrorResponse {
+    /// Human-readable error message
+    pub detail: String,
+    /// Trace ID for debugging (UUID)
+    pub trace_id: TraceId,
+    /// Numeric error code
+    pub error_code: u16,
 }
 
 /// Swap inputs for the Odos assemble API

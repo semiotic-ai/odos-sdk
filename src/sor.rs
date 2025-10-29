@@ -6,8 +6,9 @@ use serde_json::Value;
 use tracing::{debug, info, instrument};
 
 use crate::{
-    parse_value, AssembleRequest, AssemblyResponse, ClientConfig, OdosError, OdosHttpClient,
-    Result, RetryConfig, SwapContext, ASSEMBLE_URL,
+    api::OdosApiErrorResponse, error_code::OdosErrorCode, parse_value, AssembleRequest,
+    AssemblyResponse, ClientConfig, OdosError, OdosHttpClient, Result, RetryConfig, SwapContext,
+    ASSEMBLE_URL,
 };
 
 use super::TransactionData;
@@ -96,13 +97,29 @@ impl OdosSorV2 {
             Ok(single_quote_response)
         } else {
             let status = response.status();
-            let error_text = response
+
+            // Try to parse structured error response
+            let body_text = response
                 .text()
                 .await
                 .unwrap_or_else(|e| format!("Failed to read response body: {}", e));
-            Err(OdosError::quote_request_error(format!(
-                "API error (status: {status}): {error_text}"
-            )))
+
+            let (message, code, trace_id) =
+                match serde_json::from_str::<OdosApiErrorResponse>(&body_text) {
+                    Ok(error_response) => {
+                        let error_code = OdosErrorCode::from(error_response.error_code);
+                        (
+                            error_response.detail,
+                            Some(error_code),
+                            Some(error_response.trace_id),
+                        )
+                    }
+                    Err(_) => (body_text, None, None),
+                };
+
+            Err(OdosError::api_error_with_code(
+                status, message, code, trace_id,
+            ))
         }
     }
 
@@ -141,14 +158,29 @@ impl OdosSorV2 {
 
         if !response.status().is_success() {
             let status = response.status();
-            let error = response
+
+            // Try to parse structured error response
+            let body_text = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Failed to get error message".to_string());
 
-            return Err(OdosError::transaction_assembly_error(format!(
-                "API error (status: {status}): {error}"
-            )));
+            let (message, code, trace_id) =
+                match serde_json::from_str::<OdosApiErrorResponse>(&body_text) {
+                    Ok(error_response) => {
+                        let error_code = OdosErrorCode::from(error_response.error_code);
+                        (
+                            error_response.detail,
+                            Some(error_code),
+                            Some(error_response.trace_id),
+                        )
+                    }
+                    Err(_) => (body_text, None, None),
+                };
+
+            return Err(OdosError::api_error_with_code(
+                status, message, code, trace_id,
+            ));
         }
 
         let value: Value = response.json().await?;

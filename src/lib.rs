@@ -92,7 +92,7 @@
 //!
 //! ## Error Handling
 //!
-//! The SDK provides comprehensive error types for different failure scenarios:
+//! The SDK provides comprehensive error types with strongly-typed error codes:
 //!
 //! ```rust,no_run
 //! use odos_sdk::*;
@@ -105,25 +105,68 @@
 //!         // Handle successful quote
 //!         println!("Got quote with path ID: {}", quote.path_id());
 //!     }
-//!     Err(OdosError::Api { status, message }) => {
-//!         // Handle API errors
-//!         eprintln!("API error {}: {}", status, message);
-//!     }
-//!     Err(OdosError::Timeout(msg)) => {
-//!         // Handle timeout errors (retryable)
-//!         eprintln!("Request timed out: {}", msg);
-//!     }
-//!     Err(OdosError::RateLimit { message, retry_after }) => {
-//!         // Handle rate limiting (NOT retried by SDK)
-//!         if let Some(duration) = retry_after {
-//!             eprintln!("Rate limited: {}. Retry after {} seconds", message, duration.as_secs());
-//!         } else {
-//!             eprintln!("Rate limited: {}", message);
+//!     Err(err) => {
+//!         // Check for specific error codes
+//!         if let Some(code) = err.error_code() {
+//!             if code.is_invalid_chain_id() {
+//!                 eprintln!("Invalid chain ID - check configuration");
+//!             } else if code.is_no_viable_path() {
+//!                 eprintln!("No routing path found");
+//!             } else if code.is_timeout() {
+//!                 eprintln!("Service timeout: {}", code);
+//!             }
+//!         }
+//!
+//!         // Log trace ID for support
+//!         if let Some(trace_id) = err.trace_id() {
+//!             eprintln!("Trace ID: {}", trace_id);
+//!         }
+//!
+//!         // Handle by error type
+//!         match err {
+//!             OdosError::Api { status, message, .. } => {
+//!                 eprintln!("API error {}: {}", status, message);
+//!             }
+//!             OdosError::Timeout(msg) => {
+//!                 eprintln!("Request timed out: {}", msg);
+//!             }
+//!             OdosError::RateLimit { message, retry_after } => {
+//!                 if let Some(duration) = retry_after {
+//!                     eprintln!("Rate limited: {}. Retry after {} seconds", message, duration.as_secs());
+//!                 } else {
+//!                     eprintln!("Rate limited: {}", message);
+//!                 }
+//!             }
+//!             _ => eprintln!("Error: {}", err),
 //!         }
 //!     }
-//!     Err(err) => {
-//!         // Handle other errors
-//!         eprintln!("Error: {}", err);
+//! }
+//! # }
+//! ```
+//!
+//! ### Strongly-Typed Error Codes
+//!
+//! The SDK provides error codes matching the [Odos API documentation](https://docs.odos.xyz/build/api_errors):
+//!
+//! - **General (1XXX)**: `ApiError`
+//! - **Algo/Quote (2XXX)**: `NoViablePath`, `AlgoTimeout`, `AlgoInternal`
+//! - **Internal Service (3XXX)**: `TxnAssemblyTimeout`, `GasUnavailable`
+//! - **Validation (4XXX)**: `InvalidChainId`, `BlockedUserAddr`, `InvalidTokenAmount`
+//! - **Internal (5XXX)**: `InternalError`, `SwapUnavailable`
+//!
+//! ```rust,no_run
+//! use odos_sdk::{OdosError, error_code::OdosErrorCode};
+//!
+//! # fn handle_error(error: OdosError) {
+//! if let Some(code) = error.error_code() {
+//!     // Check categories
+//!     if code.is_validation_error() {
+//!         println!("Validation error - check request parameters");
+//!     }
+//!
+//!     // Check retryability
+//!     if code.is_retryable() {
+//!         println!("Error can be retried: {}", code);
 //!     }
 //! }
 //! # }
@@ -218,6 +261,7 @@ mod chain;
 mod client;
 mod contract;
 mod error;
+pub mod error_code;
 #[cfg(test)]
 mod integration_tests;
 mod limit_order_v2;
