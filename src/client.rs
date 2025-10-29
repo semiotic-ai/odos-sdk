@@ -3,7 +3,7 @@ use std::time::Duration;
 use backoff::{backoff::Backoff, ExponentialBackoff};
 use reqwest::{Client, RequestBuilder, Response, StatusCode};
 use tokio::time::timeout;
-use tracing::{debug, instrument, warn};
+use tracing::{debug, instrument};
 
 use crate::{
     api::OdosApiErrorResponse,
@@ -191,7 +191,6 @@ impl OdosHttpClient {
 
         loop {
             attempt += 1;
-            debug!(attempt, "Executing HTTP request");
 
             let request = match request_builder_fn().build() {
                 Ok(req) => req,
@@ -201,7 +200,6 @@ impl OdosHttpClient {
             let last_error = match timeout(self.config.timeout, self.client.execute(request)).await
             {
                 Ok(Ok(response)) if response.status().is_success() => {
-                    debug!(attempt, status = %response.status(), "Request successful");
                     return Ok(response);
                 }
                 Ok(Ok(response)) => {
@@ -223,29 +221,11 @@ impl OdosHttpClient {
 
                         if let Some(delay) = retry_after {
                             // If retry-after is 0, use exponential backoff instead
-                            if delay.is_zero() {
-                                debug!(
-                                    attempt,
-                                    status = %status,
-                                    "Rate limit exceeded (429) with Retry-After: 0, will use exponential backoff"
-                                );
-                                // Fall through to use exponential backoff
-                            } else {
-                                debug!(
-                                    attempt,
-                                    status = %status,
-                                    retry_after_secs = delay.as_secs(),
-                                    "Rate limit exceeded (429), respecting Retry-After header"
-                                );
+                            if !delay.is_zero() {
+                                debug!(attempt, retry_after_secs = delay.as_secs());
                                 tokio::time::sleep(delay).await;
                                 continue;
                             }
-                        } else {
-                            debug!(
-                                attempt,
-                                status = %status,
-                                "Rate limit exceeded (429) without Retry-After header, will use exponential backoff"
-                            );
                         }
                         error
                     } else {
@@ -258,7 +238,6 @@ impl OdosHttpClient {
                             return Err(error);
                         }
 
-                        debug!(attempt, status = %status, "Retryable API error, retrying");
                         error
                     }
                 }
@@ -268,12 +247,12 @@ impl OdosHttpClient {
                     if !self.should_retry(&error, attempt) {
                         return Err(error);
                     }
-                    warn!(attempt, error = %error, "Retryable HTTP error, retrying");
+                    debug!(attempt, error = %error);
                     error
                 }
                 Err(_) => {
                     let error = OdosError::timeout_error("Request timed out");
-                    warn!(attempt, timeout = ?self.config.timeout, "Request timed out, retrying");
+                    debug!(attempt, timeout = ?self.config.timeout);
                     error
                 }
             };
@@ -284,7 +263,6 @@ impl OdosHttpClient {
             }
 
             if let Some(delay) = backoff.next_backoff() {
-                debug!(?delay, "Waiting before retry");
                 tokio::time::sleep(delay).await;
             } else {
                 return Err(last_error);

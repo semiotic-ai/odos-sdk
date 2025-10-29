@@ -3,7 +3,7 @@ use alloy_primitives::{hex, Address};
 use alloy_rpc_types::TransactionRequest;
 use reqwest::Response;
 use serde_json::Value;
-use tracing::{debug, info, instrument};
+use tracing::{debug, instrument};
 
 use crate::{
     api::OdosApiErrorResponse, error_code::OdosErrorCode, parse_value, AssembleRequest,
@@ -89,8 +89,6 @@ impl OdosSorV2 {
                     .json(quote_request)
             })
             .await?;
-
-        debug!(response = ?response);
 
         if response.status().is_success() {
             let single_quote_response = response.json().await?;
@@ -202,7 +200,7 @@ impl OdosSorV2 {
             )
             .await?;
 
-        info!(value = %value, "Building base transaction");
+        debug!(value = %value);
 
         Ok(TransactionRequest::default()
             .with_input(hex::decode(&data)?)

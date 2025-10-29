@@ -260,14 +260,9 @@ impl TryFrom<OdosV2RouterCalls> for SwapInputs {
         match swap {
             OdosV2RouterCalls::swap(call) => {
                 debug!(
-                    executor = %call.executor,
-                    path_definition_len = call.pathDefinition.len(),
-                    referral_code = call.referralCode,
-                    input_token = %call.tokenInfo.inputToken,
-                    input_amount = %call.tokenInfo.inputAmount,
-                    output_token = %call.tokenInfo.outputToken,
-                    output_min = %call.tokenInfo.outputMin,
-                    "Processing swap call"
+                    input = %call.tokenInfo.inputToken,
+                    output = %call.tokenInfo.outputToken,
+                    amount = %call.tokenInfo.inputAmount
                 );
 
                 let swapCall {
