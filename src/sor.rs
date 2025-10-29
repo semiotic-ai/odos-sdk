@@ -74,7 +74,7 @@ impl OdosSorV2 {
     /// Get a swap quote using Odos API
     ///
     /// Takes a [`QuoteRequest`] and returns a [`SingleQuoteResponse`].
-    #[instrument(skip(self), level = "debug")]
+    #[instrument(skip(self), level = "debug", ret(Debug))]
     pub async fn get_swap_quote(
         &self,
         quote_request: &QuoteRequest,
@@ -121,7 +121,7 @@ impl OdosSorV2 {
         }
     }
 
-    #[instrument(skip(self), level = "debug")]
+    #[instrument(skip(self), level = "debug", ret(Debug))]
     pub async fn get_assemble_response(
         &self,
         assemble_request: AssembleRequest,
@@ -138,7 +138,7 @@ impl OdosSorV2 {
     }
 
     /// Assemble transaction data from a quote using the Odos Assemble API.
-    #[instrument(skip(self), ret(Debug))]
+    #[instrument(skip(self), level = "debug", ret(Debug))]
     pub async fn assemble_tx_data(
         &self,
         signer_address: Address,
@@ -190,7 +190,7 @@ impl OdosSorV2 {
 
     /// Build a base transaction from a swap using the Odos Assemble API,
     /// leaving gas parameters to be set by the caller.
-    #[instrument(skip(self), ret(Debug))]
+    #[instrument(skip(self), level = "debug", ret(Debug))]
     pub async fn build_base_transaction(&self, swap: &SwapContext) -> Result<TransactionRequest> {
         let TransactionData { data, value, .. } = self
             .assemble_tx_data(
