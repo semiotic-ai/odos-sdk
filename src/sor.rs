@@ -108,11 +108,11 @@ impl OdosSorV2 {
                         let error_code = OdosErrorCode::from(error_response.error_code);
                         (
                             error_response.detail,
-                            Some(error_code),
+                            error_code,
                             Some(error_response.trace_id),
                         )
                     }
-                    Err(_) => (body_text, None, None),
+                    Err(_) => (body_text, OdosErrorCode::Unknown(0), None),
                 };
 
             Err(OdosError::api_error_with_code(
@@ -169,11 +169,11 @@ impl OdosSorV2 {
                         let error_code = OdosErrorCode::from(error_response.error_code);
                         (
                             error_response.detail,
-                            Some(error_code),
+                            error_code,
                             Some(error_response.trace_id),
                         )
                     }
-                    Err(_) => (body_text, None, None),
+                    Err(_) => (body_text, OdosErrorCode::Unknown(0), None),
                 };
 
             return Err(OdosError::api_error_with_code(

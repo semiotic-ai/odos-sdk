@@ -66,7 +66,7 @@ pub enum OdosError {
     Api {
         status: StatusCode,
         message: String,
-        code: Option<OdosErrorCode>,
+        code: OdosErrorCode,
         trace_id: Option<TraceId>,
     },
 
@@ -113,11 +113,13 @@ pub enum OdosError {
     /// Rate limit exceeded
     ///
     /// Contains an optional `retry_after` duration from the Retry-After HTTP header,
-    /// which indicates how long to wait before making another request.
-    #[error("Rate limit exceeded: {message}")]
+    /// the error code from the Odos API, and an optional `trace_id` for debugging.
+    #[error("Rate limit exceeded: {message}{}", trace_id.map(|tid| format!(" [trace: {}]", tid)).unwrap_or_default())]
     RateLimit {
         message: String,
         retry_after: Option<Duration>,
+        code: OdosErrorCode,
+        trace_id: Option<TraceId>,
     },
 
     /// Generic internal error
@@ -131,7 +133,7 @@ impl OdosError {
         Self::Api {
             status,
             message,
-            code: None,
+            code: OdosErrorCode::Unknown(0),
             trace_id: None,
         }
     }
@@ -140,7 +142,7 @@ impl OdosError {
     pub fn api_error_with_code(
         status: StatusCode,
         message: String,
-        code: Option<OdosErrorCode>,
+        code: OdosErrorCode,
         trace_id: Option<TraceId>,
     ) -> Self {
         Self::Api {
@@ -196,6 +198,8 @@ impl OdosError {
         Self::RateLimit {
             message: message.into(),
             retry_after: None,
+            code: OdosErrorCode::Unknown(429),
+            trace_id: None,
         }
     }
 
@@ -207,6 +211,23 @@ impl OdosError {
         Self::RateLimit {
             message: message.into(),
             retry_after,
+            code: OdosErrorCode::Unknown(429),
+            trace_id: None,
+        }
+    }
+
+    /// Create a rate limit error with all fields
+    pub fn rate_limit_error_with_retry_after_and_trace(
+        message: impl Into<String>,
+        retry_after: Option<Duration>,
+        code: OdosErrorCode,
+        trace_id: Option<TraceId>,
+    ) -> Self {
+        Self::RateLimit {
+            message: message.into(),
+            retry_after,
+            code,
+            trace_id,
         }
     }
 
@@ -217,8 +238,7 @@ impl OdosError {
 
     /// Check if the error is retryable
     ///
-    /// For API errors with error codes, the retryability is determined by the error code.
-    /// For API errors without error codes, falls back to HTTP status code checking.
+    /// For API errors, the retryability is determined by the error code.
     pub fn is_retryable(&self) -> bool {
         match self {
             // HTTP errors that are typically retryable
@@ -226,23 +246,8 @@ impl OdosError {
                 // Timeout, connection errors, etc.
                 err.is_timeout() || err.is_connect() || err.is_request()
             }
-            // API errors - check error code first, then status code
-            OdosError::Api { status, code, .. } => {
-                // If we have an error code, use its retryability logic
-                if let Some(error_code) = code {
-                    error_code.is_retryable()
-                } else {
-                    // Fall back to status code checking
-                    matches!(
-                        *status,
-                        StatusCode::TOO_MANY_REQUESTS
-                            | StatusCode::INTERNAL_SERVER_ERROR
-                            | StatusCode::BAD_GATEWAY
-                            | StatusCode::SERVICE_UNAVAILABLE
-                            | StatusCode::GATEWAY_TIMEOUT
-                    )
-                }
-            }
+            // API errors - use error code retryability logic
+            OdosError::Api { code, .. } => code.is_retryable(),
             // Other retryable errors
             OdosError::Timeout(_) => true,
             // NEVER retry rate limits - application must handle globally
@@ -316,8 +321,8 @@ impl OdosError {
 
     /// Get the Odos API error code if available
     ///
-    /// Returns the strongly-typed error code for API errors, or `None` for other error types
-    /// or if the error code was not included in the API response.
+    /// Returns the strongly-typed error code for API and rate limit errors,
+    /// or `None` for other error types.
     ///
     /// # Examples
     ///
@@ -328,7 +333,7 @@ impl OdosError {
     /// let error = OdosError::api_error_with_code(
     ///     StatusCode::BAD_REQUEST,
     ///     "Invalid chain ID".to_string(),
-    ///     Some(OdosErrorCode::from(4001)),
+    ///     OdosErrorCode::from(4001),
     ///     None
     /// );
     ///
@@ -340,7 +345,8 @@ impl OdosError {
     /// ```
     pub fn error_code(&self) -> Option<&OdosErrorCode> {
         match self {
-            OdosError::Api { code, .. } => code.as_ref(),
+            OdosError::Api { code, .. } => Some(code),
+            OdosError::RateLimit { code, .. } => Some(code),
             _ => None,
         }
     }
@@ -364,6 +370,7 @@ impl OdosError {
     pub fn trace_id(&self) -> Option<TraceId> {
         match self {
             OdosError::Api { trace_id, .. } => *trace_id,
+            OdosError::RateLimit { trace_id, .. } => *trace_id,
             _ => None,
         }
     }

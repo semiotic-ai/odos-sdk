@@ -209,10 +209,14 @@ impl OdosHttpClient {
                         let retry_after = extract_retry_after(&response);
 
                         // Parse structured error response
-                        let (message, _code, _trace_id) = parse_error_response(response).await;
+                        let parsed = parse_error_response(response).await;
 
-                        let error =
-                            OdosError::rate_limit_error_with_retry_after(message, retry_after);
+                        let error = OdosError::rate_limit_error_with_retry_after_and_trace(
+                            parsed.message,
+                            retry_after,
+                            parsed.code,
+                            parsed.trace_id,
+                        );
 
                         // Rate limits are never retried - return immediately
                         if !self.should_retry(&error, attempt) {
@@ -236,9 +240,14 @@ impl OdosHttpClient {
                         error
                     } else {
                         // Parse structured error response
-                        let (message, code, trace_id) = parse_error_response(response).await;
+                        let parsed = parse_error_response(response).await;
 
-                        let error = OdosError::api_error_with_code(status, message, code, trace_id);
+                        let error = OdosError::api_error_with_code(
+                            status,
+                            parsed.message,
+                            parsed.code,
+                            parsed.trace_id,
+                        );
 
                         if !self.should_retry(&error, attempt) {
                             return Err(error);
@@ -365,22 +374,33 @@ fn extract_retry_after(response: &Response) -> Option<Duration> {
         .map(Duration::from_secs)
 }
 
+/// Parsed error response from Odos API
+#[derive(Debug, Clone)]
+struct ParsedErrorResponse {
+    /// Human-readable error message
+    message: String,
+    /// Odos API error code
+    code: OdosErrorCode,
+    /// Optional trace ID for debugging
+    trace_id: Option<crate::error_code::TraceId>,
+}
+
 /// Parse structured error response from Odos API
 ///
 /// Attempts to parse the response body as a structured error JSON.
-/// Returns the error message, optional error code, and optional trace ID.
-/// Falls back to the raw body text if JSON parsing fails.
-async fn parse_error_response(
-    response: Response,
-) -> (
-    String,
-    Option<OdosErrorCode>,
-    Option<crate::error_code::TraceId>,
-) {
+/// Returns the parsed error response with message, error code, and optional trace ID.
+/// Falls back to the raw body text with an Unknown error code if JSON parsing fails.
+async fn parse_error_response(response: Response) -> ParsedErrorResponse {
     // Get the response body as text
     let body_text = match response.text().await {
         Ok(text) => text,
-        Err(e) => return (format!("Failed to read response body: {}", e), None, None),
+        Err(e) => {
+            return ParsedErrorResponse {
+                message: format!("Failed to read response body: {}", e),
+                code: OdosErrorCode::Unknown(0),
+                trace_id: None,
+            }
+        }
     };
 
     // Try to parse as structured error JSON
@@ -388,15 +408,19 @@ async fn parse_error_response(
         Ok(error_response) => {
             // Successfully parsed structured error
             let error_code = OdosErrorCode::from(error_response.error_code);
-            (
-                error_response.detail,
-                Some(error_code),
-                Some(error_response.trace_id),
-            )
+            ParsedErrorResponse {
+                message: error_response.detail,
+                code: error_code,
+                trace_id: Some(error_response.trace_id),
+            }
         }
         Err(_) => {
-            // Failed to parse as structured error, return raw body
-            (body_text, None, None)
+            // Failed to parse as structured error, return raw body with Unknown code
+            ParsedErrorResponse {
+                message: body_text,
+                code: OdosErrorCode::Unknown(0),
+                trace_id: None,
+            }
         }
     }
 }
@@ -523,6 +547,7 @@ mod tests {
         if let Err(OdosError::RateLimit {
             message,
             retry_after,
+            ..
         }) = response
         {
             assert!(message.contains("Rate limit"));
@@ -558,6 +583,7 @@ mod tests {
         if let Err(OdosError::RateLimit {
             message,
             retry_after,
+            ..
         }) = response
         {
             assert!(message.contains("Rate limit"));
@@ -873,6 +899,7 @@ mod tests {
         if let Err(OdosError::RateLimit {
             message,
             retry_after,
+            ..
         }) = response
         {
             assert!(message.contains("Rate limit"));
@@ -953,14 +980,13 @@ mod tests {
             .unwrap();
         let response = reqwest::Response::from(http_response);
 
-        let (message, code, trace_id) = parse_error_response(response).await;
+        let parsed = parse_error_response(response).await;
 
-        assert_eq!(message, "Error getting quote, please try again");
-        assert!(code.is_some());
-        assert_eq!(code.unwrap(), OdosErrorCode::AlgoInternal);
-        assert!(trace_id.is_some());
+        assert_eq!(parsed.message, "Error getting quote, please try again");
+        assert_eq!(parsed.code, OdosErrorCode::AlgoInternal);
+        assert!(parsed.trace_id.is_some());
         assert_eq!(
-            trace_id.unwrap().to_string(),
+            parsed.trace_id.unwrap().to_string(),
             "10becdc8-a021-4491-8201-a17b657204e0"
         );
     }
@@ -974,11 +1000,11 @@ mod tests {
             .unwrap();
         let response = reqwest::Response::from(http_response);
 
-        let (message, code, trace_id) = parse_error_response(response).await;
+        let parsed = parse_error_response(response).await;
 
-        assert_eq!(message, "Internal server error");
-        assert!(code.is_none());
-        assert!(trace_id.is_none());
+        assert_eq!(parsed.message, "Internal server error");
+        assert_eq!(parsed.code, OdosErrorCode::Unknown(0));
+        assert!(parsed.trace_id.is_none());
     }
 
     #[tokio::test]
@@ -1043,6 +1069,54 @@ mod tests {
                 // If it fails, should be wrapped as Http error
                 assert!(matches!(e, OdosError::Http(_)));
             }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_rate_limit_with_trace_id() {
+        let mock_server = MockServer::start().await;
+
+        let error_json = r#"{
+            "detail": "Rate limit exceeded",
+            "traceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "errorCode": 4299
+        }"#;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .set_body_string(error_json)
+                    .insert_header("retry-after", "30"),
+            )
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = create_test_client(0, 30000);
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(response.is_err());
+        if let Err(e) = response {
+            // Verify it's a rate limit error
+            assert!(e.is_rate_limit());
+
+            // Verify trace_id is present
+            let trace_id = e.trace_id();
+            assert!(trace_id.is_some());
+            assert_eq!(
+                trace_id.unwrap().to_string(),
+                "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            );
+
+            // Verify the error message includes the trace ID
+            let error_msg = e.to_string();
+            assert!(error_msg.contains("a1b2c3d4-e5f6-7890-abcd-ef1234567890"));
+            assert!(error_msg.contains("[trace:"));
+        } else {
+            panic!("Expected error, got success");
         }
     }
 }
