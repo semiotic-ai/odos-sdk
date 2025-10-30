@@ -222,7 +222,13 @@ impl OdosHttpClient {
                         if let Some(delay) = retry_after {
                             // If retry-after is 0, use exponential backoff instead
                             if !delay.is_zero() {
-                                debug!(attempt, retry_after_secs = delay.as_secs());
+                                debug!(
+                                    error_type = "rate_limit",
+                                    attempt,
+                                    retry_after_secs = delay.as_secs(),
+                                    action = "sleeping",
+                                    "Rate limit hit, sleeping before retry"
+                                );
                                 tokio::time::sleep(delay).await;
                                 continue;
                             }
@@ -242,17 +248,31 @@ impl OdosHttpClient {
                     }
                 }
                 Ok(Err(e)) => {
+                    let is_timeout = e.is_timeout();
+                    let is_connect = e.is_connect();
                     let error = OdosError::Http(e);
 
                     if !self.should_retry(&error, attempt) {
                         return Err(error);
                     }
-                    debug!(attempt, error = %error);
+                    debug!(
+                        error_type = "http_error",
+                        attempt,
+                        error = %error,
+                        is_timeout,
+                        is_connect,
+                        "HTTP error occurred, will retry with backoff"
+                    );
                     error
                 }
                 Err(_) => {
                     let error = OdosError::timeout_error("Request timed out");
-                    debug!(attempt, timeout = ?self.config.timeout);
+                    debug!(
+                        error_type = "timeout",
+                        attempt,
+                        timeout_secs = self.config.timeout.as_secs(),
+                        "Request timed out, will retry with backoff"
+                    );
                     error
                 }
             };
