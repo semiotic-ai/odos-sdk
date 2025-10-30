@@ -118,11 +118,10 @@ mod tests {
             OdosError::api_error(reqwest::StatusCode::BAD_REQUEST, "Bad request".to_string());
         assert!(!bad_request.is_retryable());
 
-        let too_many_requests = OdosError::api_error(
-            reqwest::StatusCode::TOO_MANY_REQUESTS,
-            "Rate limited".to_string(),
-        );
-        assert!(too_many_requests.is_retryable());
+        // 429 errors should use RateLimit variant
+        let too_many_requests = OdosError::rate_limit_error("Rate limited");
+        // Rate limits are NOT retryable - must be handled globally
+        assert!(!too_many_requests.is_retryable());
 
         // Test non-retryable errors
         let invalid_input = OdosError::invalid_input("Bad input");

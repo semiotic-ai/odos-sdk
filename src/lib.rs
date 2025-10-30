@@ -130,7 +130,7 @@
 //!             OdosError::Timeout(msg) => {
 //!                 eprintln!("Request timed out: {}", msg);
 //!             }
-//!             OdosError::RateLimit { message, retry_after } => {
+//!             OdosError::RateLimit { message, retry_after, .. } => {
 //!                 if let Some(duration) = retry_after {
 //!                     eprintln!("Rate limited: {}. Retry after {} seconds", message, duration.as_secs());
 //!                 } else {

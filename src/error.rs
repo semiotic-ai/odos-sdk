@@ -239,6 +239,7 @@ impl OdosError {
     /// Check if the error is retryable
     ///
     /// For API errors, the retryability is determined by the error code.
+    /// For Unknown error codes, falls back to HTTP status code checking.
     pub fn is_retryable(&self) -> bool {
         match self {
             // HTTP errors that are typically retryable
@@ -247,7 +248,21 @@ impl OdosError {
                 err.is_timeout() || err.is_connect() || err.is_request()
             }
             // API errors - use error code retryability logic
-            OdosError::Api { code, .. } => code.is_retryable(),
+            OdosError::Api { status, code, .. } => {
+                // If we have a known error code, use its retryability logic
+                if matches!(code, OdosErrorCode::Unknown(_)) {
+                    // Fall back to status code checking for unknown error codes
+                    matches!(
+                        *status,
+                        StatusCode::INTERNAL_SERVER_ERROR
+                            | StatusCode::BAD_GATEWAY
+                            | StatusCode::SERVICE_UNAVAILABLE
+                            | StatusCode::GATEWAY_TIMEOUT
+                    )
+                } else {
+                    code.is_retryable()
+                }
+            }
             // Other retryable errors
             OdosError::Timeout(_) => true,
             // NEVER retry rate limits - application must handle globally
