@@ -256,6 +256,7 @@
 //! This prevents retry cascades that make rate limiting worse.
 
 mod api;
+mod api_key;
 mod assemble;
 mod chain;
 mod client;
@@ -272,6 +273,7 @@ mod v2_router;
 mod v3_router;
 
 pub use api::*;
+pub use api_key::*;
 pub use assemble::*;
 pub use chain::*;
 pub use client::*;

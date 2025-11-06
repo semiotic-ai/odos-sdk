@@ -7,6 +7,7 @@ use tracing::{debug, instrument};
 
 use crate::{
     api::OdosApiErrorResponse,
+    api_key::ApiKey,
     error::{OdosError, Result},
     error_code::OdosErrorCode,
 };
@@ -98,7 +99,7 @@ impl RetryConfig {
 /// Configuration for the HTTP client
 ///
 /// Combines connection settings with retry behavior configuration.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ClientConfig {
     /// Request timeout duration
     pub timeout: Duration,
@@ -110,6 +111,8 @@ pub struct ClientConfig {
     pub max_connections: usize,
     /// Connection pool idle timeout
     pub pool_idle_timeout: Duration,
+    /// Optional API key for authenticated requests
+    pub api_key: Option<ApiKey>,
 }
 
 impl Default for ClientConfig {
@@ -120,7 +123,21 @@ impl Default for ClientConfig {
             retry_config: RetryConfig::default(),
             max_connections: 20,
             pool_idle_timeout: Duration::from_secs(90),
+            api_key: None,
         }
+    }
+}
+
+impl std::fmt::Debug for ClientConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ClientConfig")
+            .field("timeout", &self.timeout)
+            .field("connect_timeout", &self.connect_timeout)
+            .field("retry_config", &self.retry_config)
+            .field("max_connections", &self.max_connections)
+            .field("pool_idle_timeout", &self.pool_idle_timeout)
+            .field("api_key", &self.api_key)
+            .finish()
     }
 }
 
@@ -935,6 +952,33 @@ mod tests {
 
         let retry_after = extract_retry_after(&response);
         assert_eq!(retry_after, None);
+    }
+
+    #[test]
+    fn test_client_config_debug_redacts_api_key() {
+        use crate::ApiKey;
+        use uuid::Uuid;
+
+        let uuid = Uuid::new_v4();
+        let uuid_str = uuid.to_string();
+        let api_key = ApiKey::new(uuid);
+
+        let config = ClientConfig {
+            api_key: Some(api_key),
+            ..Default::default()
+        };
+
+        let debug_output = format!("{:?}", config);
+
+        // Verify the debug output contains "REDACTED"
+        assert!(debug_output.contains("[REDACTED]"));
+
+        // Verify the actual UUID is NOT in the debug output
+        assert!(
+            !debug_output.contains(&uuid_str),
+            "API key UUID should not appear in debug output, but found: {}",
+            uuid_str
+        );
     }
 
     #[tokio::test]
