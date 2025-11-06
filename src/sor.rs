@@ -16,11 +16,11 @@ use crate::{QuoteRequest, SingleQuoteResponse};
 
 /// The Odos Smart Order Routing V2 API client
 #[derive(Debug, Clone)]
-pub struct OdosSorV2 {
+pub struct OdosSor {
     client: OdosHttpClient,
 }
 
-impl OdosSorV2 {
+impl OdosSor {
     pub fn new() -> Result<Self> {
         Ok(Self {
             client: OdosHttpClient::new()?,
@@ -41,13 +41,13 @@ impl OdosSorV2 {
     /// # Examples
     ///
     /// ```rust
-    /// use odos_sdk::{OdosSorV2, RetryConfig};
+    /// use odos_sdk::{OdosSor, RetryConfig};
     ///
     /// // No retries - handle all errors at application level
-    /// let client = OdosSorV2::with_retry_config(RetryConfig::no_retries()).unwrap();
+    /// let client = OdosSor::with_retry_config(RetryConfig::no_retries()).unwrap();
     ///
     /// // Conservative retries - only network errors
-    /// let client = OdosSorV2::with_retry_config(RetryConfig::conservative()).unwrap();
+    /// let client = OdosSor::with_retry_config(RetryConfig::conservative()).unwrap();
     ///
     /// // Custom retry behavior
     /// let retry_config = RetryConfig {
@@ -55,7 +55,7 @@ impl OdosSorV2 {
     ///     retry_server_errors: true,
     ///     ..Default::default()
     /// };
-    /// let client = OdosSorV2::with_retry_config(retry_config).unwrap();
+    /// let client = OdosSor::with_retry_config(retry_config).unwrap();
     /// ```
     pub fn with_retry_config(retry_config: RetryConfig) -> Result<Self> {
         let config = ClientConfig {
@@ -223,7 +223,7 @@ impl OdosSorV2 {
     }
 }
 
-impl Default for OdosSorV2 {
+impl Default for OdosSor {
     /// Creates a default Odos SOR V2 client with standard configuration.
     ///
     /// # Panics
