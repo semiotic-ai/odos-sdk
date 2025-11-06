@@ -82,6 +82,7 @@
 //!     max_connections: 20,
 //!     pool_idle_timeout: Duration::from_secs(90),
 //!     api_key: None,
+//!     ..Default::default()
 //! };
 //! let client = OdosSorV2::with_config(config)?;
 //!

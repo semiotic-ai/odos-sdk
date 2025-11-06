@@ -8,7 +8,6 @@ use tracing::instrument;
 use crate::{
     api::OdosApiErrorResponse, error_code::OdosErrorCode, parse_value, AssembleRequest,
     AssemblyResponse, ClientConfig, OdosError, OdosHttpClient, Result, RetryConfig, SwapContext,
-    ASSEMBLE_URL,
 };
 
 use super::TransactionData;
@@ -85,7 +84,7 @@ impl OdosSorV2 {
                 let mut builder = self
                     .client
                     .inner()
-                    .post("https://api.odos.xyz/sor/quote/v2")
+                    .post(self.client.config().quote_url.clone())
                     .header("accept", "application/json")
                     .json(quote_request);
 
@@ -139,7 +138,7 @@ impl OdosSorV2 {
                 let mut builder = self
                     .client
                     .inner()
-                    .post(ASSEMBLE_URL)
+                    .post(self.client.config().assemble_url.clone())
                     .header("Content-Type", "application/json")
                     .json(&assemble_request);
 

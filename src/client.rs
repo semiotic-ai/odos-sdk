@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use backoff::{backoff::Backoff, ExponentialBackoff};
-use reqwest::{Client, RequestBuilder, Response, StatusCode};
+use reqwest::{Client, RequestBuilder, Response, StatusCode, Url};
 use tokio::time::timeout;
 use tracing::{debug, instrument};
 
@@ -113,6 +113,10 @@ pub struct ClientConfig {
     pub pool_idle_timeout: Duration,
     /// Optional API key for authenticated requests
     pub api_key: Option<ApiKey>,
+    /// URL for the Odos quote API endpoint
+    pub quote_url: Url,
+    /// URL for the Odos assemble API endpoint
+    pub assemble_url: Url,
 }
 
 impl Default for ClientConfig {
@@ -124,6 +128,10 @@ impl Default for ClientConfig {
             max_connections: 20,
             pool_idle_timeout: Duration::from_secs(90),
             api_key: None,
+            quote_url: Url::parse("https://api.odos.xyz/sor/quote/v2")
+                .expect("Invalid default quote URL"),
+            assemble_url: Url::parse("https://api.odos.xyz/sor/assemble")
+                .expect("Invalid default assemble URL"),
         }
     }
 }
@@ -137,6 +145,8 @@ impl std::fmt::Debug for ClientConfig {
             .field("max_connections", &self.max_connections)
             .field("pool_idle_timeout", &self.pool_idle_timeout)
             .field("api_key", &self.api_key)
+            .field("quote_url", &self.quote_url)
+            .field("assemble_url", &self.assemble_url)
             .finish()
     }
 }
