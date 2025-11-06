@@ -5,17 +5,6 @@ use alloy_primitives::{hex, Address, U256};
 use alloy_rpc_types::TransactionRequest;
 use serde::{Deserialize, Serialize};
 
-/// The URL for the Odos Assemble API
-///
-/// # Deprecated
-/// This constant is deprecated. Use [`ClientConfig::assemble_url`] instead
-/// to configure the assemble endpoint URL.
-#[deprecated(
-    since = "0.17.0",
-    note = "Use ClientConfig::assemble_url instead for configurable endpoints"
-)]
-pub const ASSEMBLE_URL: &str = "https://api.odos.xyz/sor/assemble";
-
 /// Request to the Odos Assemble API: <https://docs.odos.xyz/build/api-docs>
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

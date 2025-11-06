@@ -14,38 +14,184 @@ use crate::{
     Result,
 };
 
-/// Odos API endpoints
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
-pub enum Endpoint {
+/// Base endpoint for the Odos API
+///
+/// Odos provides two API endpoints:
+/// - **Public**: Standard API available to all users at <https://api.odos.xyz>
+/// - **Enterprise**: Premium API with enhanced features at <https://enterprise-api.odos.xyz>
+///
+/// The endpoint base is separated from the API version ([`EndpointVersion`]) to allow
+/// flexible configuration of both base URL and API version independently.
+///
+/// This enum derives [`Copy`] as it's a lightweight configuration value that's
+/// frequently passed around and copied.
+///
+/// # Examples
+///
+/// ```rust
+/// use odos_sdk::{EndpointBase, EndpointVersion};
+///
+/// let public_endpoint = EndpointBase::Public;
+/// let v2_url = public_endpoint.quote_url(EndpointVersion::V2);
+/// assert_eq!(v2_url.as_str(), "https://api.odos.xyz/sor/quote/v2");
+///
+/// let v3_url = public_endpoint.quote_url(EndpointVersion::V3);
+/// assert_eq!(v3_url.as_str(), "https://api.odos.xyz/sor/quote/v3");
+/// ```
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
+pub enum EndpointBase {
     /// Public API endpoint <https://docs.odos.xyz/build/api-docs>
+    ///
+    /// Standard API available to all users. Suitable for most use cases.
     Public,
     /// Enterprise API endpoint <https://docs.odos.xyz/build/enterprise-api>
+    ///
+    /// Premium API with enhanced features, higher rate limits, and dedicated support.
+    /// Requires an API key obtained through the Odos Enterprise program.
     Enterprise,
 }
 
-impl Endpoint {
+impl EndpointBase {
     /// Get the base URL for the Odos API
+    ///
+    /// Returns the root URL for the selected endpoint without any path segments.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::EndpointBase;
+    ///
+    /// let public = EndpointBase::Public;
+    /// assert_eq!(public.base_url().as_str(), "https://api.odos.xyz/");
+    ///
+    /// let enterprise = EndpointBase::Enterprise;
+    /// assert_eq!(enterprise.base_url().as_str(), "https://enterprise-api.odos.xyz/");
+    /// ```
     pub fn base_url(&self) -> Url {
         match self {
-            Endpoint::Public => Url::parse("https://api.odos.xyz/").unwrap(),
-            Endpoint::Enterprise => Url::parse("https://enterprise-api.odos.xyz/").unwrap(),
+            EndpointBase::Public => Url::parse("https://api.odos.xyz/").unwrap(),
+            EndpointBase::Enterprise => Url::parse("https://enterprise-api.odos.xyz/").unwrap(),
         }
     }
 
-    /// Get the quote URL for the Odos API v2
-    pub fn quote_url_v2(&self) -> Url {
-        self.base_url().join("sor/quote/v2").unwrap()
-    }
-
-    /// Get the quote URL for the Odos API v3
-    pub fn quote_url_v3(&self) -> Url {
-        self.base_url().join("sor/quote/v3").unwrap()
+    /// Get the quote URL for the Odos API with a specific version
+    ///
+    /// Constructs the full URL for the quote endpoint by combining the base URL
+    /// with the appropriate version path.
+    ///
+    /// # Arguments
+    ///
+    /// * `version` - The API version to use (V2 or V3)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::{EndpointBase, EndpointVersion};
+    ///
+    /// let endpoint = EndpointBase::Public;
+    ///
+    /// let v2_url = endpoint.quote_url(EndpointVersion::V2);
+    /// assert_eq!(v2_url.as_str(), "https://api.odos.xyz/sor/quote/v2");
+    ///
+    /// let v3_url = endpoint.quote_url(EndpointVersion::V3);
+    /// assert_eq!(v3_url.as_str(), "https://api.odos.xyz/sor/quote/v3");
+    /// ```
+    pub fn quote_url(&self, version: EndpointVersion) -> Url {
+        match version {
+            EndpointVersion::V2 => self.base_url().join("sor/quote/v2").unwrap(),
+            EndpointVersion::V3 => self.base_url().join("sor/quote/v3").unwrap(),
+        }
     }
 
     /// Get the assemble URL for the Odos API
+    ///
+    /// The assemble endpoint is version-independent and constructs transaction data
+    /// from a previously obtained quote path ID.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::EndpointBase;
+    ///
+    /// let endpoint = EndpointBase::Public;
+    /// let assemble_url = endpoint.assemble_url();
+    /// assert_eq!(assemble_url.as_str(), "https://api.odos.xyz/sor/assemble");
+    /// ```
     pub fn assemble_url(&self) -> Url {
         self.base_url().join("sor/assemble").unwrap()
     }
+}
+
+/// Version of the Odos API endpoint
+///
+/// Odos provides multiple API versions with different features and response formats:
+/// - **V2**: Stable production version with comprehensive swap routing
+/// - **V3**: Latest version with enhanced features and optimizations
+///
+/// The version is specified independently from the endpoint base ([`EndpointBase`])
+/// to allow flexible configuration. Both public and enterprise endpoints support
+/// all API versions.
+///
+/// This enum derives [`Copy`] as it's a lightweight configuration value that's
+/// frequently passed around and copied.
+///
+/// # Migration from Previous Versions
+///
+/// Prior to version 0.20.0, the client configuration stored concrete URLs
+/// (`quote_url`, `assemble_url`). The refactor to `EndpointBase` + `EndpointVersion`
+/// provides more flexibility and clearer separation of concerns.
+///
+/// **Old approach (pre-0.20.0):**
+/// ```rust,ignore
+/// let config = ClientConfig {
+///     quote_url: Url::parse("https://api.odos.xyz/sor/quote/v2").unwrap(),
+///     assemble_url: Url::parse("https://api.odos.xyz/sor/assemble").unwrap(),
+///     ..Default::default()
+/// };
+/// ```
+///
+/// **New approach (0.20.0+):**
+/// ```rust
+/// use odos_sdk::{ClientConfig, EndpointBase, EndpointVersion};
+///
+/// let config = ClientConfig {
+///     endpoint: EndpointBase::Public,
+///     endpoint_version: EndpointVersion::V2,
+///     ..Default::default()
+/// };
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// use odos_sdk::{ClientConfig, EndpointBase, EndpointVersion};
+///
+/// // Use V2 API (stable, recommended for production)
+/// let config_v2 = ClientConfig {
+///     endpoint: EndpointBase::Public,
+///     endpoint_version: EndpointVersion::V2,
+///     ..Default::default()
+/// };
+///
+/// // Use V3 API (latest features)
+/// let config_v3 = ClientConfig {
+///     endpoint: EndpointBase::Public,
+///     endpoint_version: EndpointVersion::V3,
+///     ..Default::default()
+/// };
+/// ```
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
+pub enum EndpointVersion {
+    /// API version 2 - Stable production version
+    ///
+    /// Recommended for most production use cases. Provides comprehensive
+    /// swap routing with extensive DEX coverage.
+    V2,
+    /// API version 3 - Latest version with enhanced features
+    ///
+    /// Includes optimizations and new features. Check the Odos documentation
+    /// for specific enhancements over V2.
+    V3,
 }
 
 /// Input token for the Odos quote API

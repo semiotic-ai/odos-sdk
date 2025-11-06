@@ -14,19 +14,119 @@ use super::TransactionData;
 
 use crate::{QuoteRequest, SingleQuoteResponse};
 
-/// The Odos Smart Order Routing V2 API client
+/// The Odos Smart Order Routing (SOR) API client
+///
+/// This is the primary interface for interacting with the Odos API. It provides
+/// methods for obtaining swap quotes and assembling transactions.
+///
+/// # Architecture
+///
+/// The client is built on top of [`OdosHttpClient`], which handles:
+/// - HTTP connection management and pooling
+/// - Automatic retries with exponential backoff
+/// - Rate limit handling
+/// - Timeout management
+///
+/// # Examples
+///
+/// ## Basic usage with defaults
+/// ```rust
+/// use odos_sdk::OdosSor;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let client = OdosSor::new()?;
+/// # Ok(())
+/// # }
+/// ```
+///
+/// ## Custom configuration
+/// ```rust
+/// use odos_sdk::{OdosSor, ClientConfig, EndpointBase, EndpointVersion};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let config = ClientConfig {
+///     endpoint: EndpointBase::Public,
+///     endpoint_version: EndpointVersion::V3,
+///     ..Default::default()
+/// };
+/// let client = OdosSor::with_config(config)?;
+/// # Ok(())
+/// # }
+/// ```
+///
+/// ## Using retry configuration
+/// ```rust
+/// use odos_sdk::{OdosSor, RetryConfig};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// // Conservative retries - only network errors
+/// let client = OdosSor::with_retry_config(RetryConfig::conservative())?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone)]
 pub struct OdosSor {
     client: OdosHttpClient,
 }
 
 impl OdosSor {
+    /// Create a new Odos SOR client with default configuration
+    ///
+    /// Uses default settings:
+    /// - Public API endpoint
+    /// - API version V2
+    /// - 30 second timeout
+    /// - 3 retry attempts with exponential backoff
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying HTTP client cannot be initialized.
+    /// This is rare and typically only occurs due to system resource issues.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::OdosSor;
+    ///
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OdosSor::new()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn new() -> Result<Self> {
         Ok(Self {
             client: OdosHttpClient::new()?,
         })
     }
 
+    /// Create a new Odos SOR client with custom configuration
+    ///
+    /// Allows full control over client behavior including timeouts,
+    /// retries, endpoint selection, and API version.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The client configuration
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying HTTP client cannot be initialized.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::{OdosSor, ClientConfig, EndpointBase, EndpointVersion};
+    ///
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let config = ClientConfig {
+    ///     endpoint: EndpointBase::Enterprise,
+    ///     endpoint_version: EndpointVersion::V3,
+    ///     ..Default::default()
+    /// };
+    /// let client = OdosSor::with_config(config)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_config(config: ClientConfig) -> Result<Self> {
         Ok(Self {
             client: OdosHttpClient::with_config(config)?,
@@ -70,9 +170,67 @@ impl OdosSor {
         self.client.config()
     }
 
-    /// Get a swap quote using Odos API
+    /// Get a swap quote from the Odos API
     ///
-    /// Takes a [`QuoteRequest`] and returns a [`SingleQuoteResponse`].
+    /// Requests a quote for swapping tokens on the configured chain.
+    /// The quote includes routing information, price impact, gas estimates,
+    /// and a path ID that can be used to assemble the transaction.
+    ///
+    /// # Arguments
+    ///
+    /// * `quote_request` - The quote request containing swap parameters
+    ///
+    /// # Returns
+    ///
+    /// Returns a [`SingleQuoteResponse`] containing:
+    /// - Path ID for transaction assembly
+    /// - Expected output amounts
+    /// - Gas estimates
+    /// - Price impact
+    /// - Routing information
+    ///
+    /// # Errors
+    ///
+    /// This method can fail with various errors:
+    /// - [`OdosError::Api`] - API returned an error (invalid input, unsupported chain, etc.)
+    /// - [`OdosError::RateLimit`] - Rate limit exceeded
+    /// - [`OdosError::Http`] - Network error
+    /// - [`OdosError::Timeout`] - Request timeout
+    ///
+    /// Server errors (5xx) are automatically retried based on the retry configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use odos_sdk::{OdosSor, QuoteRequest, InputToken, OutputToken};
+    /// use alloy_primitives::{address, U256};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OdosSor::new()?;
+    ///
+    /// let quote_request = QuoteRequest::builder()
+    ///     .chain_id(1) // Ethereum mainnet
+    ///     .input_tokens(vec![InputToken::new(
+    ///         address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"), // USDC
+    ///         U256::from(1000000) // 1 USDC (6 decimals)
+    ///     )])
+    ///     .output_tokens(vec![OutputToken::new(
+    ///         address!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"), // WETH
+    ///         1 // 100% to WETH
+    ///     )])
+    ///     .slippage_limit_percent(0.5)
+    ///     .user_addr(address!("0000000000000000000000000000000000000000").to_string())
+    ///     .compact(false)
+    ///     .simple(false)
+    ///     .referral_code(0)
+    ///     .disable_rfqs(false)
+    ///     .build();
+    ///
+    /// let quote = client.get_swap_quote(&quote_request).await?;
+    /// println!("Path ID: {}", quote.path_id());
+    /// # Ok(())
+    /// # }
+    /// ```
     #[instrument(skip(self), level = "debug")]
     pub async fn get_swap_quote(
         &self,
@@ -84,7 +242,12 @@ impl OdosSor {
                 let mut builder = self
                     .client
                     .inner()
-                    .post(self.client.config().quote_url.clone())
+                    .post(
+                        self.client
+                            .config()
+                            .endpoint
+                            .quote_url(self.client.config().endpoint_version),
+                    )
                     .header("accept", "application/json")
                     .json(quote_request);
 
@@ -138,7 +301,7 @@ impl OdosSor {
                 let mut builder = self
                     .client
                     .inner()
-                    .post(self.client.config().assemble_url.clone())
+                    .post(self.client.config().endpoint.assemble_url())
                     .header("Content-Type", "application/json")
                     .json(&assemble_request);
 
@@ -152,7 +315,50 @@ impl OdosSor {
             .await
     }
 
-    /// Assemble transaction data from a quote using the Odos Assemble API.
+    /// Assemble transaction data from a quote
+    ///
+    /// Takes a path ID from a quote response and assembles the complete
+    /// transaction data needed to execute the swap on-chain.
+    ///
+    /// # Arguments
+    ///
+    /// * `signer_address` - Address that will sign and send the transaction
+    /// * `output_recipient` - Address that will receive the output tokens
+    /// * `path_id` - Path ID from a previous quote response
+    ///
+    /// # Returns
+    ///
+    /// Returns [`TransactionData`] containing:
+    /// - Transaction calldata (`data`)
+    /// - ETH value to send (`value`)
+    /// - Target contract address (`to`)
+    /// - Gas estimates
+    ///
+    /// # Errors
+    ///
+    /// - [`OdosError::Api`] - Invalid path ID, expired quote, or other API error
+    /// - [`OdosError::RateLimit`] - Rate limit exceeded
+    /// - [`OdosError::Http`] - Network error
+    /// - [`OdosError::Timeout`] - Request timeout
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use odos_sdk::OdosSor;
+    /// use alloy_primitives::address;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OdosSor::new()?;
+    /// let path_id = "path_id_from_quote_response";
+    ///
+    /// let tx_data = client.assemble_tx_data(
+    ///     address!("0000000000000000000000000000000000000001"),
+    ///     address!("0000000000000000000000000000000000000001"),
+    ///     path_id
+    /// ).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     #[instrument(skip(self), level = "debug")]
     pub async fn assemble_tx_data(
         &self,
@@ -203,8 +409,64 @@ impl OdosSor {
         Ok(transaction)
     }
 
-    /// Build a base transaction from a swap using the Odos Assemble API,
-    /// leaving gas parameters to be set by the caller.
+    /// Build a base transaction request from a swap context
+    ///
+    /// Assembles transaction data and constructs a [`TransactionRequest`] ready
+    /// for gas parameter configuration and signing. This is a convenience method
+    /// that combines [`assemble_tx_data`](Self::assemble_tx_data) with transaction
+    /// request construction.
+    ///
+    /// # Arguments
+    ///
+    /// * `swap` - The swap context containing addresses and path ID
+    ///
+    /// # Returns
+    ///
+    /// Returns a [`TransactionRequest`] with:
+    /// - `to`: Router contract address
+    /// - `from`: Signer address
+    /// - `data`: Encoded swap calldata
+    /// - `value`: ETH amount to send
+    ///
+    /// Gas parameters (gas limit, gas price) are NOT set and must be configured
+    /// by the caller before signing.
+    ///
+    /// # Errors
+    ///
+    /// - [`OdosError::Api`] - Invalid path ID or API error
+    /// - [`OdosError::RateLimit`] - Rate limit exceeded
+    /// - [`OdosError::Http`] - Network error
+    /// - [`OdosError::Timeout`] - Request timeout
+    /// - [`OdosError::Hex`] - Failed to decode transaction data
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use odos_sdk::{OdosSor, SwapContext};
+    /// use alloy_primitives::{address, U256};
+    /// use alloy_chains::NamedChain;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OdosSor::new()?;
+    ///
+    /// let swap = SwapContext::builder()
+    ///     .chain(NamedChain::Mainnet)
+    ///     .signer_address(address!("0000000000000000000000000000000000000001"))
+    ///     .output_recipient(address!("0000000000000000000000000000000000000001"))
+    ///     .router_address(address!("0000000000000000000000000000000000000002"))
+    ///     .token_address(address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"))
+    ///     .token_amount(U256::from(1000000))
+    ///     .path_id("path_id_from_quote".to_string())
+    ///     .build();
+    ///
+    /// let mut tx_request = client.build_base_transaction(&swap).await?;
+    ///
+    /// // Configure gas parameters before signing
+    /// // tx_request = tx_request.with_gas_limit(300000);
+    /// // tx_request = tx_request.with_max_fee_per_gas(...);
+    /// # Ok(())
+    /// # }
+    /// ```
     #[instrument(skip(self), level = "debug")]
     pub async fn build_base_transaction(&self, swap: &SwapContext) -> Result<TransactionRequest> {
         let TransactionData { data, value, .. } = self

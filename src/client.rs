@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use backoff::{backoff::Backoff, ExponentialBackoff};
-use reqwest::{Client, RequestBuilder, Response, StatusCode, Url};
+use reqwest::{Client, RequestBuilder, Response, StatusCode};
 use tokio::time::timeout;
 use tracing::{debug, instrument};
 
@@ -10,6 +10,7 @@ use crate::{
     api_key::ApiKey,
     error::{OdosError, Result},
     error_code::OdosErrorCode,
+    EndpointBase, EndpointVersion,
 };
 
 /// Configuration for retry behavior
@@ -98,25 +99,129 @@ impl RetryConfig {
 
 /// Configuration for the HTTP client
 ///
-/// Combines connection settings with retry behavior configuration.
+/// Combines connection settings, retry behavior, and endpoint configuration
+/// for the Odos API client.
+///
+/// # Architecture
+///
+/// The configuration separates concerns into three main areas:
+/// 1. **Connection settings**: Timeouts, connection pooling
+/// 2. **Retry behavior**: How errors are handled and retried
+/// 3. **Endpoint configuration**: Which API endpoint and version to use
+///
+/// # Examples
+///
+/// ## Basic configuration with defaults
+/// ```rust
+/// use odos_sdk::ClientConfig;
+///
+/// let config = ClientConfig::default();
+/// ```
+///
+/// ## Custom endpoint configuration
+/// ```rust
+/// use odos_sdk::{ClientConfig, EndpointBase, EndpointVersion};
+///
+/// let config = ClientConfig {
+///     endpoint: EndpointBase::Enterprise,
+///     endpoint_version: EndpointVersion::V3,
+///     ..Default::default()
+/// };
+/// ```
+///
+/// ## Conservative retry behavior
+/// ```rust
+/// use odos_sdk::ClientConfig;
+///
+/// let config = ClientConfig::conservative();
+/// ```
+///
+/// ## Full custom configuration
+/// ```rust
+/// use std::time::Duration;
+/// use odos_sdk::{ClientConfig, RetryConfig, EndpointBase, EndpointVersion};
+///
+/// let config = ClientConfig {
+///     timeout: Duration::from_secs(60),
+///     connect_timeout: Duration::from_secs(15),
+///     retry_config: RetryConfig {
+///         max_retries: 5,
+///         retry_server_errors: true,
+///         ..Default::default()
+///     },
+///     max_connections: 50,
+///     endpoint: EndpointBase::Public,
+///     endpoint_version: EndpointVersion::V2,
+///     ..Default::default()
+/// };
+/// ```
 #[derive(Clone)]
 pub struct ClientConfig {
     /// Request timeout duration
+    ///
+    /// Maximum time to wait for a complete request/response cycle.
+    /// Includes connection time, request transmission, server processing,
+    /// and response reception.
+    ///
+    /// Default: 30 seconds
     pub timeout: Duration,
+
     /// Connection timeout duration
+    ///
+    /// Maximum time to wait when establishing a TCP connection to the server.
+    /// Should be shorter than `timeout`.
+    ///
+    /// Default: 10 seconds
     pub connect_timeout: Duration,
+
     /// Retry behavior configuration
+    ///
+    /// Controls which errors trigger retries and how retries are executed.
+    /// See [`RetryConfig`] for detailed retry configuration options.
+    ///
+    /// Default: 3 retries with exponential backoff
     pub retry_config: RetryConfig,
-    /// Maximum concurrent connections
+
+    /// Maximum concurrent connections per host
+    ///
+    /// Limits the number of simultaneous connections in the connection pool.
+    /// Higher values allow more concurrent requests but consume more resources.
+    ///
+    /// Default: 20
     pub max_connections: usize,
+
     /// Connection pool idle timeout
+    ///
+    /// How long to keep idle connections alive in the pool before closing them.
+    /// Longer timeouts reduce connection overhead but consume resources.
+    ///
+    /// Default: 90 seconds
     pub pool_idle_timeout: Duration,
+
     /// Optional API key for authenticated requests
+    ///
+    /// Required for Enterprise endpoints and rate limit increases.
+    /// Obtain from the Odos dashboard or Enterprise program.
+    ///
+    /// Default: None (unauthenticated requests)
     pub api_key: Option<ApiKey>,
-    /// URL for the Odos quote API endpoint
-    pub quote_url: Url,
-    /// URL for the Odos assemble API endpoint
-    pub assemble_url: Url,
+
+    /// Base endpoint to use for API requests
+    ///
+    /// Selects between Public and Enterprise API endpoints.
+    /// See [`EndpointBase`] for available options.
+    ///
+    /// Default: [`EndpointBase::Public`]
+    pub endpoint: EndpointBase,
+
+    /// API version to use for quote requests
+    ///
+    /// Selects between V2 (stable) and V3 (latest features).
+    /// The assemble endpoint is version-independent.
+    /// See [`EndpointVersion`] for available versions.
+    ///
+    /// Default: [`EndpointVersion::V2`]
+    pub endpoint_version: EndpointVersion,
 }
 
 impl Default for ClientConfig {
@@ -128,10 +233,8 @@ impl Default for ClientConfig {
             max_connections: 20,
             pool_idle_timeout: Duration::from_secs(90),
             api_key: None,
-            quote_url: Url::parse("https://api.odos.xyz/sor/quote/v2")
-                .expect("Invalid default quote URL"),
-            assemble_url: Url::parse("https://api.odos.xyz/sor/assemble")
-                .expect("Invalid default assemble URL"),
+            endpoint: EndpointBase::Public,
+            endpoint_version: EndpointVersion::V2,
         }
     }
 }
@@ -145,8 +248,8 @@ impl std::fmt::Debug for ClientConfig {
             .field("max_connections", &self.max_connections)
             .field("pool_idle_timeout", &self.pool_idle_timeout)
             .field("api_key", &self.api_key)
-            .field("quote_url", &self.quote_url)
-            .field("assemble_url", &self.assemble_url)
+            .field("endpoint", &self.endpoint)
+            .field("endpoint_version", &self.endpoint_version)
             .finish()
     }
 }
