@@ -4,10 +4,9 @@ use thiserror::Error;
 
 use crate::{
     ODOS_V2_ARBITRUM_ROUTER, ODOS_V2_AVALANCHE_ROUTER, ODOS_V2_BASE_ROUTER, ODOS_V2_BSC_ROUTER,
-    ODOS_V2_ETHEREUM_ROUTER, ODOS_V2_FANTOM_ROUTER, ODOS_V2_FRAXTAL_ROUTER, ODOS_V2_LINEA_ROUTER,
-    ODOS_V2_MANTLE_ROUTER, ODOS_V2_MODE_ROUTER, ODOS_V2_OP_ROUTER, ODOS_V2_POLYGON_ROUTER,
-    ODOS_V2_SCROLL_ROUTER, ODOS_V2_SONIC_ROUTER, ODOS_V2_UNICHAIN_ROUTER, ODOS_V2_ZKSYNC_ROUTER,
-    ODOS_V3,
+    ODOS_V2_ETHEREUM_ROUTER, ODOS_V2_FRAXTAL_ROUTER, ODOS_V2_LINEA_ROUTER, ODOS_V2_MANTLE_ROUTER,
+    ODOS_V2_MODE_ROUTER, ODOS_V2_OP_ROUTER, ODOS_V2_POLYGON_ROUTER, ODOS_V2_SCROLL_ROUTER,
+    ODOS_V2_SONIC_ROUTER, ODOS_V2_UNICHAIN_ROUTER, ODOS_V2_ZKSYNC_ROUTER, ODOS_V3,
 };
 
 /// Errors that can occur when working with Odos chains
@@ -188,7 +187,6 @@ impl OdosChain for NamedChain {
             Avalanche => ODOS_V2_AVALANCHE_ROUTER,
             Base => ODOS_V2_BASE_ROUTER,
             BinanceSmartChain => ODOS_V2_BSC_ROUTER,
-            Fantom => ODOS_V2_FANTOM_ROUTER,
             Fraxtal => ODOS_V2_FRAXTAL_ROUTER,
             Mainnet => ODOS_V2_ETHEREUM_ROUTER,
             Optimism => ODOS_V2_OP_ROUTER,
@@ -232,7 +230,6 @@ impl OdosChain for NamedChain {
                 | Base
                 | Berachain
                 | BinanceSmartChain
-                | Fantom
                 | Fraxtal
                 | Mainnet
                 | Optimism
@@ -255,7 +252,6 @@ impl OdosChain for NamedChain {
                 | Avalanche
                 | Base
                 | BinanceSmartChain
-                | Fantom
                 | Fraxtal
                 | Mainnet
                 | Optimism
@@ -279,7 +275,6 @@ impl OdosChain for NamedChain {
                 | Base
                 | Berachain
                 | BinanceSmartChain
-                | Fantom
                 | Fraxtal
                 | Mainnet
                 | Optimism

@@ -62,7 +62,7 @@
 //! Both V2 and V3 routers are deployed on the following networks:
 //! - **Layer 1**: Ethereum
 //! - **Layer 2**: Arbitrum, Optimism, Polygon, Base, Scroll, Linea, zkSync, Mantle, Mode
-//! - **Sidechains**: BSC, Avalanche, Fantom, Fraxtal, Sonic, Unichain
+//! - **Sidechains**: BSC, Avalanche, Fraxtal, Sonic, Unichain
 //!
 //! ## V2 vs V3 Differences
 //!
@@ -130,13 +130,6 @@ pub const ODOS_V2_AVALANCHE_ROUTER: Address = address!("88de50B233052e4Fb783d4F6
 ///
 /// **Verified on**: <https://polygonscan.com/address/0x4e3288c9ca110bcc82bf38f09a7b425c095d92bf>
 pub const ODOS_V2_POLYGON_ROUTER: Address = address!("4e3288c9ca110bcc82bf38f09a7b425c095d92bf");
-
-/// **Fantom** - V2 Router contract address
-///
-/// Chain ID: 250
-///
-/// **Verified on**: <https://ftmscan.com/address/0xD0c22A5435F4E8E5770C1fAFb5374015FC12F7cD>
-pub const ODOS_V2_FANTOM_ROUTER: Address = address!("D0c22A5435F4E8E5770C1fAFb5374015FC12F7cD");
 
 /// **Fraxtal** - V2 Router contract address
 ///
@@ -259,7 +252,6 @@ pub fn get_v2_router_by_chain_id(chain_id: u64) -> Option<Address> {
         NamedChain::Optimism => ODOS_V2_OP_ROUTER,
         NamedChain::BinanceSmartChain => ODOS_V2_BSC_ROUTER,
         NamedChain::Polygon => ODOS_V2_POLYGON_ROUTER,
-        NamedChain::Fantom => ODOS_V2_FANTOM_ROUTER,
         NamedChain::Fraxtal => ODOS_V2_FRAXTAL_ROUTER,
         NamedChain::ZkSync => ODOS_V2_ZKSYNC_ROUTER,
         NamedChain::Unichain => ODOS_V2_UNICHAIN_ROUTER,
@@ -337,7 +329,6 @@ pub fn get_supported_chains() -> Vec<u64> {
         Optimism,
         BinanceSmartChain,
         Polygon,
-        Fantom,
         Fraxtal,
         ZkSync,
         Unichain,
@@ -427,7 +418,6 @@ mod tests {
             ODOS_V2_OP_ROUTER,
             ODOS_V2_AVALANCHE_ROUTER,
             ODOS_V2_POLYGON_ROUTER,
-            ODOS_V2_FANTOM_ROUTER,
             ODOS_V2_FRAXTAL_ROUTER,
             ODOS_V2_LINEA_ROUTER,
             ODOS_V2_MANTLE_ROUTER,
