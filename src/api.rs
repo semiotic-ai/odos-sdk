@@ -15,6 +15,7 @@ use crate::{
 };
 
 /// Odos API endpoints
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 pub enum Endpoint {
     /// Public API endpoint <https://docs.odos.xyz/build/api-docs>
     Public,
