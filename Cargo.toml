@@ -1,6 +1,6 @@
 [package]
 name = "odos-sdk"
-version = "0.18.0"
+version = "0.19.0"
 
 authors = ["Joseph Livesey <joseph@semiotic.ai>"]
 categories = ["finance", "api-bindings"]
