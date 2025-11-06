@@ -4,6 +4,7 @@ use alloy_primitives::{Address, Bytes, U256};
 use bon::Builder;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
+use url::Url;
 
 use crate::{
     error_code::TraceId,
@@ -12,6 +13,39 @@ use crate::{
     OdosV2Router::{swapCall, OdosV2RouterCalls},
     Result,
 };
+
+/// Odos API endpoints
+pub enum Endpoint {
+    /// Public API endpoint <https://docs.odos.xyz/build/api-docs>
+    Public,
+    /// Enterprise API endpoint <https://docs.odos.xyz/build/enterprise-api>
+    Enterprise,
+}
+
+impl Endpoint {
+    /// Get the base URL for the Odos API
+    pub fn base_url(&self) -> Url {
+        match self {
+            Endpoint::Public => Url::parse("https://api.odos.xyz/").unwrap(),
+            Endpoint::Enterprise => Url::parse("https://enterprise-api.odos.xyz/").unwrap(),
+        }
+    }
+
+    /// Get the quote URL for the Odos API v2
+    pub fn quote_url_v2(&self) -> Url {
+        self.base_url().join("sor/quote/v2").unwrap()
+    }
+
+    /// Get the quote URL for the Odos API v3
+    pub fn quote_url_v3(&self) -> Url {
+        self.base_url().join("sor/quote/v3").unwrap()
+    }
+
+    /// Get the assemble URL for the Odos API
+    pub fn assemble_url(&self) -> Url {
+        self.base_url().join("sor/assemble").unwrap()
+    }
+}
 
 /// Input token for the Odos quote API
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
