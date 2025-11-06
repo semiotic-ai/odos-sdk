@@ -16,7 +16,7 @@ A [Rust](https://www.rust-lang.org/) SDK for [Odos](https://docs.odos.xyz/)
 use alloy_chains::NamedChain;
 use alloy_primitives::{Address, U256};
 use erc20_rs::Erc20;
-use odos_sdk::{Erc20, OdosSorV2, QuoteRequest, SwapContext};
+use odos_sdk::{Erc20, OdosSor, QuoteRequest, SwapContext};
 
 /// Token address of the token to swap
 const TOKEN: &str = "0x4200000000000000000000000000000000000006";
@@ -48,7 +48,7 @@ let quote_request = QuoteRequest::builder()
     .disable_rfqs(true)
     .build();
 
-let sor_client = OdosSorV2::new();
+let sor_client = OdosSor::new();
 
 let quote = sor_client.get_swap_quote(&quote_request).await.unwrap();
 

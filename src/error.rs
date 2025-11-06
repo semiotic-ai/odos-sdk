@@ -290,9 +290,9 @@ impl OdosError {
     /// # Examples
     ///
     /// ```rust
-    /// use odos_sdk::{OdosError, OdosSorV2, QuoteRequest};
+    /// use odos_sdk::{OdosError, OdosSor, QuoteRequest};
     ///
-    /// # async fn example(client: &OdosSorV2, request: &QuoteRequest) {
+    /// # async fn example(client: &OdosSor, request: &QuoteRequest) {
     /// match client.get_swap_quote(request).await {
     ///     Ok(quote) => { /* handle quote */ }
     ///     Err(e) if e.is_rate_limit() => {

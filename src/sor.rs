@@ -237,6 +237,6 @@ impl Default for OdosSor {
     /// In practice, this almost never fails and is safe for most use cases.
     /// See [`OdosHttpClient::default`] for more details.
     fn default() -> Self {
-        Self::new().expect("Failed to create default OdosSorV2 client")
+        Self::new().expect("Failed to create default OdosSor client")
     }
 }

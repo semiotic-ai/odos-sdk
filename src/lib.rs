@@ -20,7 +20,7 @@
 //!
 //! # async fn example() -> Result<()> {
 //! // Create a client
-//! let client = OdosSorV2::new()?;
+//! let client = OdosSor::new()?;
 //!
 //! // Build a quote request
 //! let quote_request = QuoteRequest::builder()
@@ -84,10 +84,10 @@
 //!     api_key: None,
 //!     ..Default::default()
 //! };
-//! let client = OdosSorV2::with_config(config)?;
+//! let client = OdosSor::with_config(config)?;
 //!
 //! // Or use convenience constructors
-//! let client = OdosSorV2::with_retry_config(RetryConfig::conservative())?;
+//! let client = OdosSor::with_retry_config(RetryConfig::conservative())?;
 //! # Ok(())
 //! # }
 //! ```
@@ -100,7 +100,7 @@
 //! use odos_sdk::*;
 //!
 //! # async fn example() {
-//! # let client = OdosSorV2::new().unwrap();
+//! # let client = OdosSor::new().unwrap();
 //! # let quote_request = QuoteRequest::builder().chain_id(1).input_tokens(vec![]).output_tokens(vec![]).slippage_limit_percent(1.0).user_addr("test".to_string()).compact(false).simple(false).referral_code(0).disable_rfqs(false).build();
 //! match client.get_swap_quote(&quote_request).await {
 //!     Ok(quote) => {
@@ -197,7 +197,7 @@
 //! use std::time::Duration;
 //!
 //! # async fn example() -> Result<()> {
-//! # let client = OdosSorV2::new()?;
+//! # let client = OdosSor::new()?;
 //! # let quote_request = QuoteRequest::builder()
 //! #     .chain_id(1)
 //! #     .input_tokens(vec![])
@@ -237,10 +237,10 @@
 //!
 //! # fn example() -> Result<()> {
 //! // Conservative: only retry network errors
-//! let client = OdosSorV2::with_retry_config(RetryConfig::conservative())?;
+//! let client = OdosSor::with_retry_config(RetryConfig::conservative())?;
 //!
 //! // No retries: handle all errors at application level
-//! let client = OdosSorV2::with_retry_config(RetryConfig::no_retries())?;
+//! let client = OdosSor::with_retry_config(RetryConfig::no_retries())?;
 //!
 //! // Custom configuration
 //! let retry_config = RetryConfig {
@@ -249,7 +249,7 @@
 //!     retry_server_errors: false,  // Don't retry 5xx errors
 //!     retry_predicate: None,
 //! };
-//! let client = OdosSorV2::with_retry_config(retry_config)?;
+//! let client = OdosSor::with_retry_config(retry_config)?;
 //! # Ok(())
 //! # }
 //! ```
