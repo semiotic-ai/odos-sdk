@@ -183,7 +183,7 @@ impl OdosChain for NamedChain {
             return self.v3_router_address();
         }
 
-        let address_str = match self {
+        Ok(match self {
             Arbitrum => ODOS_V2_ARBITRUM_ROUTER,
             Avalanche => ODOS_V2_AVALANCHE_ROUTER,
             Base => ODOS_V2_BASE_ROUTER,
@@ -205,13 +205,7 @@ impl OdosChain for NamedChain {
                     chain: format!("{self:?}"),
                 });
             }
-        };
-
-        address_str
-            .parse()
-            .map_err(|_| OdosChainError::InvalidAddress {
-                address: address_str.to_string(),
-            })
+        })
     }
 
     fn v3_router_address(&self) -> OdosChainResult<Address> {
@@ -226,9 +220,7 @@ impl OdosChain for NamedChain {
             return self.v2_router_address();
         }
 
-        ODOS_V3.parse().map_err(|_| OdosChainError::InvalidAddress {
-            address: ODOS_V3.to_string(),
-        })
+        Ok(ODOS_V3)
     }
 
     fn supports_odos(&self) -> bool {
@@ -421,15 +413,15 @@ mod tests {
 
         for chain in chains {
             let address = chain.v3_router_address().unwrap();
-            assert_eq!(address, ODOS_V3.parse::<Address>().unwrap());
+            assert_eq!(address, ODOS_V3);
         }
     }
 
     #[test]
     fn test_both_router_addresses() {
         let (v2_addr, v3_addr) = NamedChain::Mainnet.both_router_addresses().unwrap();
-        assert_eq!(v2_addr, ODOS_V2_ETHEREUM_ROUTER.parse::<Address>().unwrap());
-        assert_eq!(v3_addr, ODOS_V3.parse::<Address>().unwrap());
+        assert_eq!(v2_addr, ODOS_V2_ETHEREUM_ROUTER);
+        assert_eq!(v3_addr, ODOS_V3);
     }
 
     #[test]

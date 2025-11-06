@@ -82,11 +82,19 @@ impl OdosSorV2 {
         let response = self
             .client
             .execute_with_retry(|| {
-                self.client
+                let mut builder = self
+                    .client
                     .inner()
                     .post("https://api.odos.xyz/sor/quote/v2")
                     .header("accept", "application/json")
-                    .json(quote_request)
+                    .json(quote_request);
+
+                // Add API key header if available
+                if let Some(ref api_key) = self.client.config().api_key {
+                    builder = builder.header("X-API-Key", api_key.as_str());
+                }
+
+                builder
             })
             .await?;
 
@@ -128,11 +136,19 @@ impl OdosSorV2 {
     ) -> Result<Response> {
         self.client
             .execute_with_retry(|| {
-                self.client
+                let mut builder = self
+                    .client
                     .inner()
                     .post(ASSEMBLE_URL)
                     .header("Content-Type", "application/json")
-                    .json(&assemble_request)
+                    .json(&assemble_request);
+
+                // Add API key header if available
+                if let Some(ref api_key) = self.client.config().api_key {
+                    builder = builder.header("X-API-Key", api_key.as_str());
+                }
+
+                builder
             })
             .await
     }
