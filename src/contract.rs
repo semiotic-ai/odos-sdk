@@ -22,9 +22,6 @@
 //! let v2_router = NamedChain::Mainnet.v2_router_address()?;
 //! let v3_router = NamedChain::Mainnet.v3_router_address()?;
 //!
-//! // Get both addresses at once
-//! let (v2, v3) = NamedChain::Arbitrum.both_router_addresses()?;
-//!
 //! // Safe lookups that don't panic
 //! if let Some(router_addr) = NamedChain::Mainnet.try_v3_router_address() {
 //!     // Use the router address with your provider
@@ -665,39 +662,6 @@ pub fn get_supported_v3_chains() -> Vec<NamedChain> {
         .collect()
 }
 
-/// Check if both V2 and V3 are supported on a given chain
-///
-/// This function leverages the `OdosChain` trait to provide chain ID-based
-/// lookups while maintaining a single source of truth for chain support.
-///
-/// # Arguments
-///
-/// * `chain_id` - The chain ID to check
-///
-/// # Returns
-///
-/// * `Some((v2_address, v3_address))` - Both addresses if the chain is supported
-/// * `None` - If the chain is not supported by either version
-///
-/// # Example
-///
-/// ```rust
-/// use odos_sdk::get_both_router_addresses;
-///
-/// if let Some((v2_addr, v3_addr)) = get_both_router_addresses(1) {
-///     println!("Ethereum - V2: {v2_addr}, V3: {v3_addr}");
-/// }
-/// ```
-pub fn get_both_router_addresses(chain_id: u64) -> Option<(Address, Address)> {
-    match (
-        get_v2_router_by_chain_id(chain_id),
-        get_v3_router_by_chain_id(chain_id),
-    ) {
-        (Some(v2_addr), Some(v3_addr)) => Some((v2_addr, v3_addr)),
-        _ => None,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use alloy_primitives::Address;
@@ -773,17 +737,6 @@ mod tests {
             Some(ODOS_V2_ARBITRUM_ROUTER)
         );
         assert_eq!(get_v2_router_by_chain_id(999999), None);
-    }
-
-    #[test]
-    fn test_both_router_addresses() {
-        // Test that we can get both addresses for supported chains
-        let (v2_addr, v3_addr) = get_both_router_addresses(1).unwrap();
-        assert_eq!(v2_addr, ODOS_V2_ETHEREUM_ROUTER);
-        assert_eq!(v3_addr, ODOS_V3);
-
-        // Test that unsupported chains return None
-        assert_eq!(get_both_router_addresses(999999), None);
     }
 
     #[test]

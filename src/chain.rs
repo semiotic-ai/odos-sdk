@@ -126,26 +126,6 @@ pub trait OdosChain {
     /// ```
     fn v3_router_address(&self) -> OdosChainResult<Address>;
 
-    /// Get both V2 and V3 router addresses for this chain
-    ///
-    /// # Returns
-    ///
-    /// * `Ok((v2_address, v3_address))` - Both router addresses
-    /// * `Err(OdosChainError)` - If the chain is not supported by either version
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use odos_sdk::OdosChain;
-    /// use alloy_chains::NamedChain;
-    ///
-    /// let (v2, v3) = NamedChain::Arbitrum.both_router_addresses()?;
-    /// # Ok::<(), odos_sdk::OdosChainError>(())
-    /// ```
-    fn both_router_addresses(&self) -> OdosChainResult<(Address, Address)> {
-        Ok((self.v2_router_address()?, self.v3_router_address()?))
-    }
-
     /// Check if this chain supports Odos protocol
     ///
     /// # Returns
@@ -224,15 +204,6 @@ pub trait OdosChain {
     /// `Some(address)` if supported, `None` if not supported
     fn try_v3_router_address(&self) -> Option<Address> {
         self.v3_router_address().ok()
-    }
-
-    /// Try to get both router addresses without errors
-    ///
-    /// # Returns
-    ///
-    /// `Some((v2_address, v3_address))` if both are supported, `None` otherwise
-    fn try_both_router_addresses(&self) -> Option<(Address, Address)> {
-        self.both_router_addresses().ok()
     }
 }
 
@@ -562,13 +533,6 @@ mod tests {
     }
 
     #[test]
-    fn test_both_router_addresses() {
-        let (v2_addr, v3_addr) = NamedChain::Mainnet.both_router_addresses().unwrap();
-        assert_eq!(v2_addr, ODOS_V2_ETHEREUM_ROUTER);
-        assert_eq!(v3_addr, ODOS_V3);
-    }
-
-    #[test]
     fn test_supports_odos() {
         assert!(NamedChain::Mainnet.supports_odos());
         assert!(NamedChain::Arbitrum.supports_odos());
@@ -666,9 +630,6 @@ mod tests {
         assert!(NamedChain::Sepolia.try_lo_router_address().is_none());
         assert!(NamedChain::Sepolia.try_v2_router_address().is_none());
         assert!(NamedChain::Sepolia.try_v3_router_address().is_none());
-
-        assert!(NamedChain::Mainnet.try_both_router_addresses().is_some());
-        assert!(NamedChain::Sepolia.try_both_router_addresses().is_none());
 
         // Arbitrum has all routers
         assert!(NamedChain::Arbitrum.try_lo_router_address().is_some());
