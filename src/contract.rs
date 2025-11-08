@@ -471,7 +471,7 @@ pub fn get_v3_router_by_chain_id(chain_id: u64) -> Option<Address> {
     Some(ODOS_V3)
 }
 
-/// Get all supported chain IDs
+/// Get all supported chains
 ///
 /// This function queries the trait implementation to determine which
 /// chains are supported. A chain is considered supported if it has at least
@@ -479,201 +479,189 @@ pub fn get_v3_router_by_chain_id(chain_id: u64) -> Option<Address> {
 ///
 /// # Returns
 ///
-/// A vector of all supported chain IDs
+/// A vector of all supported chains as `NamedChain` values
 ///
 /// # Example
 ///
 /// ```rust
 /// use odos_sdk::get_supported_chains;
+/// use alloy_chains::NamedChain;
 ///
 /// let chains = get_supported_chains();
-/// assert!(chains.contains(&1)); // Ethereum (has LO, V2, V3)
-/// assert!(chains.contains(&42161)); // Arbitrum (has LO, V2, V3)
-/// assert!(chains.contains(&80094)); // Berachain (has LO, V3 only)
+/// assert!(chains.contains(&NamedChain::Mainnet)); // Ethereum (has LO, V2, V3)
+/// assert!(chains.contains(&NamedChain::Arbitrum)); // Arbitrum (has LO, V2, V3)
+/// assert!(chains.contains(&NamedChain::Berachain)); // Berachain (has LO, V3 only)
+///
+/// // Convert to u64 if needed
+/// let chain_ids: Vec<u64> = chains.iter().map(|&c| c as u64).collect();
 /// ```
-pub fn get_supported_chains() -> Vec<u64> {
+pub fn get_supported_chains() -> Vec<NamedChain> {
     use NamedChain::*;
 
     let all_chains = [
-        Mainnet,
-        Optimism,
-        BinanceSmartChain,
-        Polygon,
-        Fraxtal,
-        ZkSync,
-        Unichain,
-        Mantle,
-        Base,
-        Mode,
         Arbitrum,
         Avalanche,
+        Base,
+        Berachain,
+        BinanceSmartChain,
+        Fraxtal,
         Linea,
+        Mainnet,
+        Mantle,
+        Mode,
+        Optimism,
+        Polygon,
         Scroll,
         Sonic,
-        Berachain,
+        Unichain,
+        ZkSync,
     ];
 
     all_chains
-        .iter()
-        .filter_map(|&chain| {
-            // A chain is supported if it has at least one router type
-            if chain.supports_odos() {
-                Some(chain as u64)
-            } else {
-                None
-            }
-        })
+        .into_iter()
+        .filter(|&chain| chain.supports_odos())
         .collect()
 }
 
-/// Get all chain IDs that support Limit Order V2 routers
+/// Get all chains that support Limit Order V2 routers
 ///
 /// # Returns
 ///
-/// A vector of chain IDs that have LO router deployments
+/// A vector of chains that have LO router deployments
 ///
 /// # Example
 ///
 /// ```rust
 /// use odos_sdk::get_supported_lo_chains;
+/// use alloy_chains::NamedChain;
 ///
 /// let lo_chains = get_supported_lo_chains();
-/// assert!(lo_chains.contains(&1)); // Ethereum
-/// assert!(lo_chains.contains(&80094)); // Berachain
+/// assert!(lo_chains.contains(&NamedChain::Mainnet)); // Ethereum
+/// assert!(lo_chains.contains(&NamedChain::Berachain)); // Berachain
+///
+/// // Convert to u64 if needed
+/// let chain_ids: Vec<u64> = lo_chains.iter().map(|&c| c as u64).collect();
 /// ```
-pub fn get_supported_lo_chains() -> Vec<u64> {
+pub fn get_supported_lo_chains() -> Vec<NamedChain> {
     use NamedChain::*;
 
     let all_chains = [
-        Mainnet,
-        Optimism,
-        BinanceSmartChain,
-        Polygon,
-        Fraxtal,
-        ZkSync,
-        Unichain,
-        Mantle,
-        Base,
-        Mode,
         Arbitrum,
         Avalanche,
+        Base,
+        Berachain,
+        BinanceSmartChain,
+        Fraxtal,
         Linea,
+        Mainnet,
+        Mantle,
+        Mode,
+        Optimism,
+        Polygon,
         Scroll,
         Sonic,
-        Berachain,
+        Unichain,
+        ZkSync,
     ];
 
     all_chains
-        .iter()
-        .filter_map(|&chain| {
-            // Check if the chain supports LO using trait method
-            if chain.supports_lo() {
-                Some(chain as u64)
-            } else {
-                None
-            }
-        })
+        .into_iter()
+        .filter(|&chain| chain.supports_lo())
         .collect()
 }
 
-/// Get all chain IDs that support V2 routers
+/// Get all chains that support V2 routers
 ///
 /// Note: Berachain does NOT support V2, only LO and V3
 ///
 /// # Returns
 ///
-/// A vector of chain IDs that have V2 router deployments
+/// A vector of chains that have V2 router deployments
 ///
 /// # Example
 ///
 /// ```rust
 /// use odos_sdk::get_supported_v2_chains;
+/// use alloy_chains::NamedChain;
 ///
 /// let v2_chains = get_supported_v2_chains();
-/// assert!(v2_chains.contains(&1)); // Ethereum
-/// assert!(!v2_chains.contains(&80094)); // Berachain has no V2
+/// assert!(v2_chains.contains(&NamedChain::Mainnet)); // Ethereum
+/// assert!(!v2_chains.contains(&NamedChain::Berachain)); // Berachain has no V2
+///
+/// // Convert to u64 if needed
+/// let chain_ids: Vec<u64> = v2_chains.iter().map(|&c| c as u64).collect();
 /// ```
-pub fn get_supported_v2_chains() -> Vec<u64> {
+pub fn get_supported_v2_chains() -> Vec<NamedChain> {
     use NamedChain::*;
 
     let all_chains = [
-        Mainnet,
-        Optimism,
-        BinanceSmartChain,
-        Polygon,
-        Fraxtal,
-        ZkSync,
-        Unichain,
-        Mantle,
-        Base,
-        Mode,
         Arbitrum,
         Avalanche,
+        Base,
+        BinanceSmartChain,
+        Fraxtal,
         Linea,
+        Mainnet,
+        Mantle,
+        Mode,
+        Optimism,
+        Polygon,
         Scroll,
         Sonic,
+        Unichain,
+        ZkSync,
     ];
 
     all_chains
-        .iter()
-        .filter_map(|&chain| {
-            // Check if the chain supports V2 using trait method
-            if chain.supports_v2() {
-                Some(chain as u64)
-            } else {
-                None
-            }
-        })
+        .into_iter()
+        .filter(|&chain| chain.supports_v2())
         .collect()
 }
 
-/// Get all chain IDs that support V3 routers
+/// Get all chains that support V3 routers
 ///
 /// # Returns
 ///
-/// A vector of chain IDs that have V3 router deployments
+/// A vector of chains that have V3 router deployments
 ///
 /// # Example
 ///
 /// ```rust
 /// use odos_sdk::get_supported_v3_chains;
+/// use alloy_chains::NamedChain;
 ///
 /// let v3_chains = get_supported_v3_chains();
-/// assert!(v3_chains.contains(&1)); // Ethereum
-/// assert!(v3_chains.contains(&80094)); // Berachain
+/// assert!(v3_chains.contains(&NamedChain::Mainnet)); // Ethereum
+/// assert!(v3_chains.contains(&NamedChain::Berachain)); // Berachain
+///
+/// // Convert to u64 if needed
+/// let chain_ids: Vec<u64> = v3_chains.iter().map(|&c| c as u64).collect();
 /// ```
-pub fn get_supported_v3_chains() -> Vec<u64> {
+pub fn get_supported_v3_chains() -> Vec<NamedChain> {
     use NamedChain::*;
 
     let all_chains = [
-        Mainnet,
-        Optimism,
-        BinanceSmartChain,
-        Polygon,
-        Fraxtal,
-        ZkSync,
-        Unichain,
-        Mantle,
-        Base,
-        Mode,
         Arbitrum,
         Avalanche,
+        Base,
+        Berachain,
+        BinanceSmartChain,
+        Fraxtal,
         Linea,
+        Mainnet,
+        Mantle,
+        Mode,
+        Optimism,
+        Polygon,
         Scroll,
         Sonic,
-        Berachain,
+        Unichain,
+        ZkSync,
     ];
 
     all_chains
-        .iter()
-        .filter_map(|&chain| {
-            // Check if the chain supports V3 using trait method
-            if chain.supports_v3() {
-                Some(chain as u64)
-            } else {
-                None
-            }
-        })
+        .into_iter()
+        .filter(|&chain| chain.supports_v3())
         .collect()
 }
 
@@ -850,33 +838,31 @@ mod tests {
 
     #[test]
     fn test_berachain_in_supported_chains_lists() {
-        let berachain_chain_id = NamedChain::Berachain as u64;
-
         // Berachain should be in general supported chains
         let all_chains = get_supported_chains();
         assert!(
-            all_chains.contains(&berachain_chain_id),
+            all_chains.contains(&NamedChain::Berachain),
             "Berachain should be in supported chains list"
         );
 
         // Berachain should be in LO chains
         let lo_chains = get_supported_lo_chains();
         assert!(
-            lo_chains.contains(&berachain_chain_id),
+            lo_chains.contains(&NamedChain::Berachain),
             "Berachain should be in LO chains list"
         );
 
         // Berachain should NOT be in V2 chains
         let v2_chains = get_supported_v2_chains();
         assert!(
-            !v2_chains.contains(&berachain_chain_id),
+            !v2_chains.contains(&NamedChain::Berachain),
             "Berachain should NOT be in V2 chains list"
         );
 
         // Berachain should be in V3 chains
         let v3_chains = get_supported_v3_chains();
         assert!(
-            v3_chains.contains(&berachain_chain_id),
+            v3_chains.contains(&NamedChain::Berachain),
             "Berachain should be in V3 chains list"
         );
     }
@@ -889,15 +875,15 @@ mod tests {
         let v2_chains = get_supported_v2_chains();
         let v3_chains = get_supported_v3_chains();
 
-        for &chain_id in &all_chains {
-            let has_lo = lo_chains.contains(&chain_id);
-            let has_v2 = v2_chains.contains(&chain_id);
-            let has_v3 = v3_chains.contains(&chain_id);
+        for &chain in &all_chains {
+            let has_lo = lo_chains.contains(&chain);
+            let has_v2 = v2_chains.contains(&chain);
+            let has_v3 = v3_chains.contains(&chain);
 
             assert!(
                 has_lo || has_v2 || has_v3,
-                "Chain {} should have at least one router type",
-                chain_id
+                "Chain {:?} should have at least one router type",
+                chain
             );
         }
     }
