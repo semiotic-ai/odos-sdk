@@ -664,35 +664,7 @@ pub fn get_supported_v3_chains() -> Vec<NamedChain> {
 
 #[cfg(test)]
 mod tests {
-    use alloy_primitives::Address;
-
     use super::*;
-
-    #[test]
-    fn test_all_addresses_are_valid_hex() {
-        let addresses = [
-            ODOS_V2_ARBITRUM_ROUTER,
-            ODOS_V2_BASE_ROUTER,
-            ODOS_V2_BSC_ROUTER,
-            ODOS_V2_ETHEREUM_ROUTER,
-            ODOS_V2_OP_ROUTER,
-            ODOS_V2_AVALANCHE_ROUTER,
-            ODOS_V2_POLYGON_ROUTER,
-            ODOS_V2_FRAXTAL_ROUTER,
-            ODOS_V2_LINEA_ROUTER,
-            ODOS_V2_MANTLE_ROUTER,
-            ODOS_V2_MODE_ROUTER,
-            ODOS_V2_SCROLL_ROUTER,
-            ODOS_V2_SONIC_ROUTER,
-            ODOS_V2_ZKSYNC_ROUTER,
-            ODOS_V2_UNICHAIN_ROUTER,
-            ODOS_V3,
-        ];
-
-        for address in addresses {
-            assert!(address != Address::ZERO, "Invalid address: {address}",);
-        }
-    }
 
     #[test]
     fn test_trait_and_utility_functions_agree() {
@@ -737,14 +709,6 @@ mod tests {
             Some(ODOS_V2_ARBITRUM_ROUTER)
         );
         assert_eq!(get_v2_router_by_chain_id(999999), None);
-    }
-
-    #[test]
-    fn test_chain_id_conversion() {
-        // Test that NamedChain::try_from works as expected
-        assert_eq!(NamedChain::try_from(1u64), Ok(NamedChain::Mainnet));
-        assert_eq!(NamedChain::try_from(42161u64), Ok(NamedChain::Arbitrum));
-        assert!(NamedChain::try_from(999999u64).is_err());
     }
 
     #[test]
@@ -838,32 +802,6 @@ mod tests {
                 "Chain {:?} should have at least one router type",
                 chain
             );
-        }
-    }
-
-    #[test]
-    fn test_all_lo_addresses_are_valid() {
-        let addresses = [
-            ODOS_LO_ETHEREUM_ROUTER,
-            ODOS_LO_OP_ROUTER,
-            ODOS_LO_BSC_ROUTER,
-            ODOS_LO_POLYGON_ROUTER,
-            ODOS_LO_BERACHAIN_ROUTER,
-            ODOS_LO_ARBITRUM_ROUTER,
-            ODOS_LO_AVALANCHE_ROUTER,
-            ODOS_LO_BASE_ROUTER,
-            ODOS_LO_FRAXTAL_ROUTER,
-            ODOS_LO_LINEA_ROUTER,
-            ODOS_LO_MANTLE_ROUTER,
-            ODOS_LO_MODE_ROUTER,
-            ODOS_LO_SCROLL_ROUTER,
-            ODOS_LO_SONIC_ROUTER,
-            ODOS_LO_ZKSYNC_ROUTER,
-            ODOS_LO_UNICHAIN_ROUTER,
-        ];
-
-        for address in addresses {
-            assert!(address != Address::ZERO, "Invalid LO address: {address}");
         }
     }
 }

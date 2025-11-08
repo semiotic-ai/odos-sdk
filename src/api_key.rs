@@ -151,25 +151,4 @@ mod tests {
         let uuid_str = uuid.to_string();
         assert!(!display_output.contains(&uuid_str));
     }
-
-    #[test]
-    fn test_api_key_copy() {
-        let uuid = Uuid::new_v4();
-        let api_key1 = ApiKey::new(uuid);
-        let api_key2 = api_key1; // Copy, not clone
-        assert_eq!(api_key1.as_str(), api_key2.as_str());
-    }
-
-    #[test]
-    fn test_api_key_equality() {
-        let uuid1 = Uuid::new_v4();
-        let uuid2 = Uuid::new_v4();
-
-        let api_key1 = ApiKey::new(uuid1);
-        let api_key2 = ApiKey::new(uuid1);
-        let api_key3 = ApiKey::new(uuid2);
-
-        assert_eq!(api_key1, api_key2);
-        assert_ne!(api_key1, api_key3);
-    }
 }

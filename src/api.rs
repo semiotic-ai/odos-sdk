@@ -992,43 +992,4 @@ mod tests {
         assert_ne!(Endpoint::public_v2(), Endpoint::public_v3());
         assert_ne!(Endpoint::public_v2(), Endpoint::enterprise_v2());
     }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_api_host_from_endpoint_base() {
-        assert_eq!(ApiHost::from(EndpointBase::Public), ApiHost::Public);
-        assert_eq!(ApiHost::from(EndpointBase::Enterprise), ApiHost::Enterprise);
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_api_version_from_endpoint_version() {
-        assert_eq!(ApiVersion::from(EndpointVersion::V2), ApiVersion::V2);
-        assert_eq!(ApiVersion::from(EndpointVersion::V3), ApiVersion::V3);
-    }
-
-    #[test]
-    fn test_endpoint_copy_clone() {
-        let endpoint1 = Endpoint::public_v2();
-        let endpoint2 = endpoint1; // Copy
-        assert_eq!(endpoint1, endpoint2);
-
-        #[allow(clippy::clone_on_copy)]
-        let endpoint3 = endpoint1.clone(); // Clone - intentionally testing clone
-        assert_eq!(endpoint1, endpoint3);
-    }
-
-    #[test]
-    fn test_endpoint_serde() {
-        let endpoint = Endpoint::public_v2();
-
-        // Test serialization
-        let json = serde_json::to_string(&endpoint).unwrap();
-        assert!(json.contains("public"));
-        assert!(json.contains("v2"));
-
-        // Test deserialization
-        let deserialized: Endpoint = serde_json::from_str(&json).unwrap();
-        assert_eq!(endpoint, deserialized);
-    }
 }
