@@ -422,6 +422,9 @@ impl From<anyhow::Error> for OdosError {
 impl From<OdosChainError> for OdosError {
     fn from(err: OdosChainError) -> Self {
         match err {
+            OdosChainError::LimitOrderNotAvailable { chain } => Self::contract_error(format!(
+                "Limit Order router not available on chain: {chain}"
+            )),
             OdosChainError::V2NotAvailable { chain } => {
                 Self::contract_error(format!("V2 router not available on chain: {chain}"))
             }

@@ -3,10 +3,15 @@ use alloy_primitives::Address;
 use thiserror::Error;
 
 use crate::{
-    ODOS_V2_ARBITRUM_ROUTER, ODOS_V2_AVALANCHE_ROUTER, ODOS_V2_BASE_ROUTER, ODOS_V2_BSC_ROUTER,
-    ODOS_V2_ETHEREUM_ROUTER, ODOS_V2_FRAXTAL_ROUTER, ODOS_V2_LINEA_ROUTER, ODOS_V2_MANTLE_ROUTER,
-    ODOS_V2_MODE_ROUTER, ODOS_V2_OP_ROUTER, ODOS_V2_POLYGON_ROUTER, ODOS_V2_SCROLL_ROUTER,
-    ODOS_V2_SONIC_ROUTER, ODOS_V2_UNICHAIN_ROUTER, ODOS_V2_ZKSYNC_ROUTER, ODOS_V3,
+    RouterAvailability, ODOS_LO_ARBITRUM_ROUTER, ODOS_LO_AVALANCHE_ROUTER, ODOS_LO_BASE_ROUTER,
+    ODOS_LO_BERACHAIN_ROUTER, ODOS_LO_BSC_ROUTER, ODOS_LO_ETHEREUM_ROUTER, ODOS_LO_FRAXTAL_ROUTER,
+    ODOS_LO_LINEA_ROUTER, ODOS_LO_MANTLE_ROUTER, ODOS_LO_MODE_ROUTER, ODOS_LO_OP_ROUTER,
+    ODOS_LO_POLYGON_ROUTER, ODOS_LO_SCROLL_ROUTER, ODOS_LO_SONIC_ROUTER, ODOS_LO_UNICHAIN_ROUTER,
+    ODOS_LO_ZKSYNC_ROUTER, ODOS_V2_ARBITRUM_ROUTER, ODOS_V2_AVALANCHE_ROUTER, ODOS_V2_BASE_ROUTER,
+    ODOS_V2_BSC_ROUTER, ODOS_V2_ETHEREUM_ROUTER, ODOS_V2_FRAXTAL_ROUTER, ODOS_V2_LINEA_ROUTER,
+    ODOS_V2_MANTLE_ROUTER, ODOS_V2_MODE_ROUTER, ODOS_V2_OP_ROUTER, ODOS_V2_POLYGON_ROUTER,
+    ODOS_V2_SCROLL_ROUTER, ODOS_V2_SONIC_ROUTER, ODOS_V2_UNICHAIN_ROUTER, ODOS_V2_ZKSYNC_ROUTER,
+    ODOS_V3,
 };
 
 /// Errors that can occur when working with Odos chains
@@ -16,11 +21,15 @@ pub enum OdosChainError {
     #[error("Chain {chain:?} is not supported by Odos protocol")]
     UnsupportedChain { chain: String },
 
+    /// The Limit Order router is not available on this chain
+    #[error("Odos Limit Order router is not available on chain {chain:?}")]
+    LimitOrderNotAvailable { chain: String },
+
     /// The V2 router is not available on this chain
     #[error("Odos V2 router is not available on chain {chain:?}")]
     V2NotAvailable { chain: String },
 
-    /// The V3 router is not available on this chain  
+    /// The V3 router is not available on this chain
     #[error("Odos V3 router is not available on chain {chain:?}")]
     V3NotAvailable { chain: String },
 
@@ -44,21 +53,40 @@ pub type OdosChainResult<T> = Result<T, OdosChainError>;
 /// use odos_sdk::OdosChain;
 /// use alloy_chains::NamedChain;
 ///
-/// // Get V2 router address
+/// // Get router addresses
+/// let lo_router = NamedChain::Mainnet.lo_router_address()?;
 /// let v2_router = NamedChain::Mainnet.v2_router_address()?;
-///
-/// // Get V3 router address
 /// let v3_router = NamedChain::Mainnet.v3_router_address()?;
 ///
-/// // Get both addresses
-/// let (v2, v3) = NamedChain::Arbitrum.both_router_addresses()?;
-///
-/// // Check support
+/// // Check router support
 /// assert!(NamedChain::Mainnet.supports_odos());
+/// assert!(NamedChain::Mainnet.supports_lo());
+/// assert!(NamedChain::Mainnet.supports_v2());
 /// assert!(NamedChain::Mainnet.supports_v3());
+///
+/// // Get router availability
+/// let availability = NamedChain::Mainnet.router_availability();
+/// assert!(availability.limit_order && availability.v2 && availability.v3);
 /// # Ok::<(), odos_sdk::OdosChainError>(())
 /// ```
 pub trait OdosChain {
+    /// Get the Limit Order V2 router address for this chain
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Address)` - The LO router contract address
+    /// * `Err(OdosChainError)` - If the chain doesn't support LO or address is invalid
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use odos_sdk::OdosChain;
+    /// use alloy_chains::NamedChain;
+    ///
+    /// let address = NamedChain::Mainnet.lo_router_address()?;
+    /// # Ok::<(), odos_sdk::OdosChainError>(())
+    /// ```
+    fn lo_router_address(&self) -> OdosChainResult<Address>;
     /// Get the V2 router address for this chain
     ///
     /// # Returns
@@ -122,8 +150,15 @@ pub trait OdosChain {
     ///
     /// # Returns
     ///
-    /// `true` if either V2 or V3 (or both) are supported on this chain
+    /// `true` if any router (LO, V2, or V3) is supported on this chain
     fn supports_odos(&self) -> bool;
+
+    /// Check if this chain supports Odos Limit Order
+    ///
+    /// # Returns
+    ///
+    /// `true` if LO is supported on this chain
+    fn supports_lo(&self) -> bool;
 
     /// Check if this chain supports Odos V2
     ///
@@ -138,6 +173,40 @@ pub trait OdosChain {
     ///
     /// `true` if V3 is supported on this chain
     fn supports_v3(&self) -> bool;
+
+    /// Get router availability for this chain
+    ///
+    /// # Returns
+    ///
+    /// A `RouterAvailability` struct indicating which routers are available
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use odos_sdk::OdosChain;
+    /// use alloy_chains::NamedChain;
+    ///
+    /// let availability = NamedChain::Mainnet.router_availability();
+    /// assert!(availability.limit_order);
+    /// assert!(availability.v2);
+    /// assert!(availability.v3);
+    /// ```
+    fn router_availability(&self) -> RouterAvailability {
+        RouterAvailability {
+            limit_order: self.supports_lo(),
+            v2: self.supports_v2(),
+            v3: self.supports_v3(),
+        }
+    }
+
+    /// Try to get the LO router address without errors
+    ///
+    /// # Returns
+    ///
+    /// `Some(address)` if supported, `None` if not supported
+    fn try_lo_router_address(&self) -> Option<Address> {
+        self.lo_router_address().ok()
+    }
 
     /// Try to get the V2 router address without errors
     ///
@@ -168,6 +237,46 @@ pub trait OdosChain {
 }
 
 impl OdosChain for NamedChain {
+    fn lo_router_address(&self) -> OdosChainResult<Address> {
+        use NamedChain::*;
+
+        if !self.supports_odos() {
+            return Err(OdosChainError::LimitOrderNotAvailable {
+                chain: format!("{self:?}"),
+            });
+        }
+
+        if !self.supports_lo() {
+            return Err(OdosChainError::LimitOrderNotAvailable {
+                chain: format!("{self:?}"),
+            });
+        }
+
+        Ok(match self {
+            Arbitrum => ODOS_LO_ARBITRUM_ROUTER,
+            Avalanche => ODOS_LO_AVALANCHE_ROUTER,
+            Base => ODOS_LO_BASE_ROUTER,
+            Berachain => ODOS_LO_BERACHAIN_ROUTER,
+            BinanceSmartChain => ODOS_LO_BSC_ROUTER,
+            Fraxtal => ODOS_LO_FRAXTAL_ROUTER,
+            Mainnet => ODOS_LO_ETHEREUM_ROUTER,
+            Optimism => ODOS_LO_OP_ROUTER,
+            Polygon => ODOS_LO_POLYGON_ROUTER,
+            Linea => ODOS_LO_LINEA_ROUTER,
+            Mantle => ODOS_LO_MANTLE_ROUTER,
+            Mode => ODOS_LO_MODE_ROUTER,
+            Scroll => ODOS_LO_SCROLL_ROUTER,
+            Sonic => ODOS_LO_SONIC_ROUTER,
+            ZkSync => ODOS_LO_ZKSYNC_ROUTER,
+            Unichain => ODOS_LO_UNICHAIN_ROUTER,
+            _ => {
+                return Err(OdosChainError::LimitOrderNotAvailable {
+                    chain: format!("{self:?}"),
+                });
+            }
+        })
+    }
+
     fn v2_router_address(&self) -> OdosChainResult<Address> {
         use NamedChain::*;
 
@@ -222,6 +331,29 @@ impl OdosChain for NamedChain {
     }
 
     fn supports_odos(&self) -> bool {
+        use NamedChain::*;
+        matches!(
+            self,
+            Arbitrum
+                | Avalanche
+                | Base
+                | Berachain
+                | BinanceSmartChain
+                | Fraxtal
+                | Mainnet
+                | Optimism
+                | Polygon
+                | Linea
+                | Mantle
+                | Mode
+                | Scroll
+                | Sonic
+                | ZkSync
+                | Unichain
+        )
+    }
+
+    fn supports_lo(&self) -> bool {
         use NamedChain::*;
         matches!(
             self,
@@ -380,6 +512,23 @@ mod tests {
     use alloy_chains::NamedChain;
 
     #[test]
+    fn test_lo_router_addresses() {
+        let chains = [
+            NamedChain::Mainnet,
+            NamedChain::Optimism,
+            NamedChain::Polygon,
+            NamedChain::BinanceSmartChain,
+            NamedChain::Berachain,
+        ];
+
+        for chain in chains {
+            let address = chain.lo_router_address().unwrap();
+            assert!(address != Address::ZERO);
+            assert_eq!(address.to_string().len(), 42); // 0x + 40 hex chars
+        }
+    }
+
+    #[test]
     fn test_v2_router_addresses() {
         let chains = [
             NamedChain::Mainnet,
@@ -428,10 +577,22 @@ mod tests {
     }
 
     #[test]
+    fn test_supports_lo() {
+        assert!(NamedChain::Mainnet.supports_lo());
+        assert!(NamedChain::Optimism.supports_lo());
+        assert!(NamedChain::Polygon.supports_lo());
+        assert!(NamedChain::BinanceSmartChain.supports_lo());
+        assert!(NamedChain::Berachain.supports_lo());
+        assert!(NamedChain::Arbitrum.supports_lo());
+        assert!(NamedChain::Base.supports_lo());
+        assert!(!NamedChain::Sepolia.supports_lo());
+    }
+
+    #[test]
     fn test_supports_v2() {
         assert!(NamedChain::Mainnet.supports_v2());
         assert!(NamedChain::Arbitrum.supports_v2());
-        assert!(!NamedChain::Berachain.supports_v2()); // Berachain only has V3
+        assert!(!NamedChain::Berachain.supports_v2()); // Berachain only has LO + V3
         assert!(!NamedChain::Sepolia.supports_v2());
     }
 
@@ -444,10 +605,16 @@ mod tests {
     }
 
     #[test]
-    fn test_berachain_v3_only() {
-        // Berachain only has V3, not V2
+    fn test_berachain_lo_v3_only() {
+        // Berachain has LO + V3, but not V2
+        assert!(NamedChain::Berachain.supports_lo());
         assert!(!NamedChain::Berachain.supports_v2());
         assert!(NamedChain::Berachain.supports_v3());
+
+        // LO router should work
+        let lo_result = NamedChain::Berachain.lo_router_address();
+        assert!(lo_result.is_ok());
+        assert_eq!(lo_result.unwrap(), ODOS_LO_BERACHAIN_ROUTER);
 
         // Requesting V2 should fallback to V3
         let v2_result = NamedChain::Berachain.v2_router_address();
@@ -459,14 +626,54 @@ mod tests {
     }
 
     #[test]
+    fn test_router_availability() {
+        // Ethereum: all routers
+        let avail = NamedChain::Mainnet.router_availability();
+        assert!(avail.limit_order);
+        assert!(avail.v2);
+        assert!(avail.v3);
+        assert_eq!(avail.count(), 3);
+
+        // Berachain: LO + V3 only
+        let avail = NamedChain::Berachain.router_availability();
+        assert!(avail.limit_order);
+        assert!(!avail.v2);
+        assert!(avail.v3);
+        assert_eq!(avail.count(), 2);
+
+        // Arbitrum: all routers
+        let avail = NamedChain::Arbitrum.router_availability();
+        assert!(avail.limit_order);
+        assert!(avail.v2);
+        assert!(avail.v3);
+        assert_eq!(avail.count(), 3);
+
+        // Sepolia: none
+        let avail = NamedChain::Sepolia.router_availability();
+        assert!(!avail.limit_order);
+        assert!(!avail.v2);
+        assert!(!avail.v3);
+        assert_eq!(avail.count(), 0);
+        assert!(!avail.has_any());
+    }
+
+    #[test]
     fn test_try_methods() {
+        assert!(NamedChain::Mainnet.try_lo_router_address().is_some());
         assert!(NamedChain::Mainnet.try_v2_router_address().is_some());
         assert!(NamedChain::Mainnet.try_v3_router_address().is_some());
+
+        assert!(NamedChain::Sepolia.try_lo_router_address().is_none());
         assert!(NamedChain::Sepolia.try_v2_router_address().is_none());
         assert!(NamedChain::Sepolia.try_v3_router_address().is_none());
 
         assert!(NamedChain::Mainnet.try_both_router_addresses().is_some());
         assert!(NamedChain::Sepolia.try_both_router_addresses().is_none());
+
+        // Arbitrum has all routers
+        assert!(NamedChain::Arbitrum.try_lo_router_address().is_some());
+        assert!(NamedChain::Arbitrum.try_v2_router_address().is_some());
+        assert!(NamedChain::Arbitrum.try_v3_router_address().is_some());
     }
 
     #[test]
@@ -499,6 +706,13 @@ mod tests {
     #[test]
     fn test_error_handling() {
         // Test unsupported chain
+        let result = NamedChain::Sepolia.lo_router_address();
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            OdosChainError::LimitOrderNotAvailable { .. }
+        ));
+
         let result = NamedChain::Sepolia.v2_router_address();
         assert!(result.is_err());
         assert!(matches!(
