@@ -355,15 +355,12 @@ pub const ODOS_V3: Address = address!("0D05a7D3448512B78fa8A9e46c4872C88C4a0D05"
 pub fn get_v2_router_by_chain_id(chain_id: u64) -> Option<Address> {
     let named_chain = NamedChain::try_from(chain_id).ok()?;
 
-    if !named_chain.supports_odos() {
+    // Check if the chain specifically supports V2 (not just Odos in general)
+    if !named_chain.supports_v2() {
         return None;
     }
 
-    // Validate that the address is valid by attempting to get it
-    let _ = named_chain.v2_router_address().ok()?;
-
-    // Return the string constant - this maintains the existing API
-    // while leveraging the trait for validation
+    // Return the V2 router address constant
     Some(match named_chain {
         NamedChain::Mainnet => ODOS_V2_ETHEREUM_ROUTER,
         NamedChain::Arbitrum => ODOS_V2_ARBITRUM_ROUTER,
@@ -380,6 +377,61 @@ pub fn get_v2_router_by_chain_id(chain_id: u64) -> Option<Address> {
         NamedChain::Linea => ODOS_V2_LINEA_ROUTER,
         NamedChain::Scroll => ODOS_V2_SCROLL_ROUTER,
         NamedChain::Sonic => ODOS_V2_SONIC_ROUTER,
+        _ => return None,
+    })
+}
+
+/// Get the Limit Order V2 router address for a specific chain ID
+///
+/// This function leverages the `OdosChain` trait to provide chain ID-based
+/// lookups while maintaining a single source of truth for chain support.
+///
+/// # Arguments
+///
+/// * `chain_id` - The chain ID to look up
+///
+/// # Returns
+///
+/// * `Some(address)` - The LO router address if supported
+/// * `None` - If the chain doesn't have a Limit Order router
+///
+/// # Example
+///
+/// ```rust
+/// use odos_sdk::get_lo_router_by_chain_id;
+///
+/// let ethereum_lo = get_lo_router_by_chain_id(1);
+/// assert!(ethereum_lo.is_some());
+///
+/// let unsupported_chain = get_lo_router_by_chain_id(999999);
+/// assert!(unsupported_chain.is_none());
+/// ```
+pub fn get_lo_router_by_chain_id(chain_id: u64) -> Option<Address> {
+    let named_chain = NamedChain::try_from(chain_id).ok()?;
+
+    // Check if the chain specifically supports LO
+    if !named_chain.supports_lo() {
+        return None;
+    }
+
+    // Return the LO router address constant
+    Some(match named_chain {
+        NamedChain::Mainnet => ODOS_LO_ETHEREUM_ROUTER,
+        NamedChain::Optimism => ODOS_LO_OP_ROUTER,
+        NamedChain::BinanceSmartChain => ODOS_LO_BSC_ROUTER,
+        NamedChain::Polygon => ODOS_LO_POLYGON_ROUTER,
+        NamedChain::Berachain => ODOS_LO_BERACHAIN_ROUTER,
+        NamedChain::Arbitrum => ODOS_LO_ARBITRUM_ROUTER,
+        NamedChain::Avalanche => ODOS_LO_AVALANCHE_ROUTER,
+        NamedChain::Base => ODOS_LO_BASE_ROUTER,
+        NamedChain::Fraxtal => ODOS_LO_FRAXTAL_ROUTER,
+        NamedChain::Linea => ODOS_LO_LINEA_ROUTER,
+        NamedChain::Mantle => ODOS_LO_MANTLE_ROUTER,
+        NamedChain::Mode => ODOS_LO_MODE_ROUTER,
+        NamedChain::Scroll => ODOS_LO_SCROLL_ROUTER,
+        NamedChain::Sonic => ODOS_LO_SONIC_ROUTER,
+        NamedChain::ZkSync => ODOS_LO_ZKSYNC_ROUTER,
+        NamedChain::Unichain => ODOS_LO_UNICHAIN_ROUTER,
         _ => return None,
     })
 }
@@ -411,12 +463,10 @@ pub fn get_v2_router_by_chain_id(chain_id: u64) -> Option<Address> {
 pub fn get_v3_router_by_chain_id(chain_id: u64) -> Option<Address> {
     let named_chain = NamedChain::try_from(chain_id).ok()?;
 
+    // Check if the chain specifically supports V3
     if !named_chain.supports_v3() {
         return None;
     }
-
-    // Validate that the address is valid by attempting to get it
-    let _ = named_chain.v3_router_address().ok()?;
 
     Some(ODOS_V3)
 }
@@ -424,7 +474,8 @@ pub fn get_v3_router_by_chain_id(chain_id: u64) -> Option<Address> {
 /// Get all supported chain IDs
 ///
 /// This function queries the trait implementation to determine which
-/// chains are supported, ensuring consistency with the trait-based API.
+/// chains are supported. A chain is considered supported if it has at least
+/// one router type (LO, V2, or V3) deployed.
 ///
 /// # Returns
 ///
@@ -436,8 +487,9 @@ pub fn get_v3_router_by_chain_id(chain_id: u64) -> Option<Address> {
 /// use odos_sdk::get_supported_chains;
 ///
 /// let chains = get_supported_chains();
-/// assert!(chains.contains(&1)); // Ethereum
-/// assert!(chains.contains(&42161)); // Arbitrum
+/// assert!(chains.contains(&1)); // Ethereum (has LO, V2, V3)
+/// assert!(chains.contains(&42161)); // Arbitrum (has LO, V2, V3)
+/// assert!(chains.contains(&80094)); // Berachain (has LO, V3 only)
 /// ```
 pub fn get_supported_chains() -> Vec<u64> {
     use NamedChain::*;
@@ -463,9 +515,10 @@ pub fn get_supported_chains() -> Vec<u64> {
 
     all_chains
         .iter()
-        .filter_map(|chain| {
-            if chain.supports_odos() && chain.supports_v2() && chain.supports_v3() {
-                Some((*chain) as u64)
+        .filter_map(|&chain| {
+            // A chain is supported if it has at least one router type
+            if chain.supports_odos() {
+                Some(chain as u64)
             } else {
                 None
             }
@@ -473,14 +526,155 @@ pub fn get_supported_chains() -> Vec<u64> {
         .collect()
 }
 
-/// Legacy alias for backward compatibility
-pub fn get_supported_v2_chains() -> Vec<u64> {
-    get_supported_chains()
+/// Get all chain IDs that support Limit Order V2 routers
+///
+/// # Returns
+///
+/// A vector of chain IDs that have LO router deployments
+///
+/// # Example
+///
+/// ```rust
+/// use odos_sdk::get_supported_lo_chains;
+///
+/// let lo_chains = get_supported_lo_chains();
+/// assert!(lo_chains.contains(&1)); // Ethereum
+/// assert!(lo_chains.contains(&80094)); // Berachain
+/// ```
+pub fn get_supported_lo_chains() -> Vec<u64> {
+    use NamedChain::*;
+
+    let all_chains = [
+        Mainnet,
+        Optimism,
+        BinanceSmartChain,
+        Polygon,
+        Fraxtal,
+        ZkSync,
+        Unichain,
+        Mantle,
+        Base,
+        Mode,
+        Arbitrum,
+        Avalanche,
+        Linea,
+        Scroll,
+        Sonic,
+        Berachain,
+    ];
+
+    all_chains
+        .iter()
+        .filter_map(|&chain| {
+            // Check if the chain supports LO using trait method
+            if chain.supports_lo() {
+                Some(chain as u64)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
-/// Legacy alias for backward compatibility
+/// Get all chain IDs that support V2 routers
+///
+/// Note: Berachain does NOT support V2, only LO and V3
+///
+/// # Returns
+///
+/// A vector of chain IDs that have V2 router deployments
+///
+/// # Example
+///
+/// ```rust
+/// use odos_sdk::get_supported_v2_chains;
+///
+/// let v2_chains = get_supported_v2_chains();
+/// assert!(v2_chains.contains(&1)); // Ethereum
+/// assert!(!v2_chains.contains(&80094)); // Berachain has no V2
+/// ```
+pub fn get_supported_v2_chains() -> Vec<u64> {
+    use NamedChain::*;
+
+    let all_chains = [
+        Mainnet,
+        Optimism,
+        BinanceSmartChain,
+        Polygon,
+        Fraxtal,
+        ZkSync,
+        Unichain,
+        Mantle,
+        Base,
+        Mode,
+        Arbitrum,
+        Avalanche,
+        Linea,
+        Scroll,
+        Sonic,
+    ];
+
+    all_chains
+        .iter()
+        .filter_map(|&chain| {
+            // Check if the chain supports V2 using trait method
+            if chain.supports_v2() {
+                Some(chain as u64)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// Get all chain IDs that support V3 routers
+///
+/// # Returns
+///
+/// A vector of chain IDs that have V3 router deployments
+///
+/// # Example
+///
+/// ```rust
+/// use odos_sdk::get_supported_v3_chains;
+///
+/// let v3_chains = get_supported_v3_chains();
+/// assert!(v3_chains.contains(&1)); // Ethereum
+/// assert!(v3_chains.contains(&80094)); // Berachain
+/// ```
 pub fn get_supported_v3_chains() -> Vec<u64> {
-    get_supported_chains()
+    use NamedChain::*;
+
+    let all_chains = [
+        Mainnet,
+        Optimism,
+        BinanceSmartChain,
+        Polygon,
+        Fraxtal,
+        ZkSync,
+        Unichain,
+        Mantle,
+        Base,
+        Mode,
+        Arbitrum,
+        Avalanche,
+        Linea,
+        Scroll,
+        Sonic,
+        Berachain,
+    ];
+
+    all_chains
+        .iter()
+        .filter_map(|&chain| {
+            // Check if the chain supports V3 using trait method
+            if chain.supports_v3() {
+                Some(chain as u64)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 /// Check if both V2 and V3 are supported on a given chain
@@ -594,18 +788,6 @@ mod tests {
     }
 
     #[test]
-    fn test_supported_chains_consistency() {
-        let chains = get_supported_chains();
-        assert!(!chains.is_empty());
-
-        // Every supported chain should work with both trait and utility functions
-        for &chain_id in &chains {
-            assert!(get_v2_router_by_chain_id(chain_id).is_some());
-            assert!(get_v3_router_by_chain_id(chain_id).is_some());
-        }
-    }
-
-    #[test]
     fn test_both_router_addresses() {
         // Test that we can get both addresses for supported chains
         let (v2_addr, v3_addr) = get_both_router_addresses(1).unwrap();
@@ -633,5 +815,116 @@ mod tests {
         // Test with unsupported chain ID
         assert!(get_v2_router_by_chain_id(999999).is_none());
         assert!(get_v3_router_by_chain_id(999999).is_none());
+    }
+
+    #[test]
+    fn test_berachain_router_availability() {
+        let berachain_chain_id = NamedChain::Berachain as u64;
+
+        // Berachain should have LO router
+        assert!(
+            get_lo_router_by_chain_id(berachain_chain_id).is_some(),
+            "Berachain should have LO router"
+        );
+        assert_eq!(
+            get_lo_router_by_chain_id(berachain_chain_id).unwrap(),
+            ODOS_LO_BERACHAIN_ROUTER
+        );
+
+        // Berachain should NOT have V2 router
+        assert!(
+            get_v2_router_by_chain_id(berachain_chain_id).is_none(),
+            "Berachain should NOT have V2 router"
+        );
+
+        // Berachain should have V3 router
+        assert!(
+            get_v3_router_by_chain_id(berachain_chain_id).is_some(),
+            "Berachain should have V3 router"
+        );
+        assert_eq!(
+            get_v3_router_by_chain_id(berachain_chain_id).unwrap(),
+            ODOS_V3
+        );
+    }
+
+    #[test]
+    fn test_berachain_in_supported_chains_lists() {
+        let berachain_chain_id = NamedChain::Berachain as u64;
+
+        // Berachain should be in general supported chains
+        let all_chains = get_supported_chains();
+        assert!(
+            all_chains.contains(&berachain_chain_id),
+            "Berachain should be in supported chains list"
+        );
+
+        // Berachain should be in LO chains
+        let lo_chains = get_supported_lo_chains();
+        assert!(
+            lo_chains.contains(&berachain_chain_id),
+            "Berachain should be in LO chains list"
+        );
+
+        // Berachain should NOT be in V2 chains
+        let v2_chains = get_supported_v2_chains();
+        assert!(
+            !v2_chains.contains(&berachain_chain_id),
+            "Berachain should NOT be in V2 chains list"
+        );
+
+        // Berachain should be in V3 chains
+        let v3_chains = get_supported_v3_chains();
+        assert!(
+            v3_chains.contains(&berachain_chain_id),
+            "Berachain should be in V3 chains list"
+        );
+    }
+
+    #[test]
+    fn test_supported_chains_consistency() {
+        // Every chain in supported_chains should have at least one router
+        let all_chains = get_supported_chains();
+        let lo_chains = get_supported_lo_chains();
+        let v2_chains = get_supported_v2_chains();
+        let v3_chains = get_supported_v3_chains();
+
+        for &chain_id in &all_chains {
+            let has_lo = lo_chains.contains(&chain_id);
+            let has_v2 = v2_chains.contains(&chain_id);
+            let has_v3 = v3_chains.contains(&chain_id);
+
+            assert!(
+                has_lo || has_v2 || has_v3,
+                "Chain {} should have at least one router type",
+                chain_id
+            );
+        }
+    }
+
+    #[test]
+    fn test_all_lo_addresses_are_valid() {
+        let addresses = [
+            ODOS_LO_ETHEREUM_ROUTER,
+            ODOS_LO_OP_ROUTER,
+            ODOS_LO_BSC_ROUTER,
+            ODOS_LO_POLYGON_ROUTER,
+            ODOS_LO_BERACHAIN_ROUTER,
+            ODOS_LO_ARBITRUM_ROUTER,
+            ODOS_LO_AVALANCHE_ROUTER,
+            ODOS_LO_BASE_ROUTER,
+            ODOS_LO_FRAXTAL_ROUTER,
+            ODOS_LO_LINEA_ROUTER,
+            ODOS_LO_MANTLE_ROUTER,
+            ODOS_LO_MODE_ROUTER,
+            ODOS_LO_SCROLL_ROUTER,
+            ODOS_LO_SONIC_ROUTER,
+            ODOS_LO_ZKSYNC_ROUTER,
+            ODOS_LO_UNICHAIN_ROUTER,
+        ];
+
+        for address in addresses {
+            assert!(address != Address::ZERO, "Invalid LO address: {address}");
+        }
     }
 }
