@@ -268,6 +268,7 @@ pub mod error_code;
 #[cfg(test)]
 mod integration_tests;
 mod limit_order_v2;
+mod router_type;
 mod sor;
 mod swap;
 mod transfer;
@@ -282,6 +283,7 @@ pub use client::*;
 pub use contract::*;
 pub use error::*;
 pub use limit_order_v2::*;
+pub use router_type::*;
 pub use sor::*;
 pub use swap::*;
 pub use transfer::*;

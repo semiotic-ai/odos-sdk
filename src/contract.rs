@@ -6,10 +6,10 @@
 //!
 //! ## Contract Types
 //!
+//! - **Limit Order V2 (LO)**: Specialized contract for limit order functionality (chain-specific addresses)
 //! - **V2 Router**: The main swap router contract supporting single and multi-token swaps,
 //!   permit2 integration, and referral systems. Each chain has its own deployed instance.
 //! - **V3 Router**: Next-generation router with enhanced features (unified address across chains)
-//! - **Limit Order V2**: Specialized contract for limit order functionality
 //!
 //! ## Usage
 //!
@@ -59,19 +59,21 @@
 //!
 //! ## Chain Support
 //!
-//! Both V2 and V3 routers are deployed on the following networks:
+//! Router availability varies by chain:
+//!
+//! ### All Routers (LO, V2, V3)
 //! - **Layer 1**: Ethereum
 //! - **Layer 2**: Arbitrum, Optimism, Polygon, Base, Scroll, Linea, zkSync, Mantle, Mode
 //! - **Sidechains**: BSC, Avalanche, Fraxtal, Sonic, Unichain
 //!
-//! ## V2 vs V3 Differences
+//! ### LO + V3 Only (no V2)
+//! - **Layer 2**: Berachain
 //!
-//! - **V2**: Chain-specific deployments, mature and battle-tested
-//! - **V3**: Unified address across all chains, enhanced features, production-ready
+//! ## Router Type Differences
 //!
-//! **Chain Coverage**: V2 and V3 have **identical** chain support across all networks.
-//! The key difference is that V2 uses different addresses per chain while V3 uses
-//! the same address across all chains.
+//! - **LO (Limit Order V2)**: Limit order functionality, available on all chains (chain-specific addresses)
+//! - **V2**: Chain-specific deployments, mature and battle-tested, available on all chains except Berachain
+//! - **V3**: Unified address across all chains, enhanced features, production-ready, available on all chains
 
 use alloy_chains::NamedChain;
 use alloy_primitives::{address, Address};
@@ -186,6 +188,122 @@ pub const ODOS_V2_ZKSYNC_ROUTER: Address = address!("4bBa932E9792A2b917D47830C93
 ///
 /// **Verified on**: <https://uniscan.xyz/address/0x6409722f3a1c4486a3b1fe566cbdd5e9d946a1f3>
 pub const ODOS_V2_UNICHAIN_ROUTER: Address = address!("6409722F3a1C4486A3b1FE566cBDd5e9D946A1f3");
+
+// =============================================================================
+// Limit Order V2 Router Addresses (Chain-Specific Deployments)
+// =============================================================================
+
+/// **Ethereum Mainnet** - Limit Order V2 Router contract address
+///
+/// Chain ID: 1
+///
+/// **Verified on**: <https://etherscan.io/address/0x5F79636fa7bc622eA48802E6cf80A5dae814daE1>
+pub const ODOS_LO_ETHEREUM_ROUTER: Address = address!("5F79636fa7bc622eA48802E6cf80A5dae814daE1");
+
+/// **Optimism** - Limit Order V2 Router contract address
+///
+/// Chain ID: 10
+///
+/// **Verified on**: <https://optimistic.etherscan.io/address/0xcbF3822A63B7867cD602317fB4aE3ca864826ef8>
+pub const ODOS_LO_OP_ROUTER: Address = address!("cbF3822A63B7867cD602317fB4aE3ca864826ef8");
+
+/// **BNB Smart Chain** - Limit Order V2 Router contract address
+///
+/// Chain ID: 56
+///
+/// **Verified on**: <https://bscscan.com/address/0x0D4aB12E62D17f037D43F018Da18FF623e1AF3B2>
+pub const ODOS_LO_BSC_ROUTER: Address = address!("0D4aB12E62D17f037D43F018Da18FF623e1AF3B2");
+
+/// **Polygon** - Limit Order V2 Router contract address
+///
+/// Chain ID: 137
+///
+/// **Verified on**: <https://polygonscan.com/address/0x93052961c75c92Fd5d6362655936C239EF2D5336>
+pub const ODOS_LO_POLYGON_ROUTER: Address = address!("93052961c75c92Fd5d6362655936C239EF2D5336");
+
+/// **Berachain** - Limit Order V2 Router contract address
+///
+/// Chain ID: 80084
+///
+/// **Verified on**: Berachain explorer
+pub const ODOS_LO_BERACHAIN_ROUTER: Address = address!("3236d3d12b7981aa5043bd66d1b9d6856bf764dc");
+
+/// **Arbitrum One** - Limit Order V2 Router contract address
+///
+/// Chain ID: 42161
+///
+/// **Verified on**: <https://arbiscan.io/address/0x7432657cDda02226ac2aAc9d8f552Ee9613B064e>
+pub const ODOS_LO_ARBITRUM_ROUTER: Address = address!("7432657cDda02226ac2aAc9d8f552Ee9613B064e");
+
+/// **Avalanche C-Chain** - Limit Order V2 Router contract address
+///
+/// Chain ID: 43114
+///
+/// **Verified on**: <https://snowtrace.io/address/0xcc0126349d1bD892D1C53381E68dBF0c8F0E045e>
+pub const ODOS_LO_AVALANCHE_ROUTER: Address = address!("cc0126349d1bD892D1C53381E68dBF0c8F0E045e");
+
+/// **Base** - Limit Order V2 Router contract address
+///
+/// Chain ID: 8453
+///
+/// **Verified on**: <https://basescan.org/address/0xeDeAfdEf0901eF74Ee28c207BE8424D3B353D97A>
+pub const ODOS_LO_BASE_ROUTER: Address = address!("eDeAfdEf0901eF74Ee28c207BE8424D3B353D97A");
+
+/// **Fraxtal** - Limit Order V2 Router contract address
+///
+/// Chain ID: 252
+///
+/// **Verified on**: <https://fraxscan.com/address/0x5E0aFaD0f658f9689806296e0509AfFC191d9a09>
+pub const ODOS_LO_FRAXTAL_ROUTER: Address = address!("5E0aFaD0f658f9689806296e0509AfFC191d9a09");
+
+/// **Linea** - Limit Order V2 Router contract address
+///
+/// Chain ID: 59144
+///
+/// **Verified on**: <https://linea.blockscout.com/address/0xb3a9B56056a5c93F468dF62579b9A5BEa1741069>
+pub const ODOS_LO_LINEA_ROUTER: Address = address!("b3a9B56056a5c93F468dF62579b9A5BEa1741069");
+
+/// **Mantle** - Limit Order V2 Router contract address
+///
+/// Chain ID: 5000
+///
+/// **Verified on**: <https://mantlescan.xyz/address/0xa05A88037402d869b7CA69F5bEc098E19BeDaFbB>
+pub const ODOS_LO_MANTLE_ROUTER: Address = address!("a05A88037402d869b7CA69F5bEc098E19BeDaFbB");
+
+/// **Mode** - Limit Order V2 Router contract address
+///
+/// Chain ID: 34443
+///
+/// **Verified on**: <https://explorer.mode.network/address/0x8073e286DaDc6d92BefC8f436c5BcDFcE213e681>
+pub const ODOS_LO_MODE_ROUTER: Address = address!("8073e286DaDc6d92BefC8f436c5BcDFcE213e681");
+
+/// **Scroll** - Limit Order V2 Router contract address
+///
+/// Chain ID: 534352
+///
+/// **Verified on**: <https://explorer.scroll.io/address/0x468633515c46EfFCC77Caa949ce8775505e5deDA>
+pub const ODOS_LO_SCROLL_ROUTER: Address = address!("468633515c46EfFCC77Caa949ce8775505e5deDA");
+
+/// **Sonic** - Limit Order V2 Router contract address
+///
+/// Chain ID: 146
+///
+/// **Verified on**: Sonic explorer
+pub const ODOS_LO_SONIC_ROUTER: Address = address!("B9CBD870916e9Ffc52076Caa714f85a022B7f330");
+
+/// **zkSync Era** - Limit Order V2 Router contract address
+///
+/// Chain ID: 324
+///
+/// **Verified on**: <https://explorer.zksync.io/address/0x74ab8c1247aE3C5FFFD9F85781F31751bdd98E73>
+pub const ODOS_LO_ZKSYNC_ROUTER: Address = address!("74ab8c1247aE3C5FFFD9F85781F31751bdd98E73");
+
+/// **Unichain** - Limit Order V2 Router contract address
+///
+/// Chain ID: 1301
+///
+/// **Verified on**: <https://uniscan.xyz/address/0x372d96eDA72bEA64dfCa3577d04382E4dbE2Ff2b>
+pub const ODOS_LO_UNICHAIN_ROUTER: Address = address!("372d96eDA72bEA64dfCa3577d04382E4dbE2Ff2b");
 
 // =============================================================================
 // V3 Router Address (Unified Across All Chains)
@@ -340,18 +458,14 @@ pub fn get_supported_chains() -> Vec<u64> {
         Linea,
         Scroll,
         Sonic,
+        Berachain,
     ];
 
     all_chains
         .iter()
         .filter_map(|chain| {
-            if chain.supports_odos() {
-                // Validate that addresses are accessible
-                if chain.v2_router_address().is_ok() && chain.v3_router_address().is_ok() {
-                    Some((*chain) as u64)
-                } else {
-                    None
-                }
+            if chain.supports_odos() && chain.supports_v2() && chain.supports_v3() {
+                Some((*chain) as u64)
             } else {
                 None
             }
