@@ -16,6 +16,8 @@ use crate::{
 
 /// Base endpoint for the Odos API
 ///
+/// **DEPRECATED**: Use [`ApiHost`] instead. This type will be removed in a future version.
+///
 /// Odos provides two API endpoints:
 /// - **Public**: Standard API available to all users at <https://api.odos.xyz>
 /// - **Enterprise**: Premium API with enhanced features at <https://enterprise-api.odos.xyz>
@@ -38,6 +40,10 @@ use crate::{
 /// let v3_url = public_endpoint.quote_url(EndpointVersion::V3);
 /// assert_eq!(v3_url.as_str(), "https://api.odos.xyz/sor/quote/v3");
 /// ```
+#[deprecated(
+    since = "0.21.0",
+    note = "Use `ApiHost` and `Endpoint` instead. See `Endpoint::new(ApiHost::Public, ApiVersion::V2)` or convenience methods like `Endpoint::public_v2()`."
+)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 pub enum EndpointBase {
     /// Public API endpoint <https://docs.odos.xyz/build/api-docs>
@@ -51,6 +57,7 @@ pub enum EndpointBase {
     Enterprise,
 }
 
+#[allow(deprecated)]
 impl EndpointBase {
     /// Get the base URL for the Odos API
     ///
@@ -124,6 +131,8 @@ impl EndpointBase {
 
 /// Version of the Odos API endpoint
 ///
+/// **DEPRECATED**: Use [`ApiVersion`] instead. This type will be removed in a future version.
+///
 /// Odos provides multiple API versions with different features and response formats:
 /// - **V2**: Stable production version with comprehensive swap routing
 /// - **V3**: Latest version with enhanced features and optimizations
@@ -151,7 +160,7 @@ impl EndpointBase {
 /// ```
 ///
 /// **New approach (0.20.0+):**
-/// ```rust
+/// ```rust,ignore
 /// use odos_sdk::{ClientConfig, EndpointBase, EndpointVersion};
 ///
 /// let config = ClientConfig {
@@ -161,25 +170,26 @@ impl EndpointBase {
 /// };
 /// ```
 ///
-/// # Examples
-///
+/// **Recommended approach (0.21.0+):**
 /// ```rust
-/// use odos_sdk::{ClientConfig, EndpointBase, EndpointVersion};
+/// use odos_sdk::{ClientConfig, Endpoint};
 ///
 /// // Use V2 API (stable, recommended for production)
 /// let config_v2 = ClientConfig {
-///     endpoint: EndpointBase::Public,
-///     endpoint_version: EndpointVersion::V2,
+///     endpoint: Endpoint::public_v2(),
 ///     ..Default::default()
 /// };
 ///
 /// // Use V3 API (latest features)
 /// let config_v3 = ClientConfig {
-///     endpoint: EndpointBase::Public,
-///     endpoint_version: EndpointVersion::V3,
+///     endpoint: Endpoint::public_v3(),
 ///     ..Default::default()
 /// };
 /// ```
+#[deprecated(
+    since = "0.21.0",
+    note = "Use `ApiVersion` and `Endpoint` instead. See `Endpoint::new(ApiHost::Public, ApiVersion::V2)` or convenience methods like `Endpoint::public_v2()`."
+)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 pub enum EndpointVersion {
     /// API version 2 - Stable production version
@@ -192,6 +202,348 @@ pub enum EndpointVersion {
     /// Includes optimizations and new features. Check the Odos documentation
     /// for specific enhancements over V2.
     V3,
+}
+
+/// API host tier for the Odos API
+///
+/// Odos provides two API host tiers:
+/// - **Public**: Standard API available to all users at <https://api.odos.xyz>
+/// - **Enterprise**: Premium API with enhanced features at <https://enterprise-api.odos.xyz>
+///
+/// This type replaces the deprecated [`EndpointBase`] with clearer naming.
+/// Use in combination with [`ApiVersion`] via the [`Endpoint`] type for complete
+/// endpoint configuration.
+///
+/// # Examples
+///
+/// ```rust
+/// use odos_sdk::{ApiHost, ApiVersion, Endpoint};
+///
+/// // Use directly with Endpoint
+/// let endpoint = Endpoint::new(ApiHost::Public, ApiVersion::V2);
+///
+/// // Or use convenience methods
+/// let endpoint = Endpoint::public_v2();
+/// ```
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ApiHost {
+    /// Public API endpoint <https://docs.odos.xyz/build/api-docs>
+    ///
+    /// Standard API available to all users. Suitable for most use cases.
+    Public,
+    /// Enterprise API endpoint <https://docs.odos.xyz/build/enterprise-api>
+    ///
+    /// Premium API with enhanced features, higher rate limits, and dedicated support.
+    /// Requires an API key obtained through the Odos Enterprise program.
+    Enterprise,
+}
+
+impl ApiHost {
+    /// Get the base URL for the API host
+    ///
+    /// Returns the root URL for the selected host tier without any path segments.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::ApiHost;
+    ///
+    /// let public = ApiHost::Public;
+    /// assert_eq!(public.base_url().as_str(), "https://api.odos.xyz/");
+    ///
+    /// let enterprise = ApiHost::Enterprise;
+    /// assert_eq!(enterprise.base_url().as_str(), "https://enterprise-api.odos.xyz/");
+    /// ```
+    pub fn base_url(&self) -> Url {
+        match self {
+            ApiHost::Public => Url::parse("https://api.odos.xyz/").unwrap(),
+            ApiHost::Enterprise => Url::parse("https://enterprise-api.odos.xyz/").unwrap(),
+        }
+    }
+}
+
+#[allow(deprecated)]
+impl From<EndpointBase> for ApiHost {
+    fn from(base: EndpointBase) -> Self {
+        match base {
+            EndpointBase::Public => ApiHost::Public,
+            EndpointBase::Enterprise => ApiHost::Enterprise,
+        }
+    }
+}
+
+/// Version of the Odos API
+///
+/// Odos provides multiple API versions with different features and response formats:
+/// - **V2**: Stable production version with comprehensive swap routing
+/// - **V3**: Latest version with enhanced features and optimizations
+///
+/// This type replaces the deprecated [`EndpointVersion`] with clearer naming.
+/// Use in combination with [`ApiHost`] via the [`Endpoint`] type for complete
+/// endpoint configuration.
+///
+/// # Examples
+///
+/// ```rust
+/// use odos_sdk::{ApiHost, ApiVersion, Endpoint};
+///
+/// // Recommended: Use V2 for production
+/// let endpoint = Endpoint::new(ApiHost::Public, ApiVersion::V2);
+///
+/// // Or use V3 for latest features
+/// let endpoint = Endpoint::new(ApiHost::Public, ApiVersion::V3);
+/// ```
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ApiVersion {
+    /// API version 2 - Stable production version
+    ///
+    /// Recommended for most production use cases. Provides comprehensive
+    /// swap routing with extensive DEX coverage.
+    V2,
+    /// API version 3 - Latest version with enhanced features
+    ///
+    /// Includes optimizations and new features. Check the Odos documentation
+    /// for specific enhancements over V2.
+    V3,
+}
+
+impl ApiVersion {
+    /// Get the path segment for this version
+    ///
+    /// Returns the path component to use in API URLs (e.g., "v2", "v3").
+    fn path(&self) -> &'static str {
+        match self {
+            ApiVersion::V2 => "v2",
+            ApiVersion::V3 => "v3",
+        }
+    }
+}
+
+#[allow(deprecated)]
+impl From<EndpointVersion> for ApiVersion {
+    fn from(version: EndpointVersion) -> Self {
+        match version {
+            EndpointVersion::V2 => ApiVersion::V2,
+            EndpointVersion::V3 => ApiVersion::V3,
+        }
+    }
+}
+
+/// Complete API endpoint configuration combining host tier and API version
+///
+/// The `Endpoint` type provides an ergonomic way to configure both the API host
+/// tier (Public/Enterprise) and version (V2/V3) together. This replaces the previous
+/// pattern of using separate `EndpointBase` and `EndpointVersion` fields.
+///
+/// # Examples
+///
+/// ## Using convenience constructors (recommended)
+///
+/// ```rust
+/// use odos_sdk::{ClientConfig, Endpoint};
+///
+/// // Public API V2 (default, recommended for production)
+/// let config = ClientConfig {
+///     endpoint: Endpoint::public_v2(),
+///     ..Default::default()
+/// };
+///
+/// // Enterprise API V3 (latest features)
+/// let config = ClientConfig {
+///     endpoint: Endpoint::enterprise_v3(),
+///     ..Default::default()
+/// };
+/// ```
+///
+/// ## Using explicit construction
+///
+/// ```rust
+/// use odos_sdk::{Endpoint, ApiHost, ApiVersion};
+///
+/// let endpoint = Endpoint::new(ApiHost::Enterprise, ApiVersion::V2);
+/// assert_eq!(endpoint.quote_url().as_str(), "https://enterprise-api.odos.xyz/sor/quote/v2");
+/// ```
+///
+/// ## Migration from old API
+///
+/// ```rust
+/// use odos_sdk::{ClientConfig, Endpoint};
+///
+/// // Old way (still works but deprecated)
+/// // let config = ClientConfig {
+/// //     endpoint: EndpointBase::Public,
+/// //     endpoint_version: EndpointVersion::V2,
+/// //     ..Default::default()
+/// // };
+///
+/// // New way
+/// let config = ClientConfig {
+///     endpoint: Endpoint::public_v2(),
+///     ..Default::default()
+/// };
+/// ```
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Deserialize, Serialize)]
+pub struct Endpoint {
+    host: ApiHost,
+    version: ApiVersion,
+}
+
+impl Endpoint {
+    /// Create a new endpoint with specific host and version
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::{Endpoint, ApiHost, ApiVersion};
+    ///
+    /// let endpoint = Endpoint::new(ApiHost::Public, ApiVersion::V2);
+    /// ```
+    pub const fn new(host: ApiHost, version: ApiVersion) -> Self {
+        Self { host, version }
+    }
+
+    /// Public API V2 endpoint (default, recommended for production)
+    ///
+    /// This is the recommended configuration for most production use cases.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::Endpoint;
+    ///
+    /// let endpoint = Endpoint::public_v2();
+    /// assert_eq!(endpoint.quote_url().as_str(), "https://api.odos.xyz/sor/quote/v2");
+    /// ```
+    pub const fn public_v2() -> Self {
+        Self::new(ApiHost::Public, ApiVersion::V2)
+    }
+
+    /// Public API V3 endpoint
+    ///
+    /// Use for latest features and optimizations on the public API.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::Endpoint;
+    ///
+    /// let endpoint = Endpoint::public_v3();
+    /// assert_eq!(endpoint.quote_url().as_str(), "https://api.odos.xyz/sor/quote/v3");
+    /// ```
+    pub const fn public_v3() -> Self {
+        Self::new(ApiHost::Public, ApiVersion::V3)
+    }
+
+    /// Enterprise API V2 endpoint
+    ///
+    /// Use for enterprise tier with V2 API. Requires an API key.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::Endpoint;
+    ///
+    /// let endpoint = Endpoint::enterprise_v2();
+    /// assert_eq!(endpoint.quote_url().as_str(), "https://enterprise-api.odos.xyz/sor/quote/v2");
+    /// ```
+    pub const fn enterprise_v2() -> Self {
+        Self::new(ApiHost::Enterprise, ApiVersion::V2)
+    }
+
+    /// Enterprise API V3 endpoint
+    ///
+    /// Use for enterprise tier with latest V3 features. Requires an API key.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::Endpoint;
+    ///
+    /// let endpoint = Endpoint::enterprise_v3();
+    /// assert_eq!(endpoint.quote_url().as_str(), "https://enterprise-api.odos.xyz/sor/quote/v3");
+    /// ```
+    pub const fn enterprise_v3() -> Self {
+        Self::new(ApiHost::Enterprise, ApiVersion::V3)
+    }
+
+    /// Get the quote URL for this endpoint
+    ///
+    /// Constructs the full URL for the quote endpoint by combining the base URL
+    /// with the appropriate version path.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::Endpoint;
+    ///
+    /// let endpoint = Endpoint::public_v2();
+    /// assert_eq!(endpoint.quote_url().as_str(), "https://api.odos.xyz/sor/quote/v2");
+    ///
+    /// let endpoint = Endpoint::enterprise_v3();
+    /// assert_eq!(endpoint.quote_url().as_str(), "https://enterprise-api.odos.xyz/sor/quote/v3");
+    /// ```
+    pub fn quote_url(&self) -> Url {
+        self.host
+            .base_url()
+            .join(&format!("sor/quote/{}", self.version.path()))
+            .unwrap()
+    }
+
+    /// Get the assemble URL for this endpoint
+    ///
+    /// The assemble endpoint is version-independent and constructs transaction data
+    /// from a previously obtained quote path ID.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::Endpoint;
+    ///
+    /// let endpoint = Endpoint::public_v2();
+    /// assert_eq!(endpoint.assemble_url().as_str(), "https://api.odos.xyz/sor/assemble");
+    /// ```
+    pub fn assemble_url(&self) -> Url {
+        self.host.base_url().join("sor/assemble").unwrap()
+    }
+
+    /// Get the API host tier
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::{Endpoint, ApiHost};
+    ///
+    /// let endpoint = Endpoint::public_v2();
+    /// assert_eq!(endpoint.host(), ApiHost::Public);
+    /// ```
+    pub const fn host(&self) -> ApiHost {
+        self.host
+    }
+
+    /// Get the API version
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::{Endpoint, ApiVersion};
+    ///
+    /// let endpoint = Endpoint::public_v2();
+    /// assert_eq!(endpoint.version(), ApiVersion::V2);
+    /// ```
+    pub const fn version(&self) -> ApiVersion {
+        self.version
+    }
+}
+
+impl Default for Endpoint {
+    /// Returns the default endpoint: Public API V2
+    ///
+    /// This is the recommended configuration for most production use cases.
+    fn default() -> Self {
+        Self::public_v2()
+    }
 }
 
 /// Input token for the Odos quote API
@@ -531,5 +883,152 @@ impl SwapInputs {
     /// Get the value out min of the swap
     pub fn value_out_min(&self) -> U256 {
         self.value_out_min
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_api_host_base_url() {
+        assert_eq!(ApiHost::Public.base_url().as_str(), "https://api.odos.xyz/");
+        assert_eq!(
+            ApiHost::Enterprise.base_url().as_str(),
+            "https://enterprise-api.odos.xyz/"
+        );
+    }
+
+    #[test]
+    fn test_api_version_path() {
+        assert_eq!(ApiVersion::V2.path(), "v2");
+        assert_eq!(ApiVersion::V3.path(), "v3");
+    }
+
+    #[test]
+    fn test_endpoint_constructors() {
+        let endpoint = Endpoint::public_v2();
+        assert_eq!(endpoint.host(), ApiHost::Public);
+        assert_eq!(endpoint.version(), ApiVersion::V2);
+
+        let endpoint = Endpoint::public_v3();
+        assert_eq!(endpoint.host(), ApiHost::Public);
+        assert_eq!(endpoint.version(), ApiVersion::V3);
+
+        let endpoint = Endpoint::enterprise_v2();
+        assert_eq!(endpoint.host(), ApiHost::Enterprise);
+        assert_eq!(endpoint.version(), ApiVersion::V2);
+
+        let endpoint = Endpoint::enterprise_v3();
+        assert_eq!(endpoint.host(), ApiHost::Enterprise);
+        assert_eq!(endpoint.version(), ApiVersion::V3);
+
+        let endpoint = Endpoint::new(ApiHost::Public, ApiVersion::V2);
+        assert_eq!(endpoint.host(), ApiHost::Public);
+        assert_eq!(endpoint.version(), ApiVersion::V2);
+    }
+
+    #[test]
+    fn test_endpoint_quote_urls() {
+        assert_eq!(
+            Endpoint::public_v2().quote_url().as_str(),
+            "https://api.odos.xyz/sor/quote/v2"
+        );
+        assert_eq!(
+            Endpoint::public_v3().quote_url().as_str(),
+            "https://api.odos.xyz/sor/quote/v3"
+        );
+        assert_eq!(
+            Endpoint::enterprise_v2().quote_url().as_str(),
+            "https://enterprise-api.odos.xyz/sor/quote/v2"
+        );
+        assert_eq!(
+            Endpoint::enterprise_v3().quote_url().as_str(),
+            "https://enterprise-api.odos.xyz/sor/quote/v3"
+        );
+    }
+
+    #[test]
+    fn test_endpoint_assemble_urls() {
+        assert_eq!(
+            Endpoint::public_v2().assemble_url().as_str(),
+            "https://api.odos.xyz/sor/assemble"
+        );
+        assert_eq!(
+            Endpoint::public_v3().assemble_url().as_str(),
+            "https://api.odos.xyz/sor/assemble"
+        );
+        assert_eq!(
+            Endpoint::enterprise_v2().assemble_url().as_str(),
+            "https://enterprise-api.odos.xyz/sor/assemble"
+        );
+        assert_eq!(
+            Endpoint::enterprise_v3().assemble_url().as_str(),
+            "https://enterprise-api.odos.xyz/sor/assemble"
+        );
+    }
+
+    #[test]
+    fn test_endpoint_default() {
+        let endpoint = Endpoint::default();
+        assert_eq!(endpoint.host(), ApiHost::Public);
+        assert_eq!(endpoint.version(), ApiVersion::V2);
+        assert_eq!(
+            endpoint.quote_url().as_str(),
+            "https://api.odos.xyz/sor/quote/v2"
+        );
+    }
+
+    #[test]
+    fn test_endpoint_equality() {
+        assert_eq!(
+            Endpoint::public_v2(),
+            Endpoint::new(ApiHost::Public, ApiVersion::V2)
+        );
+        assert_eq!(
+            Endpoint::enterprise_v3(),
+            Endpoint::new(ApiHost::Enterprise, ApiVersion::V3)
+        );
+        assert_ne!(Endpoint::public_v2(), Endpoint::public_v3());
+        assert_ne!(Endpoint::public_v2(), Endpoint::enterprise_v2());
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_api_host_from_endpoint_base() {
+        assert_eq!(ApiHost::from(EndpointBase::Public), ApiHost::Public);
+        assert_eq!(ApiHost::from(EndpointBase::Enterprise), ApiHost::Enterprise);
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_api_version_from_endpoint_version() {
+        assert_eq!(ApiVersion::from(EndpointVersion::V2), ApiVersion::V2);
+        assert_eq!(ApiVersion::from(EndpointVersion::V3), ApiVersion::V3);
+    }
+
+    #[test]
+    fn test_endpoint_copy_clone() {
+        let endpoint1 = Endpoint::public_v2();
+        let endpoint2 = endpoint1; // Copy
+        assert_eq!(endpoint1, endpoint2);
+
+        #[allow(clippy::clone_on_copy)]
+        let endpoint3 = endpoint1.clone(); // Clone - intentionally testing clone
+        assert_eq!(endpoint1, endpoint3);
+    }
+
+    #[test]
+    fn test_endpoint_serde() {
+        let endpoint = Endpoint::public_v2();
+
+        // Test serialization
+        let json = serde_json::to_string(&endpoint).unwrap();
+        assert!(json.contains("public"));
+        assert!(json.contains("v2"));
+
+        // Test deserialization
+        let deserialized: Endpoint = serde_json::from_str(&json).unwrap();
+        assert_eq!(endpoint, deserialized);
     }
 }

@@ -41,12 +41,11 @@ use crate::{QuoteRequest, SingleQuoteResponse};
 ///
 /// ## Custom configuration
 /// ```rust
-/// use odos_sdk::{OdosSor, ClientConfig, EndpointBase, EndpointVersion};
+/// use odos_sdk::{OdosSor, ClientConfig, Endpoint};
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// let config = ClientConfig {
-///     endpoint: EndpointBase::Public,
-///     endpoint_version: EndpointVersion::V3,
+///     endpoint: Endpoint::public_v3(),
 ///     ..Default::default()
 /// };
 /// let client = OdosSor::with_config(config)?;
@@ -115,12 +114,11 @@ impl OdosSor {
     /// # Examples
     ///
     /// ```rust
-    /// use odos_sdk::{OdosSor, ClientConfig, EndpointBase, EndpointVersion};
+    /// use odos_sdk::{OdosSor, ClientConfig, Endpoint};
     ///
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let config = ClientConfig {
-    ///     endpoint: EndpointBase::Enterprise,
-    ///     endpoint_version: EndpointVersion::V3,
+    ///     endpoint: Endpoint::enterprise_v3(),
     ///     ..Default::default()
     /// };
     /// let client = OdosSor::with_config(config)?;
@@ -242,12 +240,7 @@ impl OdosSor {
                 let mut builder = self
                     .client
                     .inner()
-                    .post(
-                        self.client
-                            .config()
-                            .endpoint
-                            .quote_url(self.client.config().endpoint_version),
-                    )
+                    .post(self.client.config().endpoint.quote_url())
                     .header("accept", "application/json")
                     .json(quote_request);
 
