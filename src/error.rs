@@ -411,13 +411,6 @@ impl OdosError {
     }
 }
 
-// Compatibility with anyhow for gradual migration
-impl From<anyhow::Error> for OdosError {
-    fn from(err: anyhow::Error) -> Self {
-        Self::Internal(err.to_string())
-    }
-}
-
 // Convert chain errors to appropriate error types
 impl From<OdosChainError> for OdosError {
     fn from(err: OdosChainError) -> Self {

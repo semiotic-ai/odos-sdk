@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use backoff::{backoff::Backoff, ExponentialBackoff};
+use backon::{BackoffBuilder, ExponentialBuilder};
 use reqwest::{Client, RequestBuilder, Response, StatusCode};
 use tokio::time::timeout;
 use tracing::{debug, instrument};
@@ -213,25 +213,20 @@ pub struct ClientConfig {
     ///
     /// Default: [`Endpoint::public_v2()`]
     ///
-    /// # Migration from 0.20.x
+    /// # Examples
     ///
-    /// **Old way (0.20.x):**
-    /// ```rust,ignore
-    /// use odos_sdk::{ClientConfig, EndpointBase, EndpointVersion};
-    ///
-    /// let config = ClientConfig {
-    ///     endpoint: EndpointBase::Public,
-    ///     endpoint_version: EndpointVersion::V2,
-    ///     ..Default::default()
-    /// };
-    /// ```
-    ///
-    /// **New way (0.21.0+):**
     /// ```rust
     /// use odos_sdk::{ClientConfig, Endpoint};
     ///
+    /// // Use Public API V2 (recommended)
     /// let config = ClientConfig {
     ///     endpoint: Endpoint::public_v2(),
+    ///     ..Default::default()
+    /// };
+    ///
+    /// // Use Enterprise API V3
+    /// let config = ClientConfig {
+    ///     endpoint: Endpoint::enterprise_v3(),
     ///     ..Default::default()
     /// };
     /// ```
@@ -322,13 +317,15 @@ impl OdosHttpClient {
     {
         let initial_backoff_duration =
             Duration::from_millis(self.config.retry_config.initial_backoff_ms);
-        let mut backoff = ExponentialBackoff {
-            initial_interval: initial_backoff_duration,
-            max_interval: Duration::from_secs(30), // Max backoff of 30 seconds
-            max_elapsed_time: Some(self.config.timeout),
-            ..Default::default()
-        };
 
+        // Create an exponential backoff iterator
+        // backon uses an iterator-based API for generating backoff delays
+        let backoff = ExponentialBuilder::default()
+            .with_min_delay(initial_backoff_duration)
+            .with_max_delay(Duration::from_secs(30)) // Max backoff of 30 seconds
+            .with_max_times(self.config.retry_config.max_retries as usize + 1); // +1 because backon counts total attempts
+
+        let mut backoff_iter = backoff.build();
         let mut attempt = 0;
 
         loop {
@@ -433,9 +430,11 @@ impl OdosHttpClient {
                 return Err(last_error);
             }
 
-            if let Some(delay) = backoff.next_backoff() {
+            // Get next backoff delay from iterator
+            if let Some(delay) = backoff_iter.next() {
                 tokio::time::sleep(delay).await;
             } else {
+                // No more backoff attempts available
                 return Err(last_error);
             }
         }
