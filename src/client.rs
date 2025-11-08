@@ -10,7 +10,6 @@ use crate::{
     api_key::ApiKey,
     error::{OdosError, Result},
     error_code::OdosErrorCode,
-    EndpointBase, EndpointVersion,
 };
 
 /// Configuration for retry behavior
@@ -120,11 +119,10 @@ impl RetryConfig {
 ///
 /// ## Custom endpoint configuration
 /// ```rust
-/// use odos_sdk::{ClientConfig, EndpointBase, EndpointVersion};
+/// use odos_sdk::{ClientConfig, Endpoint};
 ///
 /// let config = ClientConfig {
-///     endpoint: EndpointBase::Enterprise,
-///     endpoint_version: EndpointVersion::V3,
+///     endpoint: Endpoint::enterprise_v3(),
 ///     ..Default::default()
 /// };
 /// ```
@@ -139,7 +137,7 @@ impl RetryConfig {
 /// ## Full custom configuration
 /// ```rust
 /// use std::time::Duration;
-/// use odos_sdk::{ClientConfig, RetryConfig, EndpointBase, EndpointVersion};
+/// use odos_sdk::{ClientConfig, RetryConfig, Endpoint};
 ///
 /// let config = ClientConfig {
 ///     timeout: Duration::from_secs(60),
@@ -150,8 +148,7 @@ impl RetryConfig {
 ///         ..Default::default()
 ///     },
 ///     max_connections: 50,
-///     endpoint: EndpointBase::Public,
-///     endpoint_version: EndpointVersion::V2,
+///     endpoint: Endpoint::public_v2(),
 ///     ..Default::default()
 /// };
 /// ```
@@ -206,22 +203,39 @@ pub struct ClientConfig {
     /// Default: None (unauthenticated requests)
     pub api_key: Option<ApiKey>,
 
-    /// Base endpoint to use for API requests
+    /// API endpoint configuration (host + version)
     ///
-    /// Selects between Public and Enterprise API endpoints.
-    /// See [`EndpointBase`] for available options.
+    /// Combines the API host tier (Public/Enterprise) and version (V2/V3)
+    /// into a single ergonomic configuration.
     ///
-    /// Default: [`EndpointBase::Public`]
-    pub endpoint: EndpointBase,
-
-    /// API version to use for quote requests
+    /// Use convenience constructors like [`Endpoint::public_v2()`] or
+    /// [`Endpoint::enterprise_v3()`] for easy configuration.
     ///
-    /// Selects between V2 (stable) and V3 (latest features).
-    /// The assemble endpoint is version-independent.
-    /// See [`EndpointVersion`] for available versions.
+    /// Default: [`Endpoint::public_v2()`]
     ///
-    /// Default: [`EndpointVersion::V2`]
-    pub endpoint_version: EndpointVersion,
+    /// # Migration from 0.20.x
+    ///
+    /// **Old way (0.20.x):**
+    /// ```rust,ignore
+    /// use odos_sdk::{ClientConfig, EndpointBase, EndpointVersion};
+    ///
+    /// let config = ClientConfig {
+    ///     endpoint: EndpointBase::Public,
+    ///     endpoint_version: EndpointVersion::V2,
+    ///     ..Default::default()
+    /// };
+    /// ```
+    ///
+    /// **New way (0.21.0+):**
+    /// ```rust
+    /// use odos_sdk::{ClientConfig, Endpoint};
+    ///
+    /// let config = ClientConfig {
+    ///     endpoint: Endpoint::public_v2(),
+    ///     ..Default::default()
+    /// };
+    /// ```
+    pub endpoint: crate::Endpoint,
 }
 
 impl Default for ClientConfig {
@@ -233,8 +247,7 @@ impl Default for ClientConfig {
             max_connections: 20,
             pool_idle_timeout: Duration::from_secs(90),
             api_key: None,
-            endpoint: EndpointBase::Public,
-            endpoint_version: EndpointVersion::V2,
+            endpoint: crate::Endpoint::public_v2(),
         }
     }
 }
@@ -249,7 +262,6 @@ impl std::fmt::Debug for ClientConfig {
             .field("pool_idle_timeout", &self.pool_idle_timeout)
             .field("api_key", &self.api_key)
             .field("endpoint", &self.endpoint)
-            .field("endpoint_version", &self.endpoint_version)
             .finish()
     }
 }
