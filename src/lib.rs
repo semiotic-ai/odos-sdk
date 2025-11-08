@@ -275,17 +275,59 @@ mod transfer;
 mod v2_router;
 mod v3_router;
 
-pub use api::*;
-pub use api_key::*;
-pub use assemble::*;
-pub use chain::*;
-pub use client::*;
-pub use contract::*;
-pub use error::*;
-pub use limit_order_v2::*;
-pub use router_type::*;
-pub use sor::*;
-pub use swap::*;
-pub use transfer::*;
-pub use v2_router::*;
-pub use v3_router::*;
+// API types
+pub use api::{
+    ApiHost, ApiVersion, Endpoint, InputToken, OdosApiErrorResponse, OutputToken, QuoteRequest,
+    SingleQuoteResponse, SwapInputs,
+};
+
+// API key management
+pub use api_key::ApiKey;
+
+// Transaction assembly
+pub use assemble::{
+    parse_value, AssembleRequest, AssemblyResponse, Simulation, SimulationError, TransactionData,
+};
+
+// Chain support
+pub use chain::{OdosChain, OdosChainError, OdosChainResult, OdosRouterSelection};
+
+// HTTP client configuration
+pub use client::{ClientConfig, OdosHttpClient, RetryConfig};
+
+// Contract addresses and chain helpers
+pub use contract::{
+    get_lo_router_by_chain_id, get_supported_chains, get_supported_lo_chains,
+    get_supported_v2_chains, get_supported_v3_chains, get_v2_router_by_chain_id,
+    get_v3_router_by_chain_id, ODOS_LO_ARBITRUM_ROUTER, ODOS_LO_AVALANCHE_ROUTER,
+    ODOS_LO_BASE_ROUTER, ODOS_LO_BERACHAIN_ROUTER, ODOS_LO_BSC_ROUTER, ODOS_LO_ETHEREUM_ROUTER,
+    ODOS_LO_FRAXTAL_ROUTER, ODOS_LO_LINEA_ROUTER, ODOS_LO_MANTLE_ROUTER, ODOS_LO_MODE_ROUTER,
+    ODOS_LO_OP_ROUTER, ODOS_LO_POLYGON_ROUTER, ODOS_LO_SCROLL_ROUTER, ODOS_LO_SONIC_ROUTER,
+    ODOS_LO_UNICHAIN_ROUTER, ODOS_LO_ZKSYNC_ROUTER, ODOS_V2_ARBITRUM_ROUTER,
+    ODOS_V2_AVALANCHE_ROUTER, ODOS_V2_BASE_ROUTER, ODOS_V2_BSC_ROUTER, ODOS_V2_ETHEREUM_ROUTER,
+    ODOS_V2_FRAXTAL_ROUTER, ODOS_V2_LINEA_ROUTER, ODOS_V2_MANTLE_ROUTER, ODOS_V2_MODE_ROUTER,
+    ODOS_V2_OP_ROUTER, ODOS_V2_POLYGON_ROUTER, ODOS_V2_SCROLL_ROUTER, ODOS_V2_SONIC_ROUTER,
+    ODOS_V2_UNICHAIN_ROUTER, ODOS_V2_ZKSYNC_ROUTER, ODOS_V3,
+};
+
+// Error handling
+pub use error::{OdosError, Result};
+
+// Limit order contract bindings
+pub use limit_order_v2::LimitOrderV2;
+
+// Router type selection
+pub use router_type::{RouterAvailability, RouterType};
+
+// Smart Order Router client
+pub use sor::OdosSor;
+
+// Swap execution context
+pub use swap::SwapContext;
+
+// Transfer types
+pub use transfer::TransferRouterFunds;
+
+// Contract bindings
+pub use v2_router::{OdosRouterV2, OdosV2Router, V2Router};
+pub use v3_router::{IOdosRouterV3, OdosV3Router, V3Router};

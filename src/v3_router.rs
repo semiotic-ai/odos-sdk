@@ -5,12 +5,12 @@ use alloy_network::Ethereum;
 use alloy_primitives::{Address, Bytes, U256};
 use alloy_provider::Provider;
 use alloy_sol_types::{sol, SolInterface};
-use OdosV3Router::{swapCall, OdosV3RouterCalls, OdosV3RouterInstance, Swap, SwapMulti};
 
-use crate::{
-    IOdosRouterV3::{inputTokenInfo, outputTokenInfo, swapReferralInfo, swapTokenInfo},
-    SwapInputs,
-};
+use crate::SwapInputs;
+
+// Import generated types after sol! macro
+use IOdosRouterV3::{inputTokenInfo, outputTokenInfo, swapReferralInfo, swapTokenInfo};
+use OdosV3Router::{swapCall, OdosV3RouterCalls, OdosV3RouterInstance, Swap, SwapMulti};
 
 /// The V2 SOR Router contract.
 #[derive(Debug, Clone)]
@@ -75,7 +75,7 @@ impl<P: Provider<Ethereum>> V3Router<P> {
     }
 }
 
-// codegen the odos_v2_router contract
+// codegen the odos_v3_router contract
 sol!(
     #[allow(clippy::too_many_arguments)]
     #[allow(missing_docs)]

@@ -5,10 +5,12 @@ use alloy_network::Ethereum;
 use alloy_primitives::{Address, Bytes, U256};
 use alloy_provider::Provider;
 use alloy_sol_types::{sol, SolInterface};
-use OdosRouterV2::{inputTokenInfo, outputTokenInfo, swapTokenInfo};
-use OdosV2Router::{swapCall, OdosV2RouterCalls, OdosV2RouterInstance, Swap, SwapMulti};
 
 use crate::SwapInputs;
+
+// Import generated types after sol! macro
+use OdosRouterV2::{inputTokenInfo, outputTokenInfo, swapTokenInfo};
+use OdosV2Router::{swapCall, OdosV2RouterCalls, OdosV2RouterInstance, Swap, SwapMulti};
 
 /// The V2 SOR Router contract.
 #[derive(Debug, Clone)]
