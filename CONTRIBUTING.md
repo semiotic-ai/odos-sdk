@@ -13,8 +13,8 @@ Thank you for your interest in contributing to odos-sdk! This document provides 
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/semiotic-ai/odos-rs.git
-cd odos-rs
+git clone https://github.com/semiotic-ai/odos-sdk.git
+cd odos-sdk
 ```
 
 ### Build the Project
@@ -75,6 +75,7 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/). 
 Format: `<type>(<scope>): <description>`
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -85,10 +86,12 @@ Format: `<type>(<scope>): <description>`
 - `perf`: Performance improvements
 
 **Breaking Changes:**
+
 - Use `!` after type/scope: `feat!: remove deprecated API`
 - Or use `BREAKING CHANGE:` in the commit body
 
 **Examples:**
+
 ```
 feat(client): add custom timeout configuration
 fix(error): correct error code for rate limits
@@ -144,7 +147,7 @@ refactor!: remove deprecated EndpointBase type
 ## Project Structure
 
 ```
-odos-rs/
+odos-sdk/
 ├── src/
 │   ├── lib.rs          # Public API re-exports
 │   ├── api.rs          # API types and requests

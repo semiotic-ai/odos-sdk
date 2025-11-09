@@ -2,19 +2,19 @@
 
 ## Supported Versions
 
-We actively support the following versions of odos-sdk:
+We actively maintain odos-sdk with a focus on the latest releases:
 
-| Version | Supported          | Notes                                    |
-| ------- | ------------------ | ---------------------------------------- |
-| 0.23.x  | :white_check_mark: | Current version - actively maintained    |
-| 0.22.x  | :white_check_mark: | Previous version - security fixes only   |
-| < 0.22  | :x:                | No longer supported - please upgrade     |
+- **Latest release**: Full support with active development
+- **Recent releases**: Security fixes and critical bug fixes
+- **Older releases**: Upgrade recommended
 
-**Post-1.0 Release:**
-Once version 1.0.0 is released, we will maintain:
-- Current MAJOR version: Full support
-- Previous MAJOR version: Security fixes for 6 months after new major release
-- Older versions: No longer supported
+**Support Policy:**
+
+- Pre-stable releases: Latest and previous minor versions supported
+- Stable releases: Current and previous major versions supported
+- Security fixes prioritized based on severity and affected versions
+
+To check the current version and release notes, see [Releases](https://github.com/semiotic-ai/odos-sdk/releases) or [crates.io](https://crates.io/crates/odos-sdk).
 
 ## Reporting a Vulnerability
 
@@ -24,11 +24,14 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 
 **DO NOT** open a public GitHub issue for security vulnerabilities.
 
-Instead, please email security reports to:
-- **Email**: [Your security contact email - to be configured]
-- **Subject**: `[SECURITY] odos-sdk vulnerability report`
+Instead, please report security vulnerabilities through:
+
+- **GitHub Security Advisories**: [Report a vulnerability](https://github.com/semiotic-ai/odos-sdk/security/advisories/new)
+
+This is the preferred and most secure method for reporting vulnerabilities.
 
 Include in your report:
+
 1. **Description**: Clear description of the vulnerability
 2. **Impact**: What could an attacker achieve?
 3. **Reproduction**: Step-by-step instructions to reproduce
@@ -50,6 +53,7 @@ Include in your report:
 ### Security Advisories
 
 Security advisories will be published through:
+
 - GitHub Security Advisories
 - RUSTSEC advisory database
 - Release notes and CHANGELOG.md
@@ -103,6 +107,7 @@ let api_key = std::env::var("ODOS_API_KEY")
 ```
 
 **Important**: Add `.env` to your `.gitignore`:
+
 ```gitignore
 .env
 .env.local
@@ -196,6 +201,7 @@ let config = ClientConfig {
 ### TLS/HTTPS
 
 The SDK always uses HTTPS for API communication. The underlying `reqwest` client:
+
 - Validates TLS certificates by default
 - Uses system certificate store
 - Enforces secure cipher suites
@@ -239,6 +245,7 @@ This SDK does not perform cryptographic operations directly. It relies on:
 - **reqwest + rustls**: For TLS/HTTPS connections
 
 Users performing transaction signing should:
+
 1. Use hardware wallets when possible
 2. Never expose private keys in logs or error messages
 3. Use `alloy-signer` best practices for key management
@@ -248,6 +255,7 @@ Users performing transaction signing should:
 ### API Endpoints
 
 The SDK connects to:
+
 - `https://api.odos.xyz` (Public API)
 - `https://enterprise-api.odos.xyz` (Enterprise API)
 
@@ -256,6 +264,7 @@ The SDK connects to:
 ### Connection Pool Security
 
 The SDK uses connection pooling for performance. Default settings:
+
 - Maximum 20 connections
 - 90-second idle timeout
 - Automatic cleanup of stale connections
@@ -263,6 +272,7 @@ The SDK uses connection pooling for performance. Default settings:
 ### Proxy Support
 
 If using HTTP proxies, ensure:
+
 - Proxy connection uses TLS
 - Proxy is trusted and properly configured
 - Sensitive data is not logged by proxy
@@ -274,7 +284,7 @@ If you suspect your application using odos-sdk has been compromised:
 1. **Isolate**: Immediately isolate affected systems
 2. **Rotate Keys**: Rotate any API keys that may have been exposed
 3. **Investigate**: Determine scope of compromise
-4. **Notify**: Contact us at [security email] if the SDK itself is implicated
+4. **Notify**: [Report via GitHub Security Advisories](https://github.com/semiotic-ai/odos-sdk/security/advisories/new) if the SDK itself is implicated
 5. **Update**: Update to latest patched version if vulnerability was in SDK
 
 ## Security Checklist for Production
@@ -303,11 +313,7 @@ Before deploying applications using odos-sdk to production:
 ## Contact
 
 For security-related questions or concerns:
-- **Security Reports**: [Your security email]
-- **General Questions**: Open a GitHub Discussion
-- **Project Issues**: https://github.com/semiotic-ai/odos-rs/issues
 
----
-
-**Last Updated**: 2025-11-08
-**Version**: 0.23.0
+- **Security Reports**: [GitHub Security Advisories](https://github.com/semiotic-ai/odos-sdk/security/advisories/new)
+- **General Questions**: [GitHub Discussions](https://github.com/semiotic-ai/odos-sdk/discussions)
+- **Project Issues**: <https://github.com/semiotic-ai/odos-sdk/issues>
