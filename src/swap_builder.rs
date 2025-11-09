@@ -2,8 +2,8 @@ use alloy_primitives::{Address, U256};
 use alloy_rpc_types::TransactionRequest;
 
 use crate::{
-    Chain, OdosChain, OdosSor, QuoteRequest, ReferralCode, Result, SingleQuoteResponse, Slippage,
-    SwapContext,
+    AssemblyRequest, Chain, OdosChain, OdosClient, QuoteRequest, ReferralCode, Result,
+    SingleQuoteResponse, Slippage,
 };
 
 /// High-level swap builder for common use cases
@@ -16,11 +16,11 @@ use crate::{
 /// ## Simple swap
 ///
 /// ```rust,no_run
-/// use odos_sdk::{OdosSor, Slippage, Chain};
+/// use odos_sdk::{OdosClient, Slippage, Chain};
 /// use alloy_primitives::{address, U256};
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let client = OdosSor::new()?;
+/// let client = OdosClient::new()?;
 ///
 /// let tx = client
 ///     .swap()
@@ -38,11 +38,11 @@ use crate::{
 /// ## With custom recipient
 ///
 /// ```rust,no_run
-/// use odos_sdk::{OdosSor, Slippage, Chain};
+/// use odos_sdk::{OdosClient, Slippage, Chain};
 /// use alloy_primitives::{address, U256};
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let client = OdosSor::new()?;
+/// let client = OdosClient::new()?;
 ///
 /// let tx = client
 ///     .swap()
@@ -59,7 +59,7 @@ use crate::{
 /// ```
 #[derive(Debug)]
 pub struct SwapBuilder<'a> {
-    client: &'a OdosSor,
+    client: &'a OdosClient,
     chain: Option<Chain>,
     input_token: Option<Address>,
     input_amount: Option<U256>,
@@ -75,7 +75,7 @@ pub struct SwapBuilder<'a> {
 
 impl<'a> SwapBuilder<'a> {
     /// Create a new swap builder
-    pub(crate) fn new(client: &'a OdosSor) -> Self {
+    pub(crate) fn new(client: &'a OdosClient) -> Self {
         Self {
             client,
             chain: None,
@@ -97,10 +97,10 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::{OdosSor, Chain};
+    /// use odos_sdk::{OdosClient, Chain};
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap().chain(Chain::ethereum());
     /// # Ok(())
     /// # }
@@ -120,11 +120,11 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     /// use alloy_primitives::{address, U256};
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap()
     ///     .input(address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"), U256::from(1_000_000));
     /// # Ok(())
@@ -141,11 +141,11 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     /// use alloy_primitives::{address, U256};
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap()
     ///     .from_token(address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"), U256::from(1_000_000));
     /// # Ok(())
@@ -164,11 +164,11 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     /// use alloy_primitives::address;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap()
     ///     .output(address!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"));
     /// # Ok(())
@@ -184,11 +184,11 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     /// use alloy_primitives::address;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap()
     ///     .to_token(address!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"));
     /// # Ok(())
@@ -207,10 +207,10 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::{OdosSor, Slippage};
+    /// use odos_sdk::{OdosClient, Slippage};
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap()
     ///     .slippage(Slippage::percent(0.5)?);  // 0.5% slippage
     /// # Ok(())
@@ -230,11 +230,11 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     /// use alloy_primitives::address;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap()
     ///     .signer(address!("742d35Cc6634C0532925a3b8D35f3e7a5edD29c0"));
     /// # Ok(())
@@ -256,11 +256,11 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     /// use alloy_primitives::address;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap()
     ///     .signer(address!("742d35Cc6634C0532925a3b8D35f3e7a5edD29c0"))
     ///     .recipient(address!("0000000000000000000000000000000000000001"));
@@ -281,10 +281,10 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::{OdosSor, ReferralCode};
+    /// use odos_sdk::{OdosClient, ReferralCode};
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap()
     ///     .referral(ReferralCode::new(42));
     /// # Ok(())
@@ -300,10 +300,10 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap().compact(true);
     /// # Ok(())
     /// # }
@@ -318,10 +318,10 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap().simple(true);
     /// # Ok(())
     /// # }
@@ -336,10 +336,10 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let builder = client.swap().disable_rfqs(true);
     /// # Ok(())
     /// # }
@@ -367,11 +367,11 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::{OdosSor, Chain, Slippage};
+    /// use odos_sdk::{OdosClient, Chain, Slippage};
     /// use alloy_primitives::{address, U256};
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     ///
     /// let quote = client
     ///     .swap()
@@ -425,7 +425,7 @@ impl<'a> SwapBuilder<'a> {
             .disable_rfqs(self.disable_rfqs)
             .build();
 
-        self.client.get_swap_quote(&quote_request).await
+        self.client.quote(&quote_request).await
     }
 
     /// Build the complete transaction for this swap
@@ -456,11 +456,11 @@ impl<'a> SwapBuilder<'a> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::{OdosSor, Chain, Slippage};
+    /// use odos_sdk::{OdosClient, Chain, Slippage};
     /// use alloy_primitives::{address, U256};
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     ///
     /// let tx = client
     ///     .swap()
@@ -492,7 +492,7 @@ impl<'a> SwapBuilder<'a> {
         let router_address = chain.v3_router_address()?;
 
         // Build swap context
-        let swap_context = SwapContext::builder()
+        let swap_context = AssemblyRequest::builder()
             .chain(chain.inner())
             .router_address(router_address)
             .signer_address(signer)
@@ -503,7 +503,7 @@ impl<'a> SwapBuilder<'a> {
             .build();
 
         // Build transaction
-        self.client.build_base_transaction(&swap_context).await
+        self.client.assemble(&swap_context).await
     }
 }
 
@@ -514,7 +514,7 @@ mod tests {
 
     #[test]
     fn test_builder_construction() {
-        let client = OdosSor::new().unwrap();
+        let client = OdosClient::new().unwrap();
         let builder = client.swap();
 
         assert!(builder.chain.is_none());
@@ -525,7 +525,7 @@ mod tests {
 
     #[test]
     fn test_builder_chain_methods() {
-        let client = OdosSor::new().unwrap();
+        let client = OdosClient::new().unwrap();
 
         let builder = client
             .swap()
@@ -557,7 +557,7 @@ mod tests {
 
     #[test]
     fn test_builder_aliases() {
-        let client = OdosSor::new().unwrap();
+        let client = OdosClient::new().unwrap();
 
         // Test input() vs from_token()
         let builder1 = client.swap().input(
@@ -585,7 +585,7 @@ mod tests {
 
     #[test]
     fn test_builder_recipient_defaults_to_signer() {
-        let client = OdosSor::new().unwrap();
+        let client = OdosClient::new().unwrap();
         let signer_addr = address!("742d35Cc6634C0532925a3b8D35f3e7a5edD29c0");
 
         let builder = client.swap().signer(signer_addr);
