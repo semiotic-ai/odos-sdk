@@ -418,7 +418,7 @@ impl<'a> SwapBuilder<'a> {
             .input_tokens(vec![(input_token, input_amount).into()])
             .output_tokens(vec![(output_token, 1).into()])
             .slippage_limit_percent(slippage.as_percent())
-            .user_addr(signer.to_string())
+            .user_addr(signer)
             .compact(self.compact)
             .simple(self.simple)
             .referral_code(self.referral.code())

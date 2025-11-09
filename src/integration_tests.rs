@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use alloy_primitives::address;
     use std::time::Duration;
 
     /// Integration tests for the enhanced error handling and HTTP client
@@ -85,7 +86,7 @@ mod tests {
             .input_tokens(vec![input_token])
             .output_tokens(vec![output_token])
             .slippage_limit_percent(1.0)
-            .user_addr("0x742d35Cc6634C0532925a3b8D35f3e7a5edD29c0".to_string())
+            .user_addr(address!("742d35Cc6634C0532925a3b8D35f3e7a5edD29c0"))
             .compact(false)
             .simple(false)
             .referral_code(0)

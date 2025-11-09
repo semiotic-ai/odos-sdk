@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AssembleRequest {
-    pub user_addr: String,
+    pub user_addr: Address,
     pub path_id: String,
     pub simulate: bool,
     pub receiver: Option<Address>,

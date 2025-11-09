@@ -343,8 +343,7 @@ impl Default for Endpoint {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InputToken {
-    // Haven't looked much into it, but there's trouble if you try to make this a `Address`
-    token_address: String,
+    token_address: Address,
     // Odos API error message: "Input Amount should be positive integer in string form with < 64 digits[0x6]"
     amount: String,
 }
@@ -352,7 +351,7 @@ pub struct InputToken {
 impl InputToken {
     pub fn new(token_address: Address, amount: U256) -> Self {
         Self {
-            token_address: token_address.to_string(),
+            token_address,
             amount: amount.to_string(),
         }
     }
@@ -378,15 +377,14 @@ impl Display for InputToken {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OutputToken {
-    // Haven't looked much into it, but there's trouble if you try to make this a `Address`
-    token_address: String,
+    token_address: Address,
     proportion: u32,
 }
 
 impl OutputToken {
     pub fn new(token_address: Address, proportion: u32) -> Self {
         Self {
-            token_address: token_address.to_string(),
+            token_address,
             proportion,
         }
     }
@@ -417,6 +415,7 @@ impl Display for OutputToken {
 ///
 /// ```rust
 /// use odos_sdk::{QuoteRequest, Slippage, Chain, ReferralCode};
+/// use alloy_primitives::Address;
 ///
 /// let request = QuoteRequest::builder()
 ///     .chain_id(Chain::ethereum().id())
@@ -425,7 +424,7 @@ impl Display for OutputToken {
 ///     // ... other fields
 ///     # .input_tokens(vec![])
 ///     # .output_tokens(vec![])
-///     # .user_addr("0x0".to_string())
+///     # .user_addr(Address::ZERO)
 ///     # .compact(false)
 ///     # .simple(false)
 ///     # .disable_rfqs(false)
@@ -438,8 +437,7 @@ pub struct QuoteRequest {
     input_tokens: Vec<InputToken>,
     output_tokens: Vec<OutputToken>,
     slippage_limit_percent: f64,
-    // Haven't looked much into it, but there's trouble if you try to make this a `Address`
-    user_addr: String,
+    user_addr: Address,
     compact: bool,
     simple: bool,
     referral_code: u32,

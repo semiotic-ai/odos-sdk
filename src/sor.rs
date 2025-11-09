@@ -248,7 +248,7 @@ impl OdosClient {
     ///         1 // 100% to WETH
     ///     )])
     ///     .slippage_limit_percent(0.5)
-    ///     .user_addr(address!("0000000000000000000000000000000000000000").to_string())
+    ///     .user_addr(address!("0000000000000000000000000000000000000000"))
     ///     .compact(false)
     ///     .simple(false)
     ///     .referral_code(0)
@@ -397,7 +397,7 @@ impl OdosClient {
         path_id: &str,
     ) -> Result<TransactionData> {
         let assemble_request = AssembleRequest {
-            user_addr: signer_address.to_string(),
+            user_addr: signer_address,
             path_id: path_id.to_string(),
             simulate: false,
             receiver: Some(output_recipient),

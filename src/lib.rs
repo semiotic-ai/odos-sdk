@@ -51,6 +51,7 @@
 //!
 //! ```rust,no_run
 //! use odos_sdk::prelude::*;
+//! use alloy_primitives::address;
 //! use std::str::FromStr;
 //!
 //! # async fn example() -> Result<()> {
@@ -64,7 +65,7 @@
 //!     .input_tokens(vec![(usdc, U256::from(1_000_000)).into()])
 //!     .output_tokens(vec![(weth, 1).into()])
 //!     .slippage_limit_percent(0.5)
-//!     .user_addr("0x742d35Cc6634C0532925a3b8D35f3e7a5edD29c0".to_string())
+//!     .user_addr(address!("742d35Cc6634C0532925a3b8D35f3e7a5edD29c0"))
 //!     .compact(false)
 //!     .simple(false)
 //!     .referral_code(0)
@@ -128,10 +129,11 @@
 //!
 //! ```rust,no_run
 //! use odos_sdk::*;
+//! use alloy_primitives::Address;
 //!
 //! # async fn example() {
 //! # let client = OdosClient::new().unwrap();
-//! # let quote_request = QuoteRequest::builder().chain_id(1).input_tokens(vec![]).output_tokens(vec![]).slippage_limit_percent(1.0).user_addr("test".to_string()).compact(false).simple(false).referral_code(0).disable_rfqs(false).build();
+//! # let quote_request = QuoteRequest::builder().chain_id(1).input_tokens(vec![]).output_tokens(vec![]).slippage_limit_percent(1.0).user_addr(Address::ZERO).compact(false).simple(false).referral_code(0).disable_rfqs(false).build();
 //! match client.quote(&quote_request).await {
 //!     Ok(quote) => {
 //!         // Handle successful quote
@@ -233,7 +235,7 @@
 //! #     .input_tokens(vec![])
 //! #     .output_tokens(vec![])
 //! #     .slippage_limit_percent(1.0)
-//! #     .user_addr("test".to_string())
+//! #     .user_addr(Address::ZERO)
 //! #     .compact(false)
 //! #     .simple(false)
 //! #     .referral_code(0)
