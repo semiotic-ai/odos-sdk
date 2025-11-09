@@ -271,6 +271,7 @@ mod limit_order_v2;
 mod router_type;
 mod sor;
 mod swap;
+mod swap_builder;
 mod transfer;
 mod types;
 mod v2_router;
@@ -325,6 +326,9 @@ pub use sor::OdosSor;
 
 // Swap execution context
 pub use swap::SwapContext;
+
+// High-level swap builder
+pub use swap_builder::SwapBuilder;
 
 // Transfer types
 pub use transfer::TransferRouterFunds;

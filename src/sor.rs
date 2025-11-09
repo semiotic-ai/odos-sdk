@@ -7,7 +7,8 @@ use tracing::instrument;
 
 use crate::{
     api::OdosApiErrorResponse, error_code::OdosErrorCode, parse_value, AssembleRequest,
-    AssemblyResponse, ClientConfig, OdosError, OdosHttpClient, Result, RetryConfig, SwapContext,
+    AssemblyResponse, ClientConfig, OdosError, OdosHttpClient, Result, RetryConfig, SwapBuilder,
+    SwapContext,
 };
 
 use super::TransactionData;
@@ -166,6 +167,36 @@ impl OdosSor {
     /// Get the client configuration
     pub fn config(&self) -> &ClientConfig {
         self.client.config()
+    }
+
+    /// Create a high-level swap builder
+    ///
+    /// This is the recommended way to build swaps for most use cases.
+    /// It provides a simple, ergonomic API that handles the quote → assemble → build flow.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use odos_sdk::{OdosSor, Chain, Slippage};
+    /// use alloy_primitives::{address, U256};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OdosSor::new()?;
+    ///
+    /// let tx = client
+    ///     .swap()
+    ///     .chain(Chain::ethereum())
+    ///     .from_token(address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"), U256::from(1_000_000))
+    ///     .to_token(address!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"))
+    ///     .slippage(Slippage::percent(0.5)?)
+    ///     .signer(address!("742d35Cc6634C0532925a3b8D35f3e7a5edD29c0"))
+    ///     .build_transaction()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn swap(&self) -> SwapBuilder<'_> {
+        SwapBuilder::new(self)
     }
 
     /// Get a swap quote from the Odos API

@@ -13,7 +13,7 @@ use crate::{OdosChain, OdosChainError, OdosChainResult};
 /// # Examples
 ///
 /// ```rust
-/// use odos_sdk::Chain;
+/// use odos_sdk::{Chain, OdosChain};
 ///
 /// // Convenient constructors
 /// let chain = Chain::ethereum();
