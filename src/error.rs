@@ -409,6 +409,114 @@ impl OdosError {
             OdosError::Internal(_) => "internal",
         }
     }
+
+    /// Get suggested retry delay for this error
+    ///
+    /// Returns a suggested delay before retrying the operation based on the error type:
+    /// - **Rate Limit**: Returns the `retry_after` value from the API if available,
+    ///   otherwise suggests 60 seconds. Note: Rate limits should be handled at the
+    ///   application level with proper coordination.
+    /// - **Timeout**: Suggests 1 second delay before retry
+    /// - **HTTP Server Errors (5xx)**: Suggests 2 seconds with exponential backoff
+    /// - **HTTP Connection Errors**: Suggests 500ms before retry
+    /// - **Non-retryable Errors**: Returns `None`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::{OdosClient, QuoteRequest};
+    /// use std::time::Duration;
+    ///
+    /// # async fn example(client: &OdosClient, request: &QuoteRequest) -> Result<(), Box<dyn std::error::Error>> {
+    /// match client.quote(request).await {
+    ///     Ok(quote) => { /* handle quote */ }
+    ///     Err(e) => {
+    ///         if let Some(delay) = e.suggested_retry_delay() {
+    ///             println!("Retrying after {} seconds", delay.as_secs());
+    ///             tokio::time::sleep(delay).await;
+    ///             // Retry the operation...
+    ///         } else {
+    ///             println!("Error is not retryable: {}", e);
+    ///         }
+    ///     }
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn suggested_retry_delay(&self) -> Option<Duration> {
+        match self {
+            // Rate limit - use retry_after if available, otherwise 60s
+            // Note: Rate limits should be handled globally, not per-request
+            OdosError::RateLimit { retry_after, .. } => {
+                Some(retry_after.unwrap_or(Duration::from_secs(60)))
+            }
+            // Timeout - short delay
+            OdosError::Timeout(_) => Some(Duration::from_secs(1)),
+            // API server errors - moderate delay
+            OdosError::Api { status, .. } if status.is_server_error() => {
+                Some(Duration::from_secs(2))
+            }
+            // HTTP errors - depends on error type
+            OdosError::Http(err) => {
+                if err.is_timeout() {
+                    Some(Duration::from_secs(1))
+                } else if err.is_connect() || err.is_request() {
+                    Some(Duration::from_millis(500))
+                } else {
+                    None
+                }
+            }
+            // All other errors are not retryable
+            _ => None,
+        }
+    }
+
+    /// Check if this is a client error (4xx status code)
+    ///
+    /// Returns `true` if this is an API error with a 4xx status code,
+    /// indicating that the request was invalid and should not be retried
+    /// without modification.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::OdosError;
+    /// use reqwest::StatusCode;
+    ///
+    /// let error = OdosError::api_error(
+    ///     StatusCode::BAD_REQUEST,
+    ///     "Invalid chain ID".to_string()
+    /// );
+    ///
+    /// assert!(error.is_client_error());
+    /// assert!(!error.is_retryable());
+    /// ```
+    pub fn is_client_error(&self) -> bool {
+        matches!(self, OdosError::Api { status, .. } if status.is_client_error())
+    }
+
+    /// Check if this is a server error (5xx status code)
+    ///
+    /// Returns `true` if this is an API error with a 5xx status code,
+    /// indicating a server-side problem that may be resolved by retrying.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::OdosError;
+    /// use reqwest::StatusCode;
+    ///
+    /// let error = OdosError::api_error(
+    ///     StatusCode::INTERNAL_SERVER_ERROR,
+    ///     "Server error".to_string()
+    /// );
+    ///
+    /// assert!(error.is_server_error());
+    /// assert!(error.is_retryable());
+    /// ```
+    pub fn is_server_error(&self) -> bool {
+        matches!(self, OdosError::Api { status, .. } if status.is_server_error())
+    }
 }
 
 // Convert chain errors to appropriate error types
@@ -471,5 +579,71 @@ mod tests {
 
         let invalid_err = OdosError::invalid_input("Invalid");
         assert_eq!(invalid_err.category(), "invalid_input");
+    }
+
+    #[test]
+    fn test_suggested_retry_delay() {
+        // Rate limit with retry-after
+        let rate_limit_with_retry = OdosError::rate_limit_error_with_retry_after(
+            "Rate limited",
+            Some(Duration::from_secs(30)),
+        );
+        assert_eq!(
+            rate_limit_with_retry.suggested_retry_delay(),
+            Some(Duration::from_secs(30))
+        );
+
+        // Rate limit without retry-after (defaults to 60s)
+        let rate_limit_no_retry = OdosError::rate_limit_error("Rate limited");
+        assert_eq!(
+            rate_limit_no_retry.suggested_retry_delay(),
+            Some(Duration::from_secs(60))
+        );
+
+        // Timeout error
+        let timeout_err = OdosError::timeout_error("Timeout");
+        assert_eq!(
+            timeout_err.suggested_retry_delay(),
+            Some(Duration::from_secs(1))
+        );
+
+        // Server error
+        let server_err = OdosError::api_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Server error".to_string(),
+        );
+        assert_eq!(
+            server_err.suggested_retry_delay(),
+            Some(Duration::from_secs(2))
+        );
+
+        // Client error (not retryable)
+        let client_err = OdosError::api_error(StatusCode::BAD_REQUEST, "Bad request".to_string());
+        assert_eq!(client_err.suggested_retry_delay(), None);
+
+        // Invalid input (not retryable)
+        let invalid_err = OdosError::invalid_input("Invalid");
+        assert_eq!(invalid_err.suggested_retry_delay(), None);
+    }
+
+    #[test]
+    fn test_client_and_server_errors() {
+        // Client error
+        let client_err = OdosError::api_error(StatusCode::BAD_REQUEST, "Bad request".to_string());
+        assert!(client_err.is_client_error());
+        assert!(!client_err.is_server_error());
+
+        // Server error
+        let server_err = OdosError::api_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Server error".to_string(),
+        );
+        assert!(!server_err.is_client_error());
+        assert!(server_err.is_server_error());
+
+        // Non-API error
+        let other_err = OdosError::invalid_input("Invalid");
+        assert!(!other_err.is_client_error());
+        assert!(!other_err.is_server_error());
     }
 }

@@ -13,27 +13,57 @@
 //!
 //! ## Quick Start
 //!
+//! ### High-Level API with SwapBuilder
+//!
+//! The easiest way to get started is with the [`SwapBuilder`] API:
+//!
 //! ```rust,no_run
-//! use odos_sdk::*;
-//! use alloy_primitives::{Address, U256};
+//! use odos_sdk::prelude::*;
 //! use std::str::FromStr;
 //!
 //! # async fn example() -> Result<()> {
 //! // Create a client
 //! let client = OdosClient::new()?;
 //!
-//! // Build a quote request
+//! // Define tokens and amount
+//! let usdc = Address::from_str("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")?; // USDC on Ethereum
+//! let weth = Address::from_str("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")?; // WETH on Ethereum
+//! let my_address = Address::from_str("0x742d35Cc6634C0532925a3b8D35f3e7a5edD29c0")?;
+//!
+//! // Build and execute swap in one go
+//! let transaction = client.swap()
+//!     .chain(Chain::ethereum())
+//!     .from_token(usdc, U256::from(1_000_000)) // 1 USDC (6 decimals)
+//!     .to_token(weth)
+//!     .slippage(Slippage::percent(0.5).unwrap()) // 0.5% slippage
+//!     .signer(my_address)
+//!     .build_transaction()
+//!     .await?;
+//!
+//! println!("Transaction ready: {:?}", transaction);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ### Low-Level API
+//!
+//! For more control, use the low-level API with [`quote()`](OdosClient::quote) and [`assemble()`](OdosClient::assemble):
+//!
+//! ```rust,no_run
+//! use odos_sdk::prelude::*;
+//! use std::str::FromStr;
+//!
+//! # async fn example() -> Result<()> {
+//! let client = OdosClient::new()?;
+//! let usdc = Address::from_str("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")?;
+//! let weth = Address::from_str("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")?;
+//!
+//! // Step 1: Get a quote
 //! let quote_request = QuoteRequest::builder()
-//!     .chain_id(1) // Ethereum mainnet
-//!     .input_tokens(vec![(
-//!         Address::from_str("0xA0b86a33E6441d35a6b083d5b02a8e3F6CE21a2E")?, // WETH
-//!         U256::from(1000000000000000000u64) // 1 ETH
-//!     ).into()])
-//!     .output_tokens(vec![(
-//!         Address::from_str("0xA0b86a33E6441d35a6b083d5b02a8e3F6CE21a2E")?, // USDC
-//!         1
-//!     ).into()])
-//!     .slippage_limit_percent(1.0)
+//!     .chain_id(1)
+//!     .input_tokens(vec![(usdc, U256::from(1_000_000)).into()])
+//!     .output_tokens(vec![(weth, 1).into()])
+//!     .slippage_limit_percent(0.5)
 //!     .user_addr("0x742d35Cc6634C0532925a3b8D35f3e7a5edD29c0".to_string())
 //!     .compact(false)
 //!     .simple(false)
@@ -41,21 +71,21 @@
 //!     .disable_rfqs(false)
 //!     .build();
 //!
-//! // Get a quote
-//! let quote = client.get_swap_quote(&quote_request).await?;
+//! let quote = client.quote(&quote_request).await?;
+//! println!("Expected output: {} WETH", quote.out_amount().unwrap_or(&"0".to_string()));
 //!
-//! // Build transaction data
-//! let swap_context = SwapContext::builder()
+//! // Step 2: Assemble transaction
+//! let assembly_request = AssemblyRequest::builder()
 //!     .chain(alloy_chains::NamedChain::Mainnet)
 //!     .router_address(alloy_chains::NamedChain::Mainnet.v2_router_address()?)
 //!     .signer_address(Address::from_str("0x742d35Cc6634C0532925a3b8D35f3e7a5edD29c0")?)
 //!     .output_recipient(Address::from_str("0x742d35Cc6634C0532925a3b8D35f3e7a5edD29c0")?)
-//!     .token_address(Address::from_str("0xA0b86a33E6441d35a6b083d5b02a8e3F6CE21a2E")?)
-//!     .token_amount(U256::from(1000000000000000000u64))
+//!     .token_address(usdc)
+//!     .token_amount(U256::from(1_000_000))
 //!     .path_id(quote.path_id().to_string())
 //!     .build();
 //!
-//! let transaction = client.build_base_transaction(&swap_context).await?;
+//! let transaction = client.assemble(&assembly_request).await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -102,7 +132,7 @@
 //! # async fn example() {
 //! # let client = OdosClient::new().unwrap();
 //! # let quote_request = QuoteRequest::builder().chain_id(1).input_tokens(vec![]).output_tokens(vec![]).slippage_limit_percent(1.0).user_addr("test".to_string()).compact(false).simple(false).referral_code(0).disable_rfqs(false).build();
-//! match client.get_swap_quote(&quote_request).await {
+//! match client.quote(&quote_request).await {
 //!     Ok(quote) => {
 //!         // Handle successful quote
 //!         println!("Got quote with path ID: {}", quote.path_id());
@@ -209,7 +239,7 @@
 //! #     .referral_code(0)
 //! #     .disable_rfqs(false)
 //! #     .build();
-//! match client.get_swap_quote(&quote_request).await {
+//! match client.quote(&quote_request).await {
 //!     Ok(quote) => {
 //!         println!("Got quote: {}", quote.path_id());
 //!     }
@@ -275,6 +305,10 @@ mod swap;
 mod swap_builder;
 mod transfer;
 mod types;
+
+// Prelude for convenient imports
+pub mod prelude;
+
 #[cfg(feature = "v2")]
 mod v2_router;
 #[cfg(feature = "v3")]
