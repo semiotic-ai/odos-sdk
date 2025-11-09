@@ -403,6 +403,28 @@ impl Display for OutputToken {
 }
 
 /// Request to the Odos quote API: <https://docs.odos.xyz/build/api-docs>
+///
+/// # Using Type-Safe Newtypes
+///
+/// You can use the type-safe [`Slippage`](crate::Slippage), [`Chain`](crate::Chain),
+/// and [`ReferralCode`](crate::ReferralCode) types with their conversion methods:
+///
+/// ```rust
+/// use odos_sdk::{QuoteRequest, Slippage, Chain, ReferralCode};
+///
+/// let request = QuoteRequest::builder()
+///     .chain_id(Chain::ethereum().id())
+///     .slippage_limit_percent(Slippage::percent(0.5).unwrap().as_percent())
+///     .referral_code(ReferralCode::NONE.code())
+///     // ... other fields
+///     # .input_tokens(vec![])
+///     # .output_tokens(vec![])
+///     # .user_addr("0x0".to_string())
+///     # .compact(false)
+///     # .simple(false)
+///     # .disable_rfqs(false)
+///     .build();
+/// ```
 #[derive(Builder, Clone, Debug, Default, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QuoteRequest {

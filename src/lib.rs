@@ -272,6 +272,7 @@ mod router_type;
 mod sor;
 mod swap;
 mod transfer;
+mod types;
 mod v2_router;
 mod v3_router;
 
@@ -327,6 +328,9 @@ pub use swap::SwapContext;
 
 // Transfer types
 pub use transfer::TransferRouterFunds;
+
+// Type-safe domain types
+pub use types::{Chain, ReferralCode, Slippage};
 
 // Contract bindings
 pub use v2_router::{OdosRouterV2, OdosV2Router, V2Router};
