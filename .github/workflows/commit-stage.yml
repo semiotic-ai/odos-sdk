@@ -42,8 +42,13 @@ jobs:
             # For PRs, check commits between base ref and HEAD
             echo "COMMIT_RANGE=origin/${{ github.base_ref }}..HEAD" >> $GITHUB_ENV
           elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            # For non-force-pushed commits to main
-            echo "COMMIT_RANGE=${{ github.event.before }}..HEAD" >> $GITHUB_ENV
+            # Check if the before commit exists (might not after force push/rebase)
+            if git rev-parse --verify "${{ github.event.before }}" >/dev/null 2>&1; then
+              echo "COMMIT_RANGE=${{ github.event.before }}..HEAD" >> $GITHUB_ENV
+            else
+              echo "Commit ${{ github.event.before }} not found (likely after rebase). Skipping validation."
+              echo "SKIP_VALIDATION=true" >> $GITHUB_ENV
+            fi
           else
             # Skip validation for force pushes or initial commits
             echo "No commit range found. Skipping validation."
@@ -51,6 +56,7 @@ jobs:
           fi
 
       - name: Check Conventional Commits
+        if: env.SKIP_VALIDATION != 'true'
         env:
           COMMIT_RANGE: ${{ env.COMMIT_RANGE }}
         run: cz check --rev-range $COMMIT_RANGE
