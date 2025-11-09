@@ -7,15 +7,15 @@ use tracing::instrument;
 
 use crate::{
     api::OdosApiErrorResponse, error_code::OdosErrorCode, parse_value, AssembleRequest,
-    AssemblyResponse, ClientConfig, OdosError, OdosHttpClient, Result, RetryConfig, SwapBuilder,
-    SwapContext,
+    AssemblyRequest, AssemblyResponse, ClientConfig, OdosError, OdosHttpClient, Result,
+    RetryConfig, SwapBuilder,
 };
 
 use super::TransactionData;
 
 use crate::{QuoteRequest, SingleQuoteResponse};
 
-/// The Odos Smart Order Routing (SOR) API client
+/// The Odos API client
 ///
 /// This is the primary interface for interacting with the Odos API. It provides
 /// methods for obtaining swap quotes and assembling transactions.
@@ -32,45 +32,45 @@ use crate::{QuoteRequest, SingleQuoteResponse};
 ///
 /// ## Basic usage with defaults
 /// ```rust
-/// use odos_sdk::OdosSor;
+/// use odos_sdk::OdosClient;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let client = OdosSor::new()?;
+/// let client = OdosClient::new()?;
 /// # Ok(())
 /// # }
 /// ```
 ///
 /// ## Custom configuration
 /// ```rust
-/// use odos_sdk::{OdosSor, ClientConfig, Endpoint};
+/// use odos_sdk::{OdosClient, ClientConfig, Endpoint};
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// let config = ClientConfig {
 ///     endpoint: Endpoint::public_v3(),
 ///     ..Default::default()
 /// };
-/// let client = OdosSor::with_config(config)?;
+/// let client = OdosClient::with_config(config)?;
 /// # Ok(())
 /// # }
 /// ```
 ///
 /// ## Using retry configuration
 /// ```rust
-/// use odos_sdk::{OdosSor, RetryConfig};
+/// use odos_sdk::{OdosClient, RetryConfig};
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// // Conservative retries - only network errors
-/// let client = OdosSor::with_retry_config(RetryConfig::conservative())?;
+/// let client = OdosClient::with_retry_config(RetryConfig::conservative())?;
 /// # Ok(())
 /// # }
 /// ```
 #[derive(Debug, Clone)]
-pub struct OdosSor {
+pub struct OdosClient {
     client: OdosHttpClient,
 }
 
-impl OdosSor {
-    /// Create a new Odos SOR client with default configuration
+impl OdosClient {
+    /// Create a new Odos client with default configuration
     ///
     /// Uses default settings:
     /// - Public API endpoint
@@ -86,10 +86,10 @@ impl OdosSor {
     /// # Examples
     ///
     /// ```rust
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     ///
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -115,14 +115,14 @@ impl OdosSor {
     /// # Examples
     ///
     /// ```rust
-    /// use odos_sdk::{OdosSor, ClientConfig, Endpoint};
+    /// use odos_sdk::{OdosClient, ClientConfig, Endpoint};
     ///
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let config = ClientConfig {
     ///     endpoint: Endpoint::enterprise_v3(),
     ///     ..Default::default()
     /// };
-    /// let client = OdosSor::with_config(config)?;
+    /// let client = OdosClient::with_config(config)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -140,13 +140,13 @@ impl OdosSor {
     /// # Examples
     ///
     /// ```rust
-    /// use odos_sdk::{OdosSor, RetryConfig};
+    /// use odos_sdk::{OdosClient, RetryConfig};
     ///
     /// // No retries - handle all errors at application level
-    /// let client = OdosSor::with_retry_config(RetryConfig::no_retries()).unwrap();
+    /// let client = OdosClient::with_retry_config(RetryConfig::no_retries()).unwrap();
     ///
     /// // Conservative retries - only network errors
-    /// let client = OdosSor::with_retry_config(RetryConfig::conservative()).unwrap();
+    /// let client = OdosClient::with_retry_config(RetryConfig::conservative()).unwrap();
     ///
     /// // Custom retry behavior
     /// let retry_config = RetryConfig {
@@ -154,7 +154,7 @@ impl OdosSor {
     ///     retry_server_errors: true,
     ///     ..Default::default()
     /// };
-    /// let client = OdosSor::with_retry_config(retry_config).unwrap();
+    /// let client = OdosClient::with_retry_config(retry_config).unwrap();
     /// ```
     pub fn with_retry_config(retry_config: RetryConfig) -> Result<Self> {
         let config = ClientConfig {
@@ -177,11 +177,11 @@ impl OdosSor {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::{OdosSor, Chain, Slippage};
+    /// use odos_sdk::{OdosClient, Chain, Slippage};
     /// use alloy_primitives::{address, U256};
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     ///
     /// let tx = client
     ///     .swap()
@@ -231,11 +231,11 @@ impl OdosSor {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::{OdosSor, QuoteRequest, InputToken, OutputToken};
+    /// use odos_sdk::{OdosClient, QuoteRequest, InputToken, OutputToken};
     /// use alloy_primitives::{address, U256};
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     ///
     /// let quote_request = QuoteRequest::builder()
     ///     .chain_id(1) // Ethereum mainnet
@@ -255,16 +255,13 @@ impl OdosSor {
     ///     .disable_rfqs(false)
     ///     .build();
     ///
-    /// let quote = client.get_swap_quote(&quote_request).await?;
+    /// let quote = client.quote(&quote_request).await?;
     /// println!("Path ID: {}", quote.path_id());
     /// # Ok(())
     /// # }
     /// ```
     #[instrument(skip(self), level = "debug")]
-    pub async fn get_swap_quote(
-        &self,
-        quote_request: &QuoteRequest,
-    ) -> Result<SingleQuoteResponse> {
+    pub async fn quote(&self, quote_request: &QuoteRequest) -> Result<SingleQuoteResponse> {
         let response = self
             .client
             .execute_with_retry(|| {
@@ -313,6 +310,15 @@ impl OdosSor {
                 status, message, code, trace_id,
             ))
         }
+    }
+
+    /// Deprecated: Use [`quote`](Self::quote) instead
+    #[deprecated(since = "0.25.0", note = "Use `quote` instead")]
+    pub async fn get_swap_quote(
+        &self,
+        quote_request: &QuoteRequest,
+    ) -> Result<SingleQuoteResponse> {
+        self.quote(quote_request).await
     }
 
     #[instrument(skip(self), level = "debug")]
@@ -368,11 +374,11 @@ impl OdosSor {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::OdosSor;
+    /// use odos_sdk::OdosClient;
     /// use alloy_primitives::address;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     /// let path_id = "path_id_from_quote_response";
     ///
     /// let tx_data = client.assemble_tx_data(
@@ -433,7 +439,7 @@ impl OdosSor {
         Ok(transaction)
     }
 
-    /// Build a base transaction request from a swap context
+    /// Assemble a transaction from an assembly request
     ///
     /// Assembles transaction data and constructs a [`TransactionRequest`] ready
     /// for gas parameter configuration and signing. This is a convenience method
@@ -442,7 +448,7 @@ impl OdosSor {
     ///
     /// # Arguments
     ///
-    /// * `swap` - The swap context containing addresses and path ID
+    /// * `request` - The assembly request containing addresses and path ID
     ///
     /// # Returns
     ///
@@ -466,14 +472,14 @@ impl OdosSor {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use odos_sdk::{OdosSor, SwapContext};
+    /// use odos_sdk::{OdosClient, AssemblyRequest};
     /// use alloy_primitives::{address, U256};
     /// use alloy_chains::NamedChain;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OdosSor::new()?;
+    /// let client = OdosClient::new()?;
     ///
-    /// let swap = SwapContext::builder()
+    /// let request = AssemblyRequest::builder()
     ///     .chain(NamedChain::Mainnet)
     ///     .signer_address(address!("0000000000000000000000000000000000000001"))
     ///     .output_recipient(address!("0000000000000000000000000000000000000001"))
@@ -483,7 +489,7 @@ impl OdosSor {
     ///     .path_id("path_id_from_quote".to_string())
     ///     .build();
     ///
-    /// let mut tx_request = client.build_base_transaction(&swap).await?;
+    /// let mut tx_request = client.assemble(&request).await?;
     ///
     /// // Configure gas parameters before signing
     /// // tx_request = tx_request.with_gas_limit(300000);
@@ -492,25 +498,34 @@ impl OdosSor {
     /// # }
     /// ```
     #[instrument(skip(self), level = "debug")]
-    pub async fn build_base_transaction(&self, swap: &SwapContext) -> Result<TransactionRequest> {
+    pub async fn assemble(&self, request: &AssemblyRequest) -> Result<TransactionRequest> {
         let TransactionData { data, value, .. } = self
             .assemble_tx_data(
-                swap.signer_address(),
-                swap.output_recipient(),
-                swap.path_id(),
+                request.signer_address(),
+                request.output_recipient(),
+                request.path_id(),
             )
             .await?;
 
         Ok(TransactionRequest::default()
             .with_input(hex::decode(&data)?)
             .with_value(parse_value(&value)?)
-            .with_to(swap.router_address())
-            .with_from(swap.signer_address()))
+            .with_to(request.router_address())
+            .with_from(request.signer_address()))
+    }
+
+    /// Deprecated: Use [`assemble`](Self::assemble) instead
+    #[deprecated(since = "0.25.0", note = "Use `assemble` instead")]
+    pub async fn build_base_transaction(
+        &self,
+        swap: &AssemblyRequest,
+    ) -> Result<TransactionRequest> {
+        self.assemble(swap).await
     }
 }
 
-impl Default for OdosSor {
-    /// Creates a default Odos SOR V2 client with standard configuration.
+impl Default for OdosClient {
+    /// Creates a default Odos client with standard configuration.
     ///
     /// # Panics
     ///
@@ -523,6 +538,13 @@ impl Default for OdosSor {
     /// In practice, this almost never fails and is safe for most use cases.
     /// See [`OdosHttpClient::default`] for more details.
     fn default() -> Self {
-        Self::new().expect("Failed to create default OdosSor client")
+        Self::new().expect("Failed to create default OdosClient")
     }
 }
+
+/// Deprecated alias for [`OdosClient`]
+///
+/// This type alias is provided for backward compatibility.
+/// Use [`OdosClient`] instead in new code.
+#[deprecated(since = "0.25.0", note = "Use `OdosClient` instead")]
+pub type OdosSor = OdosClient;

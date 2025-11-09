@@ -17,7 +17,7 @@ mod tests {
             ..Default::default()
         };
 
-        let sor_client = OdosSor::with_config(config).expect("Failed to create SOR client");
+        let sor_client = OdosClient::with_config(config).expect("Failed to create SOR client");
 
         // Verify the client was created successfully
         assert_eq!(sor_client.config().timeout, Duration::from_secs(10));
@@ -26,7 +26,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_odos_sor_default() {
-        let sor_client = OdosSor::new().expect("Failed to create default SOR client");
+        let sor_client = OdosClient::new().expect("Failed to create default SOR client");
 
         // Verify default configuration
         assert_eq!(sor_client.config().timeout, Duration::from_secs(30));

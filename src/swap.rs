@@ -5,9 +5,12 @@ use alloy_primitives::{Address, U256};
 use bon::Builder;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-/// A token swap.
+/// Request for assembling a transaction from a quote
+///
+/// Contains all the information needed to assemble a transaction from
+/// a quote path ID, including signer address, recipient, and routing details.
 #[derive(Builder, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct SwapContext {
+pub struct AssemblyRequest {
     /// The chain of the swap.
     chain: NamedChain,
     /// The address of the router.
@@ -24,7 +27,7 @@ pub struct SwapContext {
     path_id: String,
 }
 
-impl SwapContext {
+impl AssemblyRequest {
     pub fn chain(&self) -> NamedChain {
         self.chain
     }
@@ -54,7 +57,7 @@ impl SwapContext {
     }
 }
 
-impl Serialize for SwapContext {
+impl Serialize for AssemblyRequest {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -73,7 +76,7 @@ impl Serialize for SwapContext {
     }
 }
 
-impl<'de> Deserialize<'de> for SwapContext {
+impl<'de> Deserialize<'de> for AssemblyRequest {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -103,7 +106,7 @@ impl<'de> Deserialize<'de> for SwapContext {
     }
 }
 
-impl Display for SwapContext {
+impl Display for AssemblyRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -118,3 +121,10 @@ impl Display for SwapContext {
         )
     }
 }
+
+/// Deprecated alias for [`AssemblyRequest`]
+///
+/// This type alias is provided for backward compatibility.
+/// Use [`AssemblyRequest`] instead in new code.
+#[deprecated(since = "0.25.0", note = "Use `AssemblyRequest` instead")]
+pub type SwapContext = AssemblyRequest;
