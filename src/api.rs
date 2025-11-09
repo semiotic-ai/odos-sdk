@@ -436,6 +436,8 @@ pub struct SingleQuoteResponse {
     out_amounts: Vec<String>,
     out_tokens: Vec<Address>,
     out_values: Vec<f64>,
+    /// Partner fee percentage. Defaults to 0.0 if not present (V3 API compatibility).
+    #[serde(default)]
     partner_fee_percent: f64,
     path_id: String,
     path_viz: Option<String>,
