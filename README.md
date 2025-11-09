@@ -10,6 +10,41 @@ A [Rust](https://www.rust-lang.org/) SDK for [Odos](https://docs.odos.xyz/)
 
 ---
 
+## Features
+
+This SDK provides granular feature flags to minimize dependencies and compile times:
+
+- **`default`** - Most common use case with V2 and V3 router support (`v2` + `v3`)
+- **`minimal`** - Core API types and HTTP client only (no contract bindings)
+- **`v2`** - V2 router contract bindings (base feature for all contract types)
+- **`v3`** - V3 router contract bindings (includes `v2`)
+- **`limit-orders`** - Limit order contract bindings (includes `v2`)
+- **`contracts`** - All contract bindings (`v2` + `v3` + `limit-orders`)
+
+### Usage
+
+```toml
+# Default features (v2 + v3)
+[dependencies]
+odos-sdk = "0.25"
+
+# Minimal - API client only, no contract bindings
+[dependencies]
+odos-sdk = { version = "0.25", default-features = false, features = ["minimal"] }
+
+# Only V2 router support
+[dependencies]
+odos-sdk = { version = "0.25", default-features = false, features = ["v2"] }
+
+# All contract bindings
+[dependencies]
+odos-sdk = { version = "0.25", default-features = false, features = ["contracts"] }
+```
+
+**Note:** The `v2` feature is the base contract feature that provides the `SwapInputs` type used by all router implementations. Both `v3` and `limit-orders` features automatically enable `v2`.
+
+---
+
 ## One-to-one Swap Example
 
 > **Note**: This example demonstrates the workflow for executing a token swap using the Odos SDK.

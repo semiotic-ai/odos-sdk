@@ -12,6 +12,22 @@ license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/semiotic-ai/odos-sdk"
 
+[features]
+# Default features: most common use case with V2 and V3 router support
+default = ["v2", "v3"]
+
+# Minimal: Core API types and HTTP client only (no contract bindings)
+minimal = []
+
+# Contract binding features
+# Note: V2 is the base contract feature (provides SwapInputs type used by all routers)
+v2 = []  # V2 router contract bindings
+v3 = ["v2"]  # V3 router contract bindings (requires v2 for SwapInputs)
+limit-orders = ["v2"]  # Limit order contract bindings (requires v2 for SwapInputs)
+
+# Convenience feature to enable all contract bindings
+contracts = ["v2", "v3", "limit-orders"]
+
 [dependencies]
 alloy-chains = "0.2.17"
 alloy-contract = { version = "1.0.41", default-features = false }

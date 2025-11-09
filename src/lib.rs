@@ -267,6 +267,7 @@ mod error;
 pub mod error_code;
 #[cfg(test)]
 mod integration_tests;
+#[cfg(feature = "limit-orders")]
 mod limit_order_v2;
 mod router_type;
 mod sor;
@@ -274,14 +275,20 @@ mod swap;
 mod swap_builder;
 mod transfer;
 mod types;
+#[cfg(feature = "v2")]
 mod v2_router;
+#[cfg(feature = "v3")]
 mod v3_router;
 
 // API types
 pub use api::{
     ApiHost, ApiVersion, Endpoint, InputToken, OdosApiErrorResponse, OutputToken, QuoteRequest,
-    SingleQuoteResponse, SwapInputs,
+    SingleQuoteResponse,
 };
+
+// SwapInputs is only available with v2 feature (contains V2 router types)
+#[cfg(feature = "v2")]
+pub use api::SwapInputs;
 
 // API key management
 pub use api_key::ApiKey;
@@ -316,6 +323,7 @@ pub use contract::{
 pub use error::{OdosError, Result};
 
 // Limit order contract bindings
+#[cfg(feature = "limit-orders")]
 pub use limit_order_v2::LimitOrderV2;
 
 // Router type selection
@@ -338,6 +346,10 @@ pub use transfer::TransferRouterFunds;
 // Type-safe domain types
 pub use types::{Chain, ReferralCode, Slippage};
 
-// Contract bindings
+// V2 router contract bindings
+#[cfg(feature = "v2")]
 pub use v2_router::{OdosRouterV2, OdosV2Router, V2Router};
+
+// V3 router contract bindings
+#[cfg(feature = "v3")]
 pub use v3_router::{IOdosRouterV3, OdosV3Router, V3Router};

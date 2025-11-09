@@ -1,17 +1,18 @@
 use std::fmt::Display;
 
-use alloy_primitives::{Address, Bytes, U256};
+use alloy_primitives::{Address, U256};
 use bon::Builder;
 use serde::{Deserialize, Serialize};
-use tracing::debug;
 use url::Url;
 
-use crate::{
-    error_code::TraceId,
-    OdosError,
-    OdosRouterV2::{inputTokenInfo, outputTokenInfo, swapTokenInfo},
-    OdosV2Router::{swapCall, OdosV2RouterCalls},
-    Result,
+use crate::{error_code::TraceId, OdosError, Result};
+
+#[cfg(feature = "v2")]
+use {
+    crate::OdosRouterV2::{inputTokenInfo, outputTokenInfo, swapTokenInfo},
+    crate::OdosV2Router::{swapCall, OdosV2RouterCalls},
+    alloy_primitives::Bytes,
+    tracing::debug,
 };
 
 /// API host tier for the Odos API
@@ -588,6 +589,9 @@ pub struct OdosApiErrorResponse {
 }
 
 /// Swap inputs for the Odos assemble API
+///
+/// Available only when the `v2` feature is enabled.
+#[cfg(feature = "v2")]
 #[derive(Clone, Debug)]
 pub struct SwapInputs {
     executor: Address,
@@ -597,6 +601,7 @@ pub struct SwapInputs {
     value_out_min: U256,
 }
 
+#[cfg(feature = "v2")]
 impl TryFrom<OdosV2RouterCalls> for SwapInputs {
     type Error = OdosError;
 
@@ -655,6 +660,7 @@ impl TryFrom<OdosV2RouterCalls> for SwapInputs {
     }
 }
 
+#[cfg(feature = "v2")]
 impl SwapInputs {
     /// Get the executor of the swap
     pub fn executor(&self) -> Address {

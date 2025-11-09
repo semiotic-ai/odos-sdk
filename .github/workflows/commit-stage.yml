@@ -120,12 +120,21 @@ jobs:
         run: cargo audit
 
   test:
-    name: cargo test
+    name: cargo test (${{ matrix.features }})
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
       actions: read
+    strategy:
+      matrix:
+        features:
+          - "default"
+          - "minimal"
+          - "v2"
+          - "v3"
+          - "limit-orders"
+          - "contracts"
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
@@ -137,9 +146,13 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-test-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-test-
             ${{ runner.os }}-cargo-
-      - name: Run tests
-        run: cargo test --all-features
+      - name: Run tests (default features)
+        if: matrix.features == 'default'
+        run: cargo test --lib
+      - name: Run tests (specific features)
+        if: matrix.features != 'default'
+        run: cargo test --lib --no-default-features --features=${{ matrix.features }}
