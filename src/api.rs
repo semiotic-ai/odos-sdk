@@ -15,6 +15,11 @@ use {
     tracing::debug,
 };
 
+#[cfg(feature = "v3")]
+use {
+    crate::IOdosRouterV3::swapTokenInfo as v3SwapTokenInfo, crate::OdosV3Router::OdosV3RouterCalls,
+};
+
 /// API host tier for the Odos API
 ///
 /// Odos provides two API host tiers:
@@ -656,6 +661,57 @@ impl TryFrom<OdosV2RouterCalls> for SwapInputs {
                 })
             }
             _ => Err(OdosError::invalid_input("Unexpected OdosV2RouterCalls")),
+        }
+    }
+}
+
+#[cfg(feature = "v3")]
+impl TryFrom<OdosV3RouterCalls> for SwapInputs {
+    type Error = OdosError;
+
+    fn try_from(swap: OdosV3RouterCalls) -> std::result::Result<Self, Self::Error> {
+        match swap {
+            OdosV3RouterCalls::swap(call) => {
+                debug!(
+                    swap_type = "V3Router",
+                    input.token = %call.tokenInfo.inputToken,
+                    input.amount_wei = %call.tokenInfo.inputAmount,
+                    output.token = %call.tokenInfo.outputToken,
+                    output.min_wei = %call.tokenInfo.outputMin,
+                    executor = %call.executor,
+                    "Extracting swap inputs from V3 router call"
+                );
+
+                let v3SwapTokenInfo {
+                    inputToken,
+                    inputAmount,
+                    inputReceiver,
+                    outputMin,
+                    outputQuote,
+                    outputReceiver,
+                    outputToken,
+                } = call.tokenInfo;
+
+                let _output_quote = outputQuote;
+                let _referral_info = call.referralInfo;
+
+                Ok(Self {
+                    executor: call.executor,
+                    path_definition: call.pathDefinition,
+                    input_token_info: inputTokenInfo {
+                        tokenAddress: inputToken,
+                        amountIn: inputAmount,
+                        receiver: inputReceiver,
+                    },
+                    output_token_info: outputTokenInfo {
+                        tokenAddress: outputToken,
+                        relativeValue: U256::from(1),
+                        receiver: outputReceiver,
+                    },
+                    value_out_min: outputMin,
+                })
+            }
+            _ => Err(OdosError::invalid_input("Unexpected OdosV3RouterCalls")),
         }
     }
 }
