@@ -32,6 +32,13 @@ impl<P: Provider<Ethereum>> LimitOrderV2<P> {
         self.instance.owner().call().await
     }
 
+    pub fn change_liquidator_address(
+        &self,
+        account: Address,
+    ) -> CallBuilder<&P, PhantomData<OdosLimitOrderV2::changeLiquidatorAddressCall>> {
+        self.instance.changeLiquidatorAddress(account)
+    }
+
     pub fn build_swap_router_funds_call(
         &self,
         from: Address,
