@@ -7,6 +7,125 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **MIGRATION.md**: Comprehensive migration guide from 0.x to 1.0
+  - Step-by-step migration instructions
+  - Before/after code examples
+  - Feature flag migration guidance
+  - SwapBuilder adoption guide
+
+### Documentation
+
+- **README.md**: Complete rewrite with user-focused approach
+  - Value-first presentation showcasing optimal routing and production features
+  - Three-tiered API explanation (SwapBuilder, quote+assemble, contracts)
+  - Comprehensive feature showcase with code examples
+  - Clear navigation to other documentation resources
+  - Multi-chain support table and advanced topics
+
+- **GETTING_STARTED.md**: New comprehensive tutorial (524 lines)
+  - Installation and feature flag guide
+  - Core concepts explanation (Client, Chains, Tokens, Slippage)
+  - Complete walkthrough from setup to first swap
+  - Understanding quotes and transaction execution
+  - Production-ready error handling patterns
+  - Common issues and troubleshooting
+  - Token approval workflow
+
+- **EXAMPLES.md**: New production patterns guide (900+ lines)
+  - Basic swaps (simple, custom recipient, dynamic slippage)
+  - Advanced quote handling (quote-first, multi-chain comparison, timeouts)
+  - Comprehensive error handling patterns
+  - Multi-chain operations and router selection
+  - Testing strategies with mock patterns
+  - Production patterns (singleton client, connection pooling, graceful shutdown)
+  - Integration examples (Axum web server, CLI tool)
+  - Best practices summary
+
+All documentation is copy-paste ready with progressive complexity from quick wins to advanced patterns.
+
+## [0.27.0] - 2025-11-10
+
+### Changed
+
+- **Type Safety**: Updated to use `Address` type for token addresses and user addresses
+  - `QuoteRequest::user_addr` now accepts `Address` directly instead of `String`
+  - Improved type safety and consistency with Alloy primitives
+  - Migration: Parse strings to `Address` before passing: `"0x...".parse::<Address>()?`
+
+### Fixed
+
+- Improved type consistency across API surface
+
+## [0.26.0] - 2025-11-08
+
+### Added
+
+- **Error Context Helpers**: New convenience methods on `OdosError`
+  - `suggested_retry_delay()`: Returns recommended backoff duration for retryable errors
+  - `is_client_error()`: Checks if error is a 4xx API error
+  - `is_server_error()`: Checks if error is a 5xx API error
+
+- **Prelude Module**: Convenient single-import for common types
+  - `use odos_sdk::prelude::*;` imports:
+    - Core clients: `OdosClient`, `SwapBuilder`
+    - Request/Response types: `QuoteRequest`, `AssemblyRequest`, `SingleQuoteResponse`
+    - Domain types: `Chain`, `Slippage`, `ReferralCode`
+    - Error types: `OdosError`, `Result`
+    - Alloy primitives: `Address`, `U256`
+
+### Documentation
+
+- Updated `lib.rs` documentation with SwapBuilder examples
+- Added prelude usage examples throughout
+- Improved quick start with both high-level and low-level patterns
+
+## [0.25.0] - 2025-11-08
+
+### Added
+
+- **Granular Feature Flags**: Fine-grained control over contract bindings
+  - `minimal`: Core API types and HTTP client only (no contract bindings)
+  - `v2`: V2 router contract bindings
+  - `v3`: V3 router contract bindings (includes v2 for SwapInputs type)
+  - `limit-orders`: Limit order contract bindings (includes v2)
+  - `contracts`: Convenience feature for all contract bindings
+  - `default`: V2 + V3 routers (most common use case)
+
+### Changed
+
+- **Conditional Exports**: API surface now conditional on feature flags
+  - `SwapInputs` only available with `v2` feature
+  - Router contract types conditional on respective features
+  - Reduced compile times and dependencies when using minimal feature
+
+### Documentation
+
+- Added feature flag documentation to README
+- Examples for different feature combinations
+- CI now tests all feature combinations
+
+## [0.24.2] - 2025-11-08
+
+### Added
+
+- **High-Level SwapBuilder API**: Ergonomic builder for common swap operations
+  - Fluent interface with method chaining
+  - Simplifies quote → assemble → build flow from 15+ lines to 5 lines
+  - Methods: `chain()`, `from_token()`, `to_token()`, `slippage()`, `signer()`, `recipient()`, `referral()`, `compact()`, `simple()`
+  - `build_transaction()`: Returns TransactionRequest ready for execution
+  - `build_context()`: Returns SwapContext for low-level access
+  - `quote()`: Returns quote without building transaction
+  - Integrates with type-safe domain types (Chain, Slippage, ReferralCode)
+
+- **OdosClient::swap()**: Convenience method returning SwapBuilder
+
+### Documentation
+
+- Added SwapBuilder examples to documentation
+- Comparison of high-level vs low-level API patterns
+
 ## [0.24.1] - 2025-11-08
 
 ### Added
@@ -67,6 +186,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### PLANNED: PHASE 2-5 (8-12 weeks timeline)
 
 See comprehensive 1.0.0 release plan for:
+
 - Phase 2: API Redesign for Excellence (Weeks 3-5)
 - Phase 3: Production Hardening (Weeks 6-8)
 - Phase 4: Documentation & Developer Experience (Weeks 9-10)
