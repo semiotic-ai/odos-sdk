@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-beta.2] - 2025-11-10
+
+### Removed
+
+- **BREAKING**: Removed Berachain and Fantom chain support
+  - Odos has discontinued support for these chains
+  - Removed all chain configuration, router addresses, and tests
+  - Updated documentation to reflect 15 supported chains
+  - Users referencing these chains must migrate to other supported chains
+
+## [1.0.0-beta.1] - 2025-11-10
+
 ### Added
 
 - **MIGRATION.md**: Comprehensive migration guide from 0.x to 1.0
