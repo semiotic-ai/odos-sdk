@@ -259,7 +259,7 @@ If you're using contract bindings, 1.0 introduces granular feature flags.
 
 ```toml
 [dependencies]
-odos-sdk = "0.27"
+odos-sdk = "1.0"
 ```
 
 **After (1.0):**
