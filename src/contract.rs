@@ -63,13 +63,10 @@
 //! - **Layer 2**: Arbitrum, Optimism, Polygon, Base, Scroll, Linea, zkSync, Mantle, Mode
 //! - **Sidechains**: BSC, Avalanche, Fraxtal, Sonic, Unichain
 //!
-//! ### LO + V3 Only (no V2)
-//! - **Layer 2**: Berachain
-//!
 //! ## Router Type Differences
 //!
 //! - **LO (Limit Order V2)**: Limit order functionality, available on all chains (chain-specific addresses)
-//! - **V2**: Chain-specific deployments, mature and battle-tested, available on all chains except Berachain
+//! - **V2**: Chain-specific deployments, mature and battle-tested, available on all chains
 //! - **V3**: Unified address across all chains, enhanced features, production-ready, available on all chains
 
 use alloy_chains::NamedChain;
@@ -217,13 +214,6 @@ pub const ODOS_LO_BSC_ROUTER: Address = address!("0D4aB12E62D17f037D43F018Da18FF
 ///
 /// **Verified on**: <https://polygonscan.com/address/0x93052961c75c92Fd5d6362655936C239EF2D5336>
 pub const ODOS_LO_POLYGON_ROUTER: Address = address!("93052961c75c92Fd5d6362655936C239EF2D5336");
-
-/// **Berachain** - Limit Order V2 Router contract address
-///
-/// Chain ID: 80084
-///
-/// **Verified on**: Berachain explorer
-pub const ODOS_LO_BERACHAIN_ROUTER: Address = address!("3236d3d12b7981aa5043bd66d1b9d6856bf764dc");
 
 /// **Arbitrum One** - Limit Order V2 Router contract address
 ///
@@ -417,7 +407,6 @@ pub fn get_lo_router_by_chain_id(chain_id: u64) -> Option<Address> {
         NamedChain::Optimism => ODOS_LO_OP_ROUTER,
         NamedChain::BinanceSmartChain => ODOS_LO_BSC_ROUTER,
         NamedChain::Polygon => ODOS_LO_POLYGON_ROUTER,
-        NamedChain::Berachain => ODOS_LO_BERACHAIN_ROUTER,
         NamedChain::Arbitrum => ODOS_LO_ARBITRUM_ROUTER,
         NamedChain::Avalanche => ODOS_LO_AVALANCHE_ROUTER,
         NamedChain::Base => ODOS_LO_BASE_ROUTER,
@@ -487,7 +476,6 @@ pub fn get_v3_router_by_chain_id(chain_id: u64) -> Option<Address> {
 /// let chains = get_supported_chains();
 /// assert!(chains.contains(&NamedChain::Mainnet)); // Ethereum (has LO, V2, V3)
 /// assert!(chains.contains(&NamedChain::Arbitrum)); // Arbitrum (has LO, V2, V3)
-/// assert!(chains.contains(&NamedChain::Berachain)); // Berachain (has LO, V3 only)
 ///
 /// // Convert to u64 if needed
 /// let chain_ids: Vec<u64> = chains.iter().map(|&c| c as u64).collect();
@@ -499,7 +487,6 @@ pub fn get_supported_chains() -> Vec<NamedChain> {
         Arbitrum,
         Avalanche,
         Base,
-        Berachain,
         BinanceSmartChain,
         Fraxtal,
         Linea,
@@ -534,7 +521,6 @@ pub fn get_supported_chains() -> Vec<NamedChain> {
 ///
 /// let lo_chains = get_supported_lo_chains();
 /// assert!(lo_chains.contains(&NamedChain::Mainnet)); // Ethereum
-/// assert!(lo_chains.contains(&NamedChain::Berachain)); // Berachain
 ///
 /// // Convert to u64 if needed
 /// let chain_ids: Vec<u64> = lo_chains.iter().map(|&c| c as u64).collect();
@@ -546,7 +532,6 @@ pub fn get_supported_lo_chains() -> Vec<NamedChain> {
         Arbitrum,
         Avalanche,
         Base,
-        Berachain,
         BinanceSmartChain,
         Fraxtal,
         Linea,
@@ -569,8 +554,6 @@ pub fn get_supported_lo_chains() -> Vec<NamedChain> {
 
 /// Get all chains that support V2 routers
 ///
-/// Note: Berachain does NOT support V2, only LO and V3
-///
 /// # Returns
 ///
 /// A vector of chains that have V2 router deployments
@@ -583,7 +566,6 @@ pub fn get_supported_lo_chains() -> Vec<NamedChain> {
 ///
 /// let v2_chains = get_supported_v2_chains();
 /// assert!(v2_chains.contains(&NamedChain::Mainnet)); // Ethereum
-/// assert!(!v2_chains.contains(&NamedChain::Berachain)); // Berachain has no V2
 ///
 /// // Convert to u64 if needed
 /// let chain_ids: Vec<u64> = v2_chains.iter().map(|&c| c as u64).collect();
@@ -629,7 +611,6 @@ pub fn get_supported_v2_chains() -> Vec<NamedChain> {
 ///
 /// let v3_chains = get_supported_v3_chains();
 /// assert!(v3_chains.contains(&NamedChain::Mainnet)); // Ethereum
-/// assert!(v3_chains.contains(&NamedChain::Berachain)); // Berachain
 ///
 /// // Convert to u64 if needed
 /// let chain_ids: Vec<u64> = v3_chains.iter().map(|&c| c as u64).collect();
@@ -641,7 +622,6 @@ pub fn get_supported_v3_chains() -> Vec<NamedChain> {
         Arbitrum,
         Avalanche,
         Base,
-        Berachain,
         BinanceSmartChain,
         Fraxtal,
         Linea,
@@ -720,68 +700,6 @@ mod tests {
         // Test with unsupported chain ID
         assert!(get_v2_router_by_chain_id(999999).is_none());
         assert!(get_v3_router_by_chain_id(999999).is_none());
-    }
-
-    #[test]
-    fn test_berachain_router_availability() {
-        let berachain_chain_id = NamedChain::Berachain as u64;
-
-        // Berachain should have LO router
-        assert!(
-            get_lo_router_by_chain_id(berachain_chain_id).is_some(),
-            "Berachain should have LO router"
-        );
-        assert_eq!(
-            get_lo_router_by_chain_id(berachain_chain_id).unwrap(),
-            ODOS_LO_BERACHAIN_ROUTER
-        );
-
-        // Berachain should NOT have V2 router
-        assert!(
-            get_v2_router_by_chain_id(berachain_chain_id).is_none(),
-            "Berachain should NOT have V2 router"
-        );
-
-        // Berachain should have V3 router
-        assert!(
-            get_v3_router_by_chain_id(berachain_chain_id).is_some(),
-            "Berachain should have V3 router"
-        );
-        assert_eq!(
-            get_v3_router_by_chain_id(berachain_chain_id).unwrap(),
-            ODOS_V3
-        );
-    }
-
-    #[test]
-    fn test_berachain_in_supported_chains_lists() {
-        // Berachain should be in general supported chains
-        let all_chains = get_supported_chains();
-        assert!(
-            all_chains.contains(&NamedChain::Berachain),
-            "Berachain should be in supported chains list"
-        );
-
-        // Berachain should be in LO chains
-        let lo_chains = get_supported_lo_chains();
-        assert!(
-            lo_chains.contains(&NamedChain::Berachain),
-            "Berachain should be in LO chains list"
-        );
-
-        // Berachain should NOT be in V2 chains
-        let v2_chains = get_supported_v2_chains();
-        assert!(
-            !v2_chains.contains(&NamedChain::Berachain),
-            "Berachain should NOT be in V2 chains list"
-        );
-
-        // Berachain should be in V3 chains
-        let v3_chains = get_supported_v3_chains();
-        assert!(
-            v3_chains.contains(&NamedChain::Berachain),
-            "Berachain should be in V3 chains list"
-        );
     }
 
     #[test]

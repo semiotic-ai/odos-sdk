@@ -13,12 +13,12 @@ use std::fmt;
 pub enum RouterType {
     /// Limit Order V2 router for limit order functionality
     ///
-    /// Available on: Ethereum, Optimism, BSC, Polygon, Berachain
+    /// Available on all supported chains
     LimitOrder,
 
     /// V2 router for swap functionality
     ///
-    /// Available on all chains except Berachain
+    /// Available on all supported chains
     V2,
 
     /// V3 router for enhanced swap functionality
@@ -82,7 +82,7 @@ impl RouterAvailability {
         }
     }
 
-    /// Creates availability for LO + V3 only (like Berachain)
+    /// Creates availability for LO + V3 only
     pub const fn lo_v3_only() -> Self {
         Self {
             limit_order: true,

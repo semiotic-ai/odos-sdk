@@ -231,20 +231,6 @@ impl Chain {
         Self(NamedChain::Sonic)
     }
 
-    /// Berachain (Chain ID: 80094)
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use odos_sdk::Chain;
-    ///
-    /// let chain = Chain::berachain();
-    /// assert_eq!(chain.id(), 80094);
-    /// ```
-    pub const fn berachain() -> Self {
-        Self(NamedChain::Berachain)
-    }
-
     /// Unichain (Chain ID: 130)
     ///
     /// # Examples
@@ -420,7 +406,6 @@ mod tests {
         assert_eq!(Chain::mode().id(), 34443);
         assert_eq!(Chain::fraxtal().id(), 252);
         assert_eq!(Chain::sonic().id(), 146);
-        assert_eq!(Chain::berachain().id(), 80094);
         assert_eq!(Chain::unichain().id(), 130);
     }
 

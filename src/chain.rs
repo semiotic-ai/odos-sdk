@@ -4,14 +4,13 @@ use thiserror::Error;
 
 use crate::{
     RouterAvailability, ODOS_LO_ARBITRUM_ROUTER, ODOS_LO_AVALANCHE_ROUTER, ODOS_LO_BASE_ROUTER,
-    ODOS_LO_BERACHAIN_ROUTER, ODOS_LO_BSC_ROUTER, ODOS_LO_ETHEREUM_ROUTER, ODOS_LO_FRAXTAL_ROUTER,
-    ODOS_LO_LINEA_ROUTER, ODOS_LO_MANTLE_ROUTER, ODOS_LO_MODE_ROUTER, ODOS_LO_OP_ROUTER,
-    ODOS_LO_POLYGON_ROUTER, ODOS_LO_SCROLL_ROUTER, ODOS_LO_SONIC_ROUTER, ODOS_LO_UNICHAIN_ROUTER,
-    ODOS_LO_ZKSYNC_ROUTER, ODOS_V2_ARBITRUM_ROUTER, ODOS_V2_AVALANCHE_ROUTER, ODOS_V2_BASE_ROUTER,
-    ODOS_V2_BSC_ROUTER, ODOS_V2_ETHEREUM_ROUTER, ODOS_V2_FRAXTAL_ROUTER, ODOS_V2_LINEA_ROUTER,
-    ODOS_V2_MANTLE_ROUTER, ODOS_V2_MODE_ROUTER, ODOS_V2_OP_ROUTER, ODOS_V2_POLYGON_ROUTER,
-    ODOS_V2_SCROLL_ROUTER, ODOS_V2_SONIC_ROUTER, ODOS_V2_UNICHAIN_ROUTER, ODOS_V2_ZKSYNC_ROUTER,
-    ODOS_V3,
+    ODOS_LO_BSC_ROUTER, ODOS_LO_ETHEREUM_ROUTER, ODOS_LO_FRAXTAL_ROUTER, ODOS_LO_LINEA_ROUTER,
+    ODOS_LO_MANTLE_ROUTER, ODOS_LO_MODE_ROUTER, ODOS_LO_OP_ROUTER, ODOS_LO_POLYGON_ROUTER,
+    ODOS_LO_SCROLL_ROUTER, ODOS_LO_SONIC_ROUTER, ODOS_LO_UNICHAIN_ROUTER, ODOS_LO_ZKSYNC_ROUTER,
+    ODOS_V2_ARBITRUM_ROUTER, ODOS_V2_AVALANCHE_ROUTER, ODOS_V2_BASE_ROUTER, ODOS_V2_BSC_ROUTER,
+    ODOS_V2_ETHEREUM_ROUTER, ODOS_V2_FRAXTAL_ROUTER, ODOS_V2_LINEA_ROUTER, ODOS_V2_MANTLE_ROUTER,
+    ODOS_V2_MODE_ROUTER, ODOS_V2_OP_ROUTER, ODOS_V2_POLYGON_ROUTER, ODOS_V2_SCROLL_ROUTER,
+    ODOS_V2_SONIC_ROUTER, ODOS_V2_UNICHAIN_ROUTER, ODOS_V2_ZKSYNC_ROUTER, ODOS_V3,
 };
 
 /// Errors that can occur when working with Odos chains
@@ -227,7 +226,6 @@ impl OdosChain for NamedChain {
             Arbitrum => ODOS_LO_ARBITRUM_ROUTER,
             Avalanche => ODOS_LO_AVALANCHE_ROUTER,
             Base => ODOS_LO_BASE_ROUTER,
-            Berachain => ODOS_LO_BERACHAIN_ROUTER,
             BinanceSmartChain => ODOS_LO_BSC_ROUTER,
             Fraxtal => ODOS_LO_FRAXTAL_ROUTER,
             Mainnet => ODOS_LO_ETHEREUM_ROUTER,
@@ -308,7 +306,6 @@ impl OdosChain for NamedChain {
             Arbitrum
                 | Avalanche
                 | Base
-                | Berachain
                 | BinanceSmartChain
                 | Fraxtal
                 | Mainnet
@@ -331,7 +328,6 @@ impl OdosChain for NamedChain {
             Arbitrum
                 | Avalanche
                 | Base
-                | Berachain
                 | BinanceSmartChain
                 | Fraxtal
                 | Mainnet
@@ -376,7 +372,6 @@ impl OdosChain for NamedChain {
             Arbitrum
                 | Avalanche
                 | Base
-                | Berachain
                 | BinanceSmartChain
                 | Fraxtal
                 | Mainnet
@@ -489,7 +484,6 @@ mod tests {
             NamedChain::Optimism,
             NamedChain::Polygon,
             NamedChain::BinanceSmartChain,
-            NamedChain::Berachain,
         ];
 
         for chain in chains {
@@ -536,7 +530,6 @@ mod tests {
     fn test_supports_odos() {
         assert!(NamedChain::Mainnet.supports_odos());
         assert!(NamedChain::Arbitrum.supports_odos());
-        assert!(NamedChain::Berachain.supports_odos());
         assert!(!NamedChain::Sepolia.supports_odos());
     }
 
@@ -546,7 +539,6 @@ mod tests {
         assert!(NamedChain::Optimism.supports_lo());
         assert!(NamedChain::Polygon.supports_lo());
         assert!(NamedChain::BinanceSmartChain.supports_lo());
-        assert!(NamedChain::Berachain.supports_lo());
         assert!(NamedChain::Arbitrum.supports_lo());
         assert!(NamedChain::Base.supports_lo());
         assert!(!NamedChain::Sepolia.supports_lo());
@@ -556,7 +548,6 @@ mod tests {
     fn test_supports_v2() {
         assert!(NamedChain::Mainnet.supports_v2());
         assert!(NamedChain::Arbitrum.supports_v2());
-        assert!(!NamedChain::Berachain.supports_v2()); // Berachain only has LO + V3
         assert!(!NamedChain::Sepolia.supports_v2());
     }
 
@@ -564,29 +555,7 @@ mod tests {
     fn test_supports_v3() {
         assert!(NamedChain::Mainnet.supports_v3());
         assert!(NamedChain::Arbitrum.supports_v3());
-        assert!(NamedChain::Berachain.supports_v3());
         assert!(!NamedChain::Sepolia.supports_v3());
-    }
-
-    #[test]
-    fn test_berachain_lo_v3_only() {
-        // Berachain has LO + V3, but not V2
-        assert!(NamedChain::Berachain.supports_lo());
-        assert!(!NamedChain::Berachain.supports_v2());
-        assert!(NamedChain::Berachain.supports_v3());
-
-        // LO router should work
-        let lo_result = NamedChain::Berachain.lo_router_address();
-        assert!(lo_result.is_ok());
-        assert_eq!(lo_result.unwrap(), ODOS_LO_BERACHAIN_ROUTER);
-
-        // Requesting V2 should fallback to V3
-        let v2_result = NamedChain::Berachain.v2_router_address();
-        let v3_result = NamedChain::Berachain.v3_router_address();
-
-        assert!(v2_result.is_ok());
-        assert!(v3_result.is_ok());
-        assert_eq!(v2_result.unwrap(), v3_result.unwrap());
     }
 
     #[test]
@@ -597,13 +566,6 @@ mod tests {
         assert!(avail.v2);
         assert!(avail.v3);
         assert_eq!(avail.count(), 3);
-
-        // Berachain: LO + V3 only
-        let avail = NamedChain::Berachain.router_availability();
-        assert!(avail.limit_order);
-        assert!(!avail.v2);
-        assert!(avail.v3);
-        assert_eq!(avail.count(), 2);
 
         // Arbitrum: all routers
         let avail = NamedChain::Arbitrum.router_availability();
