@@ -61,6 +61,14 @@ jobs:
           COMMIT_RANGE: ${{ env.COMMIT_RANGE }}
         run: cz check --rev-range $COMMIT_RANGE
 
+  reuse:
+    name: reuse lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: REUSE Compliance Check
+        uses: fsfe/reuse-action@v5
+
   fmt:
     name: cargo fmt
     runs-on: ubuntu-latest

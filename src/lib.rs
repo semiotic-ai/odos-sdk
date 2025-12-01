@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Semiotic AI, Inc.
+//
+// SPDX-License-Identifier: Apache-2.0
 //! # Odos SDK
 //!
 //! A production-ready Rust SDK for the Odos protocol - a decentralized exchange aggregator

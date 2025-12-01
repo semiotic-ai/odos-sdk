@@ -21,9 +21,11 @@ minimal = []
 
 # Contract binding features
 # Note: V2 is the base contract feature (provides SwapInputs type used by all routers)
-v2 = []  # V2 router contract bindings
-v3 = ["v2"]  # V3 router contract bindings (requires v2 for SwapInputs)
-limit-orders = ["v2"]  # Limit order contract bindings (requires v2 for SwapInputs)
+v2 = [] # V2 router contract bindings
+v3 = ["v2"] # V3 router contract bindings (requires v2 for SwapInputs)
+limit-orders = [
+    "v2",
+] # Limit order contract bindings (requires v2 for SwapInputs)
 
 # Convenience feature to enable all contract bindings
 contracts = ["v2", "v3", "limit-orders"]

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Semiotic AI, Inc.
+//
+// SPDX-License-Identifier: Apache-2.0
 //! # Odos Protocol Contract Addresses
 //!
 //! This module contains the verified contract addresses for the Odos protocol across

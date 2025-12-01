@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: 2025 Semiotic AI, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+version = 1
+
+# ABI files from Odos contracts (can't have inline headers)
+[[annotations]]
+path = "abis/**/*.json"
+SPDX-FileCopyrightText = "2025 Semiotic AI, Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+# Package management files
+[[annotations]]
+path = ["Cargo.toml", "Cargo.lock"]
+SPDX-FileCopyrightText = "2025 Semiotic AI, Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+# Documentation
+[[annotations]]
+path = [
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "GETTING_STARTED.md",
+    "EXAMPLES.md",
+    "SECURITY.md",
+    "MIGRATION.md",
+    "DEPENDENCIES.md",
+    "ERROR_HANDLING_GUIDE.md",
+    "CLAUDE.md",
+]
+SPDX-FileCopyrightText = "2025 Semiotic AI, Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+# Configuration files
+[[annotations]]
+path = [".gitignore", ".github/**"]
+SPDX-FileCopyrightText = "2025 Semiotic AI, Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+# Editor configuration
+[[annotations]]
+path = [".cursor/**"]
+SPDX-FileCopyrightText = "2025 Semiotic AI, Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+# Additional documentation and design files
+[[annotations]]
+path = "*.md"
+SPDX-FileCopyrightText = "2025 Semiotic AI, Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+# Text files
+[[annotations]]
+path = "*.txt"
+SPDX-FileCopyrightText = "2025 Semiotic AI, Inc."
+SPDX-License-Identifier = "Apache-2.0"

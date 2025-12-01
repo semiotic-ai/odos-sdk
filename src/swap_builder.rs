@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Semiotic AI, Inc.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 use alloy_primitives::{Address, U256};
 use alloy_rpc_types::TransactionRequest;
 

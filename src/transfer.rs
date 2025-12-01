@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Semiotic AI, Inc.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 use alloy_chains::NamedChain;
 use alloy_primitives::{Address, U256};
 use bon::Builder;

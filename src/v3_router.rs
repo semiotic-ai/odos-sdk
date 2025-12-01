@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Semiotic AI, Inc.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{fmt::Debug, marker::PhantomData};
 
 use alloy_contract::CallBuilder;
