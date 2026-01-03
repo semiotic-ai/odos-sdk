@@ -349,38 +349,16 @@ impl OdosHttpClient {
                     let status = response.status();
 
                     if status == StatusCode::TOO_MANY_REQUESTS {
+                        // Rate limits are never retried - return immediately
+                        // Application must handle rate limiting globally
                         let retry_after = extract_retry_after(&response);
-
-                        // Parse structured error response
                         let parsed = parse_error_response(response).await;
-
-                        let error = OdosError::rate_limit_error_with_retry_after_and_trace(
+                        return Err(OdosError::rate_limit_error_with_retry_after_and_trace(
                             parsed.message,
                             retry_after,
                             parsed.code,
                             parsed.trace_id,
-                        );
-
-                        // Rate limits are never retried - return immediately
-                        if !self.should_retry(&error, attempt) {
-                            return Err(error);
-                        }
-
-                        if let Some(delay) = retry_after {
-                            // If retry-after is 0, use exponential backoff instead
-                            if !delay.is_zero() {
-                                debug!(
-                                    error_type = "rate_limit",
-                                    attempt,
-                                    retry_after_secs = delay.as_secs(),
-                                    action = "sleeping",
-                                    "Rate limit hit, sleeping before retry"
-                                );
-                                tokio::time::sleep(delay).await;
-                                continue;
-                            }
-                        }
-                        error
+                        ));
                     } else {
                         // Parse structured error response
                         let parsed = parse_error_response(response).await;
