@@ -6,7 +6,7 @@ Thank you for your interest in contributing to odos-sdk! This document provides 
 
 ### Prerequisites
 
-- Rust 1.90 or later
+- Rust 1.92 or later
 - Git
 - (Optional) cargo-audit for security audits
 

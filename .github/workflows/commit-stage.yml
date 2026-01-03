@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Semiotic AI, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: commit-stage
 
 on:
@@ -7,6 +11,16 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+  RUST_VERSION: "1.92"
+
 jobs:
   conventional-commits:
     name: commitizen
@@ -15,7 +29,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # For PRs, fetch based on number of commits, for push to main use small default
           fetch-depth: ${{ github.event_name == 'pull_request' && github.event.pull_request.commits || 10 }}
 
       - name: Fetch base for PRs
@@ -24,13 +37,18 @@ jobs:
 
       - name: Fetch for push to main
         if: github.event_name == 'push'
-        run: |
-          git fetch origin ${{ github.event.before }}
+        run: git fetch origin ${{ github.event.before }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-commitizen-${{ runner.os }}
 
       - name: Install commitizen
         run: pip install commitizen
@@ -39,10 +57,8 @@ jobs:
         id: commit_range
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            # For PRs, check commits between base ref and HEAD
             echo "COMMIT_RANGE=origin/${{ github.base_ref }}..HEAD" >> $GITHUB_ENV
           elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            # Check if the before commit exists (might not after force push/rebase)
             if git rev-parse --verify "${{ github.event.before }}" >/dev/null 2>&1; then
               echo "COMMIT_RANGE=${{ github.event.before }}..HEAD" >> $GITHUB_ENV
             else
@@ -50,7 +66,6 @@ jobs:
               echo "SKIP_VALIDATION=true" >> $GITHUB_ENV
             fi
           else
-            # Skip validation for force pushes or initial commits
             echo "No commit range found. Skipping validation."
             echo "SKIP_VALIDATION=true" >> $GITHUB_ENV
           fi
@@ -75,8 +90,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.90
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_VERSION }}
           components: rustfmt
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
@@ -87,20 +103,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.90
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_VERSION }}
           components: clippy
-      - name: Cache dependencies
-        uses: actions/cache@v4
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-clippy-
-            ${{ runner.os }}-cargo-
+          shared-key: clippy
       - name: Run cargo clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
@@ -110,31 +120,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.90
-      - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: dtolnay/rust-toolchain@master
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-audit-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-audit-
-            ${{ runner.os }}-cargo-
+          toolchain: ${{ env.RUST_VERSION }}
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
       - name: Run cargo audit
         run: cargo audit
 
   test:
     name: cargo test (${{ matrix.features }})
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      actions: read
     strategy:
+      fail-fast: false
       matrix:
         features:
           - "default"
@@ -146,18 +146,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.90
-      - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: dtolnay/rust-toolchain@master
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-test-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-test-
-            ${{ runner.os }}-cargo-
+          toolchain: ${{ env.RUST_VERSION }}
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: test
       - name: Run tests (default features)
         if: matrix.features == 'default'
         run: cargo test --lib

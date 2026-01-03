@@ -5,7 +5,7 @@
 [![Documentation](https://docs.rs/odos-sdk/badge.svg)](https://docs.rs/odos-sdk)
 [![License](https://img.shields.io/crates/l/odos-sdk.svg)](https://github.com/semiotic-ai/odos-sdk/blob/main/LICENSE)
 [![REUSE](https://api.reuse.software/badge/github.com/semiotic-ai/odos-sdk)](https://api.reuse.software/info/github.com/semiotic-ai/odos-sdk)
-[![Rust Version](https://img.shields.io/badge/rust-1.90%2B-blue.svg?logo=rust)](https://www.rust-lang.org)
+[![Rust Version](https://img.shields.io/badge/rust-1.92%2B-blue.svg?logo=rust)](https://www.rust-lang.org)
 
 A production-ready Rust SDK for [Odos](https://www.odos.xyz) - the decentralized exchange aggregator that finds optimal token swap routes across 16+ EVM chains. Built with type safety, reliability, and developer experience in mind.
 
@@ -504,7 +504,7 @@ async fn robust_swap(
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
-- Development setup (Rust 1.90+)
+- Development setup (Rust 1.92+)
 - Code standards and formatting
 - Testing requirements
 - PR process
