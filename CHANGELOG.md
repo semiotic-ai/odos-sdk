@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-01-04
+
+### Added
+
+- **OP-Stack Chain Support**: New `op-stack` feature flag for L2 chains
+  - Base, Optimism, Mode, Fraxtal support with op-alloy v0.23.1
+  - Access to L1 gas information in transaction receipts
+  - New `op_stack` module with `Optimism` network type
+
+- **Network-Generic Routers**: V2Router and V3Router now generic over Network trait
+  - Default to `Ethereum` for backward compatibility
+  - Support for any Alloy-compatible network type
+
+- **Event Monitoring Utilities**: New `events` module
+  - `SwapEventFilter` builder for querying swap events
+  - Typed `SwapEvent` and `SwapMultiEvent` decoding
+  - Support for both V2 and V3 router events
+
+- **Multicall Utilities**: New `multicall` module with dual approach
+  - Simple parallel RPC functions (`check_balance`, `check_allowance`) for 1-5 calls
+  - Multicall3 batching (`multicall_check_balances`, etc.) for 10+ calls
+  - `SwapPreflightCheck` and `PreflightResult` types
+
+- **Fork Testing Infrastructure**: New Anvil-based integration tests
+  - Tests against forked mainnet state
+  - Router verification tests
+
+- **Provider Documentation**: Comprehensive examples in lib.rs
+  - Provider construction patterns
+  - AnyNetwork usage
+  - WebSocket subscription examples
+
+### Changed
+
+- **Dependencies**: Upgraded Alloy ecosystem
+  - alloy-* packages: 1.1.0 → 1.2.1
+  - alloy-primitives: 1.4.1 → 1.5.2
+  - alloy-chains: 0.2.17 → 0.2.24
+
+### Fixed
+
+- **Security**: Update ruint to 1.17.2 to resolve RUSTSEC-2025-0137
+
 ## [1.0.0-beta.2] - 2025-11-10
 
 ### Removed
