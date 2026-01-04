@@ -291,6 +291,132 @@
 //!
 //! **Note:** Rate limit errors (429) are never retried regardless of configuration.
 //! This prevents retry cascades that make rate limiting worse.
+//!
+//! ## Provider Construction (Alloy Best Practices)
+//!
+//! ### Dynamic Chain Support with AnyNetwork
+//!
+//! For applications that need to work with multiple chains dynamically (without knowing
+//! the chain at compile time), use `AnyNetwork`:
+//!
+//! ```rust,ignore
+//! use alloy_network::AnyNetwork;
+//! use alloy_provider::ProviderBuilder;
+//!
+//! // Works with any EVM chain without network-specific types
+//! let provider = ProviderBuilder::new()
+//!     .network::<AnyNetwork>()
+//!     .connect_http(rpc_url.parse()?);
+//!
+//! // Routers work with AnyNetwork
+//! let router: V3Router<AnyNetwork, _> = V3Router::new(router_address, provider);
+//! ```
+//!
+//! **Trade-offs:**
+//! - ✅ Single code path for all chains
+//! - ✅ Simpler multi-chain applications
+//! - ⚠️ Loses network-specific receipt fields (e.g., OP-stack L1 gas info)
+//! - ⚠️ Less compile-time type safety
+//!
+//! When executing swaps on-chain, use Alloy's [`ProviderBuilder`](alloy_provider::ProviderBuilder)
+//! with recommended fillers for proper nonce management, gas estimation, and chain ID handling:
+//!
+//! ```rust,ignore
+//! use alloy_provider::ProviderBuilder;
+//! use alloy_signer_local::PrivateKeySigner;
+//! use alloy_network::EthereumWallet;
+//!
+//! // Create a signer from a private key
+//! let signer: PrivateKeySigner = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+//!     .parse()
+//!     .expect("valid private key");
+//!
+//! // Create a provider with recommended fillers (nonce, gas, chain ID)
+//! let provider = ProviderBuilder::new()
+//!     .with_recommended_fillers()
+//!     .wallet(EthereumWallet::new(signer))
+//!     .connect_http("https://eth.llamarpc.com".parse()?);
+//!
+//! // Use the provider with routers
+//! let router = odos_sdk::V3Router::new(router_address, provider);
+//! ```
+//!
+//! ### OP-Stack Chains (Base, Optimism, Mode, Fraxtal)
+//!
+//! For OP-stack chains, use the `Optimism` network type to access L1 gas information:
+//!
+//! ```rust,ignore
+//! #[cfg(feature = "op-stack")]
+//! {
+//!     use odos_sdk::op_stack::Optimism;
+//!     use alloy_provider::ProviderBuilder;
+//!
+//!     // Create a provider for OP-stack chains
+//!     let provider = ProviderBuilder::new()
+//!         .with_recommended_fillers()
+//!         .network::<Optimism>()
+//!         .connect_http("https://mainnet.base.org".parse()?);
+//!
+//!     // Transaction receipts will include L1 gas information
+//!     let receipt = provider.get_transaction_receipt(tx_hash).await?;
+//!     if let Some(l1_fee) = receipt.inner.l1_fee {
+//!         println!("L1 fee: {l1_fee}");
+//!     }
+//! }
+//! ```
+//!
+//! ### Sharing Providers
+//!
+//! For concurrent swap operations, share a single provider instance:
+//!
+//! ```rust,ignore
+//! use std::sync::Arc;
+//! use alloy_provider::ProviderBuilder;
+//!
+//! // Create a shared provider
+//! let provider = Arc::new(
+//!     ProviderBuilder::new()
+//!         .with_recommended_fillers()
+//!         .connect_http("https://eth.llamarpc.com".parse()?)
+//! );
+//!
+//! // Clone the Arc for each concurrent operation
+//! let provider_clone = Arc::clone(&provider);
+//! tokio::spawn(async move {
+//!     // Use provider_clone for concurrent swap
+//! });
+//! ```
+//!
+//! ### WebSocket Providers for Real-Time Monitoring
+//!
+//! Use WebSocket providers for real-time swap event monitoring:
+//!
+//! ```rust,ignore
+//! use alloy_provider::ProviderBuilder;
+//! use alloy_rpc_types::Filter;
+//! use odos_sdk::events::SwapEventFilter;
+//! use futures_util::StreamExt;
+//!
+//! // Connect via WebSocket for subscriptions
+//! let ws_provider = ProviderBuilder::new()
+//!     .connect_ws("wss://eth.llamarpc.com".parse()?)
+//!     .await?;
+//!
+//! // Create a filter for swap events
+//! let filter = SwapEventFilter::new(router_address)
+//!     .from_latest()
+//!     .build_v3_filter();
+//!
+//! // Subscribe to real-time swap events
+//! let mut stream = ws_provider.subscribe_logs(&filter).await?;
+//!
+//! while let Some(log) = stream.next().await {
+//!     match log {
+//!         Ok(log) => println!("New swap detected: {:?}", log),
+//!         Err(e) => eprintln!("Subscription error: {e}"),
+//!     }
+//! }
+//! ```
 
 mod api;
 mod api_key;
@@ -300,10 +426,15 @@ mod client;
 mod contract;
 mod error;
 pub mod error_code;
+#[cfg(any(feature = "v2", feature = "v3"))]
+pub mod events;
 #[cfg(test)]
 mod integration_tests;
 #[cfg(feature = "limit-orders")]
 mod limit_order_v2;
+pub mod multicall;
+#[cfg(feature = "op-stack")]
+pub mod op_stack;
 mod router_type;
 mod sor;
 mod swap;
