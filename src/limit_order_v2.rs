@@ -122,3 +122,20 @@ sol!(
     OdosLimitOrderV2,
     "abis/odos_limit_order_v2.json"
 );
+
+// Re-export event types for consumers who need to decode limit order events.
+// These events are fundamentally different from the Swap/SwapMulti events
+// emitted by V2/V3 routers.
+pub use OdosLimitOrderV2::{
+    // Administrative events
+    AllowedFillerAdded,
+    AllowedFillerRemoved,
+    // Primary limit order events
+    LimitOrderCancelled,
+    LimitOrderFilled,
+    LiquidatorAddressChanged,
+    MultiLimitOrderCancelled,
+    MultiLimitOrderFilled,
+    OrderPreSigned,
+    SwapRouterFunds,
+};

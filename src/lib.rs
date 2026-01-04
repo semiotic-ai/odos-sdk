@@ -496,6 +496,14 @@ pub use error::{OdosError, Result};
 #[cfg(feature = "limit-orders")]
 pub use limit_order_v2::LimitOrderV2;
 
+// Limit order event types (different from V2/V3 Swap events)
+#[cfg(feature = "limit-orders")]
+pub use limit_order_v2::{
+    AllowedFillerAdded, AllowedFillerRemoved, LimitOrderCancelled, LimitOrderFilled,
+    LiquidatorAddressChanged, MultiLimitOrderCancelled, MultiLimitOrderFilled, OrderPreSigned,
+    SwapRouterFunds,
+};
+
 // Router type selection
 pub use router_type::{RouterAvailability, RouterType};
 

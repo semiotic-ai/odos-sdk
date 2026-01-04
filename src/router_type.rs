@@ -8,35 +8,155 @@
 
 use std::fmt;
 
-/// Represents the different types of Odos routers
+/// Represents the different types of Odos routers.
 ///
 /// Different chains support different combinations of these router types.
 /// Use the `OdosChain` trait methods to check router availability per chain.
+///
+/// # Event Schemas
+///
+/// **Important:** Router types emit fundamentally different events:
+///
+/// | Router Type | Events Emitted |
+/// |-------------|----------------|
+/// | [`V2`](RouterType::V2) | `Swap`, `SwapMulti` |
+/// | [`V3`](RouterType::V3) | `Swap`, `SwapMulti` (with referral/slippage fields) |
+/// | [`LimitOrder`](RouterType::LimitOrder) | `LimitOrderFilled`, `LimitOrderCancelled`, etc. |
+///
+/// When iterating over router types for event processing, use [`swap_routers()`](RouterType::swap_routers)
+/// to get only routers that emit `Swap`/`SwapMulti` events, or [`order_routers()`](RouterType::order_routers)
+/// for limit order routers.
+///
+/// # Example
+///
+/// ```rust
+/// use odos_sdk::RouterType;
+///
+/// // When processing swap events, iterate only over swap routers
+/// for router_type in RouterType::swap_routers() {
+///     // V2 and V3 both emit Swap/SwapMulti events
+///     assert!(router_type.emits_swap_events());
+/// }
+///
+/// // LimitOrder routers require separate event handling
+/// for router_type in RouterType::order_routers() {
+///     assert!(!router_type.emits_swap_events());
+/// }
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RouterType {
-    /// Limit Order V2 router for limit order functionality
+    /// Limit Order V2 router for limit order functionality.
     ///
-    /// Available on all supported chains
+    /// Available on all supported chains.
+    ///
+    /// **Note:** This router emits `LimitOrderFilled`, `LimitOrderCancelled`, and other
+    /// limit order-specific events. It does **not** emit `Swap` or `SwapMulti` events
+    /// like V2/V3 routers. Use [`emits_swap_events()`](RouterType::emits_swap_events) to
+    /// check event compatibility, or [`swap_routers()`](RouterType::swap_routers) to
+    /// iterate only over routers that emit swap events.
     LimitOrder,
 
-    /// V2 router for swap functionality
+    /// V2 router for swap functionality.
     ///
-    /// Available on all supported chains
+    /// Available on all supported chains.
+    ///
+    /// Emits `Swap` and `SwapMulti` events.
     V2,
 
-    /// V3 router for enhanced swap functionality
+    /// V3 router for enhanced swap functionality.
     ///
-    /// Available on all supported chains (unified address)
+    /// Available on all supported chains (unified address via CREATE2).
+    ///
+    /// Emits `Swap` and `SwapMulti` events (with additional referral/slippage fields
+    /// compared to V2).
     V3,
 }
 
 impl RouterType {
-    /// Returns all possible router types
+    /// Returns all possible router types.
+    ///
+    /// **Note:** This includes both swap routers (V2, V3) and order routers (LimitOrder),
+    /// which emit different event types. For event processing, consider using
+    /// [`swap_routers()`](RouterType::swap_routers) or [`order_routers()`](RouterType::order_routers)
+    /// instead.
     pub const fn all() -> [RouterType; 3] {
         [RouterType::LimitOrder, RouterType::V2, RouterType::V3]
     }
 
-    /// Returns the router type as a string identifier
+    /// Returns router types that emit `Swap` and `SwapMulti` events.
+    ///
+    /// Use this when iterating over routers for swap event processing.
+    /// Both V2 and V3 routers emit these events (with slightly different schemas).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use odos_sdk::RouterType;
+    ///
+    /// // Process only routers that emit swap events
+    /// for router_type in RouterType::swap_routers() {
+    ///     println!("Processing swap events for {:?}", router_type);
+    /// }
+    /// ```
+    pub const fn swap_routers() -> [RouterType; 2] {
+        [RouterType::V2, RouterType::V3]
+    }
+
+    /// Returns router types that emit limit order events (`LimitOrderFilled`, etc.).
+    ///
+    /// Use this when iterating over routers for limit order event processing.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use odos_sdk::RouterType;
+    ///
+    /// // Process only routers that emit limit order events
+    /// for router_type in RouterType::order_routers() {
+    ///     println!("Processing order events for {:?}", router_type);
+    /// }
+    /// ```
+    pub const fn order_routers() -> [RouterType; 1] {
+        [RouterType::LimitOrder]
+    }
+
+    /// Returns whether this router type emits `Swap` and `SwapMulti` events.
+    ///
+    /// - `true` for [`V2`](RouterType::V2) and [`V3`](RouterType::V3)
+    /// - `false` for [`LimitOrder`](RouterType::LimitOrder)
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use odos_sdk::RouterType;
+    ///
+    /// assert!(RouterType::V2.emits_swap_events());
+    /// assert!(RouterType::V3.emits_swap_events());
+    /// assert!(!RouterType::LimitOrder.emits_swap_events());
+    /// ```
+    pub const fn emits_swap_events(&self) -> bool {
+        matches!(self, RouterType::V2 | RouterType::V3)
+    }
+
+    /// Returns whether this router type emits limit order events.
+    ///
+    /// - `true` for [`LimitOrder`](RouterType::LimitOrder)
+    /// - `false` for [`V2`](RouterType::V2) and [`V3`](RouterType::V3)
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use odos_sdk::RouterType;
+    ///
+    /// assert!(RouterType::LimitOrder.emits_order_events());
+    /// assert!(!RouterType::V2.emits_order_events());
+    /// assert!(!RouterType::V3.emits_order_events());
+    /// ```
+    pub const fn emits_order_events(&self) -> bool {
+        matches!(self, RouterType::LimitOrder)
+    }
+
+    /// Returns the router type as a string identifier.
     pub const fn as_str(&self) -> &'static str {
         match self {
             RouterType::LimitOrder => "LO",
@@ -250,5 +370,52 @@ mod tests {
 
         let avail = RouterAvailability::none();
         assert_eq!(avail.to_string(), "No routers available");
+    }
+
+    #[test]
+    fn test_swap_routers() {
+        let swap = RouterType::swap_routers();
+        assert_eq!(swap.len(), 2);
+        assert!(swap.contains(&RouterType::V2));
+        assert!(swap.contains(&RouterType::V3));
+        assert!(!swap.contains(&RouterType::LimitOrder));
+    }
+
+    #[test]
+    fn test_order_routers() {
+        let order = RouterType::order_routers();
+        assert_eq!(order.len(), 1);
+        assert!(order.contains(&RouterType::LimitOrder));
+        assert!(!order.contains(&RouterType::V2));
+        assert!(!order.contains(&RouterType::V3));
+    }
+
+    #[test]
+    fn test_emits_swap_events() {
+        assert!(RouterType::V2.emits_swap_events());
+        assert!(RouterType::V3.emits_swap_events());
+        assert!(!RouterType::LimitOrder.emits_swap_events());
+    }
+
+    #[test]
+    fn test_emits_order_events() {
+        assert!(RouterType::LimitOrder.emits_order_events());
+        assert!(!RouterType::V2.emits_order_events());
+        assert!(!RouterType::V3.emits_order_events());
+    }
+
+    #[test]
+    fn test_swap_and_order_routers_are_exhaustive() {
+        // Verify that swap_routers + order_routers covers all router types
+        let all: std::collections::HashSet<_> = RouterType::all().into_iter().collect();
+        let swap: std::collections::HashSet<_> = RouterType::swap_routers().into_iter().collect();
+        let order: std::collections::HashSet<_> = RouterType::order_routers().into_iter().collect();
+
+        // Union of swap and order should equal all
+        let combined: std::collections::HashSet<_> = swap.union(&order).copied().collect();
+        assert_eq!(all, combined);
+
+        // Swap and order should be disjoint
+        assert!(swap.is_disjoint(&order));
     }
 }
