@@ -21,11 +21,11 @@ The SDK heavily relies on the [Alloy](https://github.com/alloy-rs/alloy) suite o
 #### alloy-chains (0.2.x)
 - **Purpose**: Chain ID definitions and type-safe chain support
 - **Why this version**: alloy-chains is in a separate repository (github.com/alloy-rs/chains) with its own versioning - 0.2.x is the latest stable series and is fully compatible with alloy 1.x
-- **Current version**: 0.2.17 (latest)
+- **Current version**: 0.2.25 (latest)
 - **Usage**: Provides `NamedChain` enum and chain-specific configurations
 - **Note**: Despite different major version numbers, alloy-chains 0.2.x is designed to work with alloy 1.x
 
-#### alloy-primitives (1.4.x)
+#### alloy-primitives (1.5.x)
 - **Purpose**: Core Ethereum types (`Address`, `U256`, `Bytes`, etc.)
 - **Features enabled**:
   - `std`: Standard library support
@@ -33,45 +33,45 @@ The SDK heavily relies on the [Alloy](https://github.com/alloy-rs/alloy) suite o
 - **Why this version**: Latest stable release with excellent performance and ergonomics
 - **Usage**: All address handling, amount calculations, and hex encoding
 
-#### alloy-contract (1.0.x)
+#### alloy-contract (1.3.x)
 - **Purpose**: Contract interaction abstractions
 - **Features**: `default-features = false` for fine-grained control
 - **Usage**: Used for contract bindings and transaction assembly
 
-#### alloy-sol-types (1.4.x)
+#### alloy-sol-types (1.5.x)
 - **Purpose**: Solidity type definitions and ABI encoding/decoding
 - **Features enabled**: `json` for ABI JSON support
 - **Usage**: V2/V3 router contract ABIs and transaction encoding
 
-#### alloy-sol-type-parser (1.4.x)
+#### alloy-sol-type-parser (1.5.x)
 - **Purpose**: Parsing Solidity type strings at compile time
 - **Usage**: Contract macro expansion for type-safe ABI bindings
 
-#### alloy-provider (1.0.x)
+#### alloy-provider (1.3.x)
 - **Purpose**: RPC provider abstractions for Ethereum node communication
 - **Features enabled**:
   - `anvil-node`: Local testing support
   - `reqwest`: HTTP transport via reqwest
 - **Usage**: Transaction simulation and submission
 
-#### alloy-signer (1.0.x), alloy-signer-local (1.0.x)
+#### alloy-signer (1.3.x), alloy-signer-local (1.3.x)
 - **Purpose**: Transaction signing abstractions and local wallet support
 - **Features**: `default-features = false` to avoid unnecessary dependencies
 - **Usage**: Transaction signing for swap execution
 
-#### alloy-network (1.0.x)
+#### alloy-network (1.3.x)
 - **Purpose**: Network-level abstractions (mainnet, testnet, etc.)
 - **Features**: `default-features = false`
 - **Usage**: Network-aware transaction building
 
-#### alloy-rpc-* crates (1.0.x)
+#### alloy-rpc-* crates (1.3.x)
 - **alloy-rpc-client**: Low-level RPC client
 - **alloy-rpc-types**: RPC type definitions
 - **alloy-json-rpc**: JSON-RPC protocol support
 - **Purpose**: HTTP communication with Ethereum nodes and services
 - **Usage**: Contract calls and transaction submission
 
-#### alloy-transport (1.0.x), alloy-transport-http (1.0.x)
+#### alloy-transport (1.3.x), alloy-transport-http (1.3.x)
 - **Purpose**: Transport layer for RPC communications
 - **Features**: `reqwest` for HTTP support
 - **Usage**: HTTP communication layer
@@ -120,15 +120,6 @@ Both are fully compatible despite different version numbers. We use the latest s
 - **Purpose**: Ergonomic error type derivation
 - **Why this crate**: Best-in-class error handling macros
 - **Usage**: `OdosError` enum and all error types throughout the SDK
-
-#### anyhow (1.0.x) **[TO BE REMOVED IN 1.0]**
-- **Purpose**: **BACKWARDS COMPATIBILITY ONLY** - `From<anyhow::Error>` conversion
-- **Current usage**: Single `From` impl in `src/error.rs:414-419`
-- **Removal rationale**:
-  - Only used for migration compatibility
-  - Adds unnecessary dependency for minimal value
-  - Users can handle conversion themselves if needed
-- **Migration**: Remove the `From<anyhow::Error>` impl before 1.0.0 release
 
 ### Async Runtime
 
@@ -273,5 +264,5 @@ This project builds on the excellent work of the Rust and Ethereum communities, 
 
 ---
 
-**Last Updated**: 2025-01-08 (Version 0.23.0 → 1.0.0 preparation)
-**Next Review**: Before 1.0.0 release
+**Last Updated**: 2025-01-08 (Version 1.2.0)
+**Next Review**: Before 1.3.0 release

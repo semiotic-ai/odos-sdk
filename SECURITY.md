@@ -67,7 +67,7 @@ Security advisories will be published through:
 #### Secure Key Storage
 
 ```rust
-use odos_sdk::{OdosSor, ClientConfig, ApiKey};
+use odos_sdk::{OdosClient, ClientConfig, ApiKey};
 use std::env;
 
 // ✅ GOOD: Load from environment variable
@@ -79,7 +79,7 @@ let config = ClientConfig {
     api_key,
     ..Default::default()
 };
-let client = OdosSor::with_config(config)?;
+let client = OdosClient::with_config(config)?;
 ```
 
 ```rust
@@ -129,7 +129,7 @@ let retry_config = RetryConfig {
     retry_predicate: None,
 };
 
-let client = OdosSor::with_retry_config(retry_config)?;
+let client = OdosClient::with_retry_config(retry_config)?;
 ```
 
 ### Input Validation
@@ -165,7 +165,7 @@ Never expose sensitive information in error messages:
 ```rust
 use odos_sdk::OdosError;
 
-match client.get_swap_quote(&request).await {
+match client.quote(&request).await {
     Ok(quote) => {
         // Handle success
     }
@@ -179,7 +179,7 @@ match client.get_swap_quote(&request).await {
 
 ```rust
 // ❌ BAD: Exposing internal error details to users
-match client.get_swap_quote(&request).await {
+match client.quote(&request).await {
     Err(e) => panic!("Error: {}", e), // May leak trace IDs, URLs, etc.
 }
 ```

@@ -34,7 +34,7 @@ Add the SDK to your project:
 
 ```toml
 [dependencies]
-odos-sdk = "1.0"
+odos-sdk = "1.2"
 ```
 
 ### Your First Swap
@@ -81,7 +81,7 @@ Three concepts, one builder, zero complexity. The SDK handles quote fetching, op
 Supports 16+ EVM chains out of the box:
 
 | Category | Chains |
-|----------|--------|
+| ---------- | -------- |
 | **Layer 1** | Ethereum |
 | **Layer 2** | Arbitrum, Optimism, Base, Polygon, zkSync, Scroll, Linea, Mantle, Mode |
 | **Sidechains** | BSC, Avalanche, Fraxtal, Sonic, Unichain |
@@ -317,19 +317,19 @@ Customize what gets compiled based on your needs:
 ```toml
 # Default: V2 + V3 routers
 [dependencies]
-odos-sdk = "1.0"
+odos-sdk = "1.2"
 
 # Minimal: Just API types and HTTP client (no contract bindings)
 [dependencies]
-odos-sdk = { version = "1.0", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "1.2", default-features = false, features = ["minimal"] }
 
 # All contracts: V2 + V3 + Limit Orders
 [dependencies]
-odos-sdk = { version = "1.0", default-features = false, features = ["contracts"] }
+odos-sdk = { version = "1.2", default-features = false, features = ["contracts"] }
 
 # Custom combination
 [dependencies]
-odos-sdk = { version = "1.0", default-features = false, features = ["v2", "v3"] }
+odos-sdk = { version = "1.2", default-features = false, features = ["v2", "v3"] }
 ```
 
 Available features:
@@ -344,7 +344,7 @@ Available features:
 ## Documentation
 
 | Resource | Description |
-|----------|-------------|
+| -------- | ----------- |
 | [GETTING_STARTED.md](GETTING_STARTED.md) | Complete walkthrough from setup to your first swap |
 | [EXAMPLES.md](EXAMPLES.md) | Real-world patterns: error handling, testing, integration |
 | [API Docs](https://docs.rs/odos-sdk) | Complete API reference with inline examples |

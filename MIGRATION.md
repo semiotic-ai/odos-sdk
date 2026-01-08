@@ -558,4 +558,4 @@ cargo doc --all-features --no-deps
 
 The 1.0 API is designed to be more intuitive, type-safe, and maintainable. We believe these changes will make your code clearer and more robust.
 
-Happy swapping! 🚀
+Happy swapping!

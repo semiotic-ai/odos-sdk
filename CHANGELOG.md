@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Error Classification Helper**: New `is_unroutable_token` method on `OdosError`
+  - Identifies token routing errors for metrics classification
+  - Useful for distinguishing between temporary failures and token-specific issues
+
+### Changed
+
+- **Dependencies**: Updated Alloy ecosystem packages
+  - alloy-* packages: 1.2.1 → 1.3.0
+  - alloy-chains: 0.2.24 → 0.2.25
+  - Other minor dependency updates
+
+## [1.2.0] - 2025-01-06
+
+### Added
+
+- **Router Type Detection**: Helper methods to distinguish swap vs order routers
+  - `RouterType::is_swap_router()`: Check if router handles swaps (V2/V3)
+  - `RouterType::is_order_router()`: Check if router handles limit orders
+  - Useful for routing logic and contract interaction decisions
+
 ## [1.1.0] - 2025-01-04
 
 ### Added
@@ -191,61 +213,28 @@ All documentation is copy-paste ready with progressive complexity from quick win
 
 - Missing contract method prevented consumers from calling `changeLiquidatorAddress` on the Limit Order V2 router
 
-## [1.0.0] - In Progress
+## [1.0.0] - 2025-01-02
 
-### PHASE 1: FOUNDATION & CLEANUP ✅ COMPLETED
-
-#### Removed (Breaking Changes)
+### Removed (Breaking Changes)
 
 - **BREAKING**: Removed deprecated `EndpointBase` enum (deprecated since 0.21.0)
   - **Migration**: Use `ApiHost` enum instead
-  - Example: `EndpointBase::Public` → `ApiHost::Public`
 - **BREAKING**: Removed deprecated `EndpointVersion` enum (deprecated since 0.21.0)
   - **Migration**: Use `ApiVersion` enum instead
-  - Example: `EndpointVersion::V2` → `ApiVersion::V2`
 - **BREAKING**: Use `Endpoint` convenience constructors instead of separate fields
   - **Migration**: `Endpoint::public_v2()`, `Endpoint::enterprise_v3()`, etc.
-- Removed `From<EndpointBase>` for `ApiHost` trait implementation
-- Removed `From<EndpointVersion>` for `ApiVersion` trait implementation
-- Removed `anyhow` backwards compatibility shim (`From<anyhow::Error>` for `OdosError`)
+- Removed `anyhow` backwards compatibility shim
 
-#### Changed
+### Changed
 
 - **Dependency Migration**: Replaced unmaintained `backoff` (0.4) with `backon` (1.6)
   - **Security**: Fixes RUSTSEC-2025-0012 (backoff unmaintained)
-  - **Security**: Fixes RUSTSEC-2024-0384 (instant unmaintained, transitive via backoff)
-  - **Impact**: Internal implementation detail, no API changes
-  - Uses iterator-based backoff API with `BackoffBuilder` trait
-- Updated `alloy-chains` from 0.2.16 to 0.2.17 (latest stable)
-- Removed explicit `tower` and `tower-http` dependencies (available transitively via reqwest)
+  - **Security**: Fixes RUSTSEC-2024-0384 (instant unmaintained)
+- Updated alloy ecosystem dependencies to latest stable versions
 
-#### Added
+### Added
 
-- **DEPENDENCIES.md**: Comprehensive documentation of all 25+ dependencies
-  - Rationale and purpose for each dependency
-  - Version choices explained
-  - Security considerations and audit results
-  - Migration notes from unmaintained crates
-  - Future improvement roadmap
-  - License compatibility information
-
-### PHASE 1: REMAINING TASKS (In Progress)
-
-- [ ] Replace glob re-exports with explicit exports in lib.rs
-- [ ] Fix broken rustdoc links in client.rs
-- [ ] Add CONTRIBUTING.md with development workflow
-- [ ] Add SECURITY.md with vulnerability reporting
-- [ ] Fix README example to be compilable
-- [ ] Run final clippy check with all lints
-
-### PLANNED: PHASE 2-5 (8-12 weeks timeline)
-
-See comprehensive 1.0.0 release plan for:
-
-- Phase 2: API Redesign for Excellence (Weeks 3-5)
-- Phase 3: Production Hardening (Weeks 6-8)
-- Phase 4: Documentation & Developer Experience (Weeks 9-10)
-- Phase 5: Testing & Validation (Weeks 11-12)
+- **DEPENDENCIES.md**: Comprehensive documentation of all dependencies
 
 ## [0.12.0] - 2025-10-27
 
