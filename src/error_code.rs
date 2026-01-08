@@ -370,6 +370,27 @@ impl OdosErrorCode {
                     | Self::InternalError
             )
     }
+
+    /// Check if this error indicates the token cannot be routed
+    ///
+    /// This is NOT an error condition - it's Odos correctly responding that
+    /// the token cannot be swapped. Common reasons include:
+    /// - Token is not supported by Odos (TokenRoutingUnavailable)
+    /// - Token is blacklisted (TokenBlacklisted)
+    /// - Token is not recognized (InvalidInputTokens/InvalidOutputTokens)
+    /// - No liquidity path exists (NoViablePath)
+    ///
+    /// These should be tracked separately from actual errors for metrics purposes.
+    pub fn is_unroutable_token(&self) -> bool {
+        matches!(
+            self,
+            Self::TokenRoutingUnavailable
+                | Self::TokenBlacklisted
+                | Self::InvalidInputTokens
+                | Self::InvalidOutputTokens
+                | Self::NoViablePath
+        )
+    }
 }
 
 impl From<u16> for OdosErrorCode {
@@ -602,5 +623,21 @@ mod tests {
             "4001 (INVALID_CHAIN_ID)"
         );
         assert_eq!(OdosErrorCode::Unknown(9999).to_string(), "9999 (UNKNOWN)");
+    }
+
+    #[test]
+    fn test_unroutable_token_detection() {
+        // These indicate the token cannot be routed (expected behavior, not errors)
+        assert!(OdosErrorCode::NoViablePath.is_unroutable_token());
+        assert!(OdosErrorCode::TokenRoutingUnavailable.is_unroutable_token());
+        assert!(OdosErrorCode::TokenBlacklisted.is_unroutable_token());
+        assert!(OdosErrorCode::InvalidInputTokens.is_unroutable_token());
+        assert!(OdosErrorCode::InvalidOutputTokens.is_unroutable_token());
+
+        // These are NOT unroutable token indicators
+        assert!(!OdosErrorCode::AlgoTimeout.is_unroutable_token());
+        assert!(!OdosErrorCode::InternalError.is_unroutable_token());
+        assert!(!OdosErrorCode::InvalidChainId.is_unroutable_token());
+        assert!(!OdosErrorCode::BlockedUserAddr.is_unroutable_token());
     }
 }
