@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-01-08
+
 ### Added
 
-- **Error Classification Helper**: New `is_unroutable_token` method on `OdosError`
+- **Error Classification Helper**: New `is_unroutable_token` method on `OdosErrorCode`
   - Identifies token routing errors for metrics classification
   - Useful for distinguishing between temporary failures and token-specific issues
 

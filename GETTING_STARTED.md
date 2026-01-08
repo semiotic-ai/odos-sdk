@@ -18,7 +18,7 @@ Add the SDK to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-odos-sdk = "1.2"
+odos-sdk = "1.3"
 alloy = { version = "1.3", features = ["full"] }  # For wallet/signer functionality
 tokio = { version = "1", features = ["full"] }
 ```
@@ -29,7 +29,7 @@ The SDK offers granular feature flags to minimize dependencies:
 
 ```toml
 # Default: V2 + V3 routers (recommended)
-odos-sdk = "1.2"
+odos-sdk = "1.3"
 
 # Minimal: API client only, no contract bindings
 odos-sdk = { version = "1.2", default-features = false, features = ["minimal"] }
