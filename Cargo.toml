@@ -27,7 +27,7 @@ limit-orders = [
     "v2",
 ] # Limit order contract bindings (requires v2 for SwapInputs)
 
-# OP-stack chain support (Base, Optimism, Mode, Fraxtal)
+# OP-stack chain support (Base, Optimism, Fraxtal)
 # Provides access to L1 gas information in transaction receipts
 op-stack = ["dep:op-alloy-network", "dep:op-alloy-rpc-types", "v2", "v3"]
 

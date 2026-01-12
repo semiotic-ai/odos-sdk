@@ -9,12 +9,12 @@ use thiserror::Error;
 use crate::{
     RouterAvailability, ODOS_LO_ARBITRUM_ROUTER, ODOS_LO_AVALANCHE_ROUTER, ODOS_LO_BASE_ROUTER,
     ODOS_LO_BSC_ROUTER, ODOS_LO_ETHEREUM_ROUTER, ODOS_LO_FRAXTAL_ROUTER, ODOS_LO_LINEA_ROUTER,
-    ODOS_LO_MANTLE_ROUTER, ODOS_LO_MODE_ROUTER, ODOS_LO_OP_ROUTER, ODOS_LO_POLYGON_ROUTER,
-    ODOS_LO_SCROLL_ROUTER, ODOS_LO_SONIC_ROUTER, ODOS_LO_UNICHAIN_ROUTER, ODOS_LO_ZKSYNC_ROUTER,
-    ODOS_V2_ARBITRUM_ROUTER, ODOS_V2_AVALANCHE_ROUTER, ODOS_V2_BASE_ROUTER, ODOS_V2_BSC_ROUTER,
-    ODOS_V2_ETHEREUM_ROUTER, ODOS_V2_FRAXTAL_ROUTER, ODOS_V2_LINEA_ROUTER, ODOS_V2_MANTLE_ROUTER,
-    ODOS_V2_MODE_ROUTER, ODOS_V2_OP_ROUTER, ODOS_V2_POLYGON_ROUTER, ODOS_V2_SCROLL_ROUTER,
-    ODOS_V2_SONIC_ROUTER, ODOS_V2_UNICHAIN_ROUTER, ODOS_V2_ZKSYNC_ROUTER, ODOS_V3,
+    ODOS_LO_MANTLE_ROUTER, ODOS_LO_OP_ROUTER, ODOS_LO_POLYGON_ROUTER, ODOS_LO_SCROLL_ROUTER,
+    ODOS_LO_SONIC_ROUTER, ODOS_LO_UNICHAIN_ROUTER, ODOS_LO_ZKSYNC_ROUTER, ODOS_V2_ARBITRUM_ROUTER,
+    ODOS_V2_AVALANCHE_ROUTER, ODOS_V2_BASE_ROUTER, ODOS_V2_BSC_ROUTER, ODOS_V2_ETHEREUM_ROUTER,
+    ODOS_V2_FRAXTAL_ROUTER, ODOS_V2_LINEA_ROUTER, ODOS_V2_MANTLE_ROUTER, ODOS_V2_OP_ROUTER,
+    ODOS_V2_POLYGON_ROUTER, ODOS_V2_SCROLL_ROUTER, ODOS_V2_SONIC_ROUTER, ODOS_V2_UNICHAIN_ROUTER,
+    ODOS_V2_ZKSYNC_ROUTER, ODOS_V3,
 };
 
 /// Errors that can occur when working with Odos chains
@@ -237,7 +237,6 @@ impl OdosChain for NamedChain {
             Polygon => ODOS_LO_POLYGON_ROUTER,
             Linea => ODOS_LO_LINEA_ROUTER,
             Mantle => ODOS_LO_MANTLE_ROUTER,
-            Mode => ODOS_LO_MODE_ROUTER,
             Scroll => ODOS_LO_SCROLL_ROUTER,
             Sonic => ODOS_LO_SONIC_ROUTER,
             ZkSync => ODOS_LO_ZKSYNC_ROUTER,
@@ -275,7 +274,6 @@ impl OdosChain for NamedChain {
             Polygon => ODOS_V2_POLYGON_ROUTER,
             Linea => ODOS_V2_LINEA_ROUTER,
             Mantle => ODOS_V2_MANTLE_ROUTER,
-            Mode => ODOS_V2_MODE_ROUTER,
             Scroll => ODOS_V2_SCROLL_ROUTER,
             Sonic => ODOS_V2_SONIC_ROUTER,
             ZkSync => ODOS_V2_ZKSYNC_ROUTER,
@@ -317,7 +315,6 @@ impl OdosChain for NamedChain {
                 | Polygon
                 | Linea
                 | Mantle
-                | Mode
                 | Scroll
                 | Sonic
                 | ZkSync
@@ -339,7 +336,6 @@ impl OdosChain for NamedChain {
                 | Polygon
                 | Linea
                 | Mantle
-                | Mode
                 | Scroll
                 | Sonic
                 | ZkSync
@@ -361,7 +357,6 @@ impl OdosChain for NamedChain {
                 | Polygon
                 | Linea
                 | Mantle
-                | Mode
                 | Scroll
                 | Sonic
                 | ZkSync
@@ -383,7 +378,6 @@ impl OdosChain for NamedChain {
                 | Polygon
                 | Linea
                 | Mantle
-                | Mode
                 | Scroll
                 | Sonic
                 | ZkSync

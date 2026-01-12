@@ -63,7 +63,7 @@
 //!
 //! ### All Routers (LO, V2, V3)
 //! - **Layer 1**: Ethereum
-//! - **Layer 2**: Arbitrum, Optimism, Polygon, Base, Scroll, Linea, zkSync, Mantle, Mode
+//! - **Layer 2**: Arbitrum, Optimism, Polygon, Base, Scroll, Linea, zkSync, Mantle
 //! - **Sidechains**: BSC, Avalanche, Fraxtal, Sonic, Unichain
 //!
 //! ## Router Type Differences
@@ -150,13 +150,6 @@ pub const ODOS_V2_LINEA_ROUTER: Address = address!("2d8879046f1559E53eb052E949e9
 ///
 /// **Verified on**: <https://mantlescan.xyz/address/0xD9F4e85489aDCD0bAF0Cd63b4231c6af58c26745>
 pub const ODOS_V2_MANTLE_ROUTER: Address = address!("D9F4e85489aDCD0bAF0Cd63b4231c6af58c26745");
-
-/// **Mode** - V2 Router contract address
-///
-/// Chain ID: 34443
-///
-/// **Verified on**: <https://explorer.mode.network/address/0x7E15EB462cdc67Cf92Af1f7102465a8F8c784874>
-pub const ODOS_V2_MODE_ROUTER: Address = address!("7E15EB462cdc67Cf92Af1f7102465a8F8c784874");
 
 /// **Scroll** - V2 Router contract address
 ///
@@ -260,13 +253,6 @@ pub const ODOS_LO_LINEA_ROUTER: Address = address!("b3a9B56056a5c93F468dF62579b9
 /// **Verified on**: <https://mantlescan.xyz/address/0xa05A88037402d869b7CA69F5bEc098E19BeDaFbB>
 pub const ODOS_LO_MANTLE_ROUTER: Address = address!("a05A88037402d869b7CA69F5bEc098E19BeDaFbB");
 
-/// **Mode** - Limit Order V2 Router contract address
-///
-/// Chain ID: 34443
-///
-/// **Verified on**: <https://explorer.mode.network/address/0x8073e286DaDc6d92BefC8f436c5BcDFcE213e681>
-pub const ODOS_LO_MODE_ROUTER: Address = address!("8073e286DaDc6d92BefC8f436c5BcDFcE213e681");
-
 /// **Scroll** - Limit Order V2 Router contract address
 ///
 /// Chain ID: 534352
@@ -362,7 +348,6 @@ pub fn get_v2_router_by_chain_id(chain_id: u64) -> Option<Address> {
         NamedChain::Unichain => ODOS_V2_UNICHAIN_ROUTER,
         NamedChain::Mantle => ODOS_V2_MANTLE_ROUTER,
         NamedChain::Base => ODOS_V2_BASE_ROUTER,
-        NamedChain::Mode => ODOS_V2_MODE_ROUTER,
         NamedChain::Avalanche => ODOS_V2_AVALANCHE_ROUTER,
         NamedChain::Linea => ODOS_V2_LINEA_ROUTER,
         NamedChain::Scroll => ODOS_V2_SCROLL_ROUTER,
@@ -416,7 +401,6 @@ pub fn get_lo_router_by_chain_id(chain_id: u64) -> Option<Address> {
         NamedChain::Fraxtal => ODOS_LO_FRAXTAL_ROUTER,
         NamedChain::Linea => ODOS_LO_LINEA_ROUTER,
         NamedChain::Mantle => ODOS_LO_MANTLE_ROUTER,
-        NamedChain::Mode => ODOS_LO_MODE_ROUTER,
         NamedChain::Scroll => ODOS_LO_SCROLL_ROUTER,
         NamedChain::Sonic => ODOS_LO_SONIC_ROUTER,
         NamedChain::ZkSync => ODOS_LO_ZKSYNC_ROUTER,
@@ -495,7 +479,6 @@ pub fn get_supported_chains() -> Vec<NamedChain> {
         Linea,
         Mainnet,
         Mantle,
-        Mode,
         Optimism,
         Polygon,
         Scroll,
@@ -540,7 +523,6 @@ pub fn get_supported_lo_chains() -> Vec<NamedChain> {
         Linea,
         Mainnet,
         Mantle,
-        Mode,
         Optimism,
         Polygon,
         Scroll,
@@ -585,7 +567,6 @@ pub fn get_supported_v2_chains() -> Vec<NamedChain> {
         Linea,
         Mainnet,
         Mantle,
-        Mode,
         Optimism,
         Polygon,
         Scroll,
@@ -630,7 +611,6 @@ pub fn get_supported_v3_chains() -> Vec<NamedChain> {
         Linea,
         Mainnet,
         Mantle,
-        Mode,
         Optimism,
         Polygon,
         Scroll,

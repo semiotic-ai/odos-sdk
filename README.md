@@ -83,7 +83,7 @@ Supports 16+ EVM chains out of the box:
 | Category | Chains |
 | ---------- | -------- |
 | **Layer 1** | Ethereum |
-| **Layer 2** | Arbitrum, Optimism, Base, Polygon, zkSync, Scroll, Linea, Mantle, Mode |
+| **Layer 2** | Arbitrum, Optimism, Base, Polygon, zkSync, Scroll, Linea, Mantle |
 | **Sidechains** | BSC, Avalanche, Fraxtal, Sonic, Unichain |
 
 Chain selection is type-safe and simple:

@@ -193,20 +193,6 @@ impl Chain {
         Self(NamedChain::Mantle)
     }
 
-    /// Mode (Chain ID: 34443)
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use odos_sdk::Chain;
-    ///
-    /// let chain = Chain::mode();
-    /// assert_eq!(chain.id(), 34443);
-    /// ```
-    pub const fn mode() -> Self {
-        Self(NamedChain::Mode)
-    }
-
     /// Fraxtal (Chain ID: 252)
     ///
     /// # Examples
@@ -407,7 +393,6 @@ mod tests {
         assert_eq!(Chain::scroll().id(), 534352);
         assert_eq!(Chain::zksync().id(), 324);
         assert_eq!(Chain::mantle().id(), 5000);
-        assert_eq!(Chain::mode().id(), 34443);
         assert_eq!(Chain::fraxtal().id(), 252);
         assert_eq!(Chain::sonic().id(), 146);
         assert_eq!(Chain::unichain().id(), 130);

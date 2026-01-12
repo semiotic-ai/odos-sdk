@@ -19,7 +19,7 @@ use OdosV3Router::{swapCall, OdosV3RouterCalls, OdosV3RouterInstance, Swap, Swap
 /// The V3 SOR Router contract.
 ///
 /// This router is generic over the network type, allowing it to work with both standard
-/// Ethereum networks and OP-stack networks (Optimism, Base, Mode, Fraxtal).
+/// Ethereum networks and OP-stack networks (Optimism, Base, Fraxtal).
 ///
 /// # Type Parameters
 ///

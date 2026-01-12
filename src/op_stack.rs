@@ -4,7 +4,7 @@
 
 //! OP-stack chain support for Odos SDK.
 //!
-//! This module provides specialized types for OP-stack chains (Optimism, Base, Mode,
+//! This module provides specialized types for OP-stack chains (Optimism, Base,
 //! Fraxtal) that give access to L1 gas information in transaction receipts.
 //!
 //! # L1 Gas Information
@@ -37,7 +37,6 @@
 //!
 //! - **Optimism** (chain ID 10)
 //! - **Base** (chain ID 8453)
-//! - **Mode** (chain ID 34443)
 //! - **Fraxtal** (chain ID 252)
 //!
 //! # Usage with Standard Routers
@@ -66,9 +65,9 @@ pub use op_alloy_rpc_types::OpTransactionReceipt;
 
 /// Checks if a chain ID is an OP-stack chain supported by Odos.
 ///
-/// Returns `true` for Optimism (10), Base (8453), Mode (34443), and Fraxtal (252).
+/// Returns `true` for Optimism (10), Base (8453), and Fraxtal (252).
 pub const fn is_op_stack_chain(chain_id: u64) -> bool {
-    matches!(chain_id, 10 | 8453 | 34443 | 252)
+    matches!(chain_id, 10 | 8453 | 252)
 }
 
 #[cfg(test)]
@@ -80,7 +79,6 @@ mod tests {
         // OP-stack chains
         assert!(is_op_stack_chain(10)); // Optimism
         assert!(is_op_stack_chain(8453)); // Base
-        assert!(is_op_stack_chain(34443)); // Mode
         assert!(is_op_stack_chain(252)); // Fraxtal
 
         // Non-OP-stack chains
