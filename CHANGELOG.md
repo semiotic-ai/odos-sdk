@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-01-12
+
+### Removed
+
+- **BREAKING**: Removed Mode chain support (chain ID 34443)
+  - Odos has discontinued support for Mode
+  - Removed `Chain::mode()` constructor
+  - Removed `ODOS_V2_MODE_ROUTER` and `ODOS_LO_MODE_ROUTER` constants
+  - Removed Mode from OP-stack chain detection
+  - Users referencing Mode must migrate to other supported chains
+
 ## [1.3.0] - 2026-01-08
 
 ### Added
@@ -36,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **OP-Stack Chain Support**: New `op-stack` feature flag for L2 chains
-  - Base, Optimism, Mode, Fraxtal support with op-alloy v0.23.1
+  - Base, Optimism, Fraxtal support with op-alloy v0.23.1
   - Access to L1 gas information in transaction receipts
   - New `op_stack` module with `Optimism` network type
 

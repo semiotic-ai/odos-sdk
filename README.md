@@ -34,7 +34,7 @@ Add the SDK to your project:
 
 ```toml
 [dependencies]
-odos-sdk = "1.3"
+odos-sdk = "2.0"
 ```
 
 ### Your First Swap
@@ -317,19 +317,19 @@ Customize what gets compiled based on your needs:
 ```toml
 # Default: V2 + V3 routers
 [dependencies]
-odos-sdk = "1.3"
+odos-sdk = "2.0"
 
 # Minimal: Just API types and HTTP client (no contract bindings)
 [dependencies]
-odos-sdk = { version = "1.2", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "2.0", default-features = false, features = ["minimal"] }
 
 # All contracts: V2 + V3 + Limit Orders
 [dependencies]
-odos-sdk = { version = "1.2", default-features = false, features = ["contracts"] }
+odos-sdk = { version = "2.0", default-features = false, features = ["contracts"] }
 
 # Custom combination
 [dependencies]
-odos-sdk = { version = "1.2", default-features = false, features = ["v2", "v3"] }
+odos-sdk = { version = "2.0", default-features = false, features = ["v2", "v3"] }
 ```
 
 Available features:

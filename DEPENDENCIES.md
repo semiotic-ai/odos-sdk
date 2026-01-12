@@ -297,5 +297,5 @@ This project builds on the excellent work of the Rust and Ethereum communities, 
 
 ---
 
-**Last Updated**: 2025-01-08 (Version 1.2.0)
-**Next Review**: Before 1.3.0 release
+**Last Updated**: 2026-01-12 (Version 2.0.0)
+**Next Review**: Before 2.1.0 release
