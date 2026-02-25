@@ -151,20 +151,6 @@ impl Chain {
         Self(NamedChain::Linea)
     }
 
-    /// Scroll (Chain ID: 534352)
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use odos_sdk::Chain;
-    ///
-    /// let chain = Chain::scroll();
-    /// assert_eq!(chain.id(), 534352);
-    /// ```
-    pub const fn scroll() -> Self {
-        Self(NamedChain::Scroll)
-    }
-
     /// ZkSync Era (Chain ID: 324)
     ///
     /// # Examples
@@ -390,7 +376,6 @@ mod tests {
         assert_eq!(Chain::bsc().id(), 56);
         assert_eq!(Chain::avalanche().id(), 43114);
         assert_eq!(Chain::linea().id(), 59144);
-        assert_eq!(Chain::scroll().id(), 534352);
         assert_eq!(Chain::zksync().id(), 324);
         assert_eq!(Chain::mantle().id(), 5000);
         assert_eq!(Chain::fraxtal().id(), 252);
