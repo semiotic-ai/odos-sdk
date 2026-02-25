@@ -7,7 +7,7 @@
 [![REUSE](https://api.reuse.software/badge/github.com/semiotic-ai/odos-sdk)](https://api.reuse.software/info/github.com/semiotic-ai/odos-sdk)
 [![Rust Version](https://img.shields.io/badge/rust-1.92%2B-blue.svg?logo=rust)](https://www.rust-lang.org)
 
-A production-ready Rust SDK for [Odos](https://www.odos.xyz) - the decentralized exchange aggregator that finds optimal token swap routes across 16+ EVM chains. Built with type safety, reliability, and developer experience in mind.
+A production-ready Rust SDK for [Odos](https://www.odos.xyz) - the decentralized exchange aggregator that finds optimal token swap routes across 13 EVM chains. Built with type safety, reliability, and developer experience in mind.
 
 ## What Makes This Special
 
@@ -34,7 +34,7 @@ Add the SDK to your project:
 
 ```toml
 [dependencies]
-odos-sdk = "2.0"
+odos-sdk = "3.0"
 ```
 
 ### Your First Swap
@@ -78,7 +78,7 @@ Three concepts, one builder, zero complexity. The SDK handles quote fetching, op
 
 ### Multi-Chain Support
 
-Supports 16+ EVM chains out of the box:
+Supports 13 EVM chains out of the box:
 
 | Category | Chains |
 | ---------- | -------- |
@@ -317,19 +317,19 @@ Customize what gets compiled based on your needs:
 ```toml
 # Default: V2 + V3 routers
 [dependencies]
-odos-sdk = "2.0"
+odos-sdk = "3.0"
 
 # Minimal: Just API types and HTTP client (no contract bindings)
 [dependencies]
-odos-sdk = { version = "2.0", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "3.0", default-features = false, features = ["minimal"] }
 
 # All contracts: V2 + V3 + Limit Orders
 [dependencies]
-odos-sdk = { version = "2.0", default-features = false, features = ["contracts"] }
+odos-sdk = { version = "3.0", default-features = false, features = ["contracts"] }
 
 # Custom combination
 [dependencies]
-odos-sdk = { version = "2.0", default-features = false, features = ["v2", "v3"] }
+odos-sdk = { version = "3.0", default-features = false, features = ["v2", "v3"] }
 ```
 
 Available features:

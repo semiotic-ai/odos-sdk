@@ -212,10 +212,10 @@ pub struct ClientConfig {
     /// Combines the API host tier (Public/Enterprise) and version (V2/V3)
     /// into a single ergonomic configuration.
     ///
-    /// Use convenience constructors like [`Endpoint::public_v2()`] or
-    /// [`Endpoint::enterprise_v3()`] for easy configuration.
+    /// Use convenience constructors like [`crate::Endpoint::public_v2()`] or
+    /// [`crate::Endpoint::enterprise_v3()`] for easy configuration.
     ///
-    /// Default: [`Endpoint::public_v2()`]
+    /// Default: [`crate::Endpoint::public_v2()`]
     ///
     /// # Examples
     ///

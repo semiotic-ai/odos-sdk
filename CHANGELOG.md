@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-02-25
+
+### Removed
+
+- **BREAKING**: Removed Scroll chain support (chain ID 534352)
+  - Odos has discontinued support for Scroll
+  - Removed `Chain::scroll()` constructor
+  - Removed `ODOS_V2_SCROLL_ROUTER` and `ODOS_LO_SCROLL_ROUTER` constants
+  - Users referencing Scroll must migrate to other supported chains
+
+### Changed
+
+- **Dependencies**: Upgraded op-alloy packages
+  - op-alloy-network: 0.23 → 0.24
+  - op-alloy-rpc-types: 0.23 → 0.24
+- **Dependencies**: Updated and upgraded cargo dependencies
+
+### Fixed
+
+- Broken intra-doc links for `Endpoint` type in `ClientConfig` documentation
+
 ## [2.0.0] - 2026-01-12
 
 ### Removed
