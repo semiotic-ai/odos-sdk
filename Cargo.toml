@@ -35,7 +35,7 @@ op-stack = ["dep:op-alloy-network", "dep:op-alloy-rpc-types", "v2", "v3"]
 contracts = ["v2", "v3", "limit-orders"]
 
 [dependencies]
-alloy-chains = "0.2.30"
+alloy-chains = "0.2.32"
 alloy-contract = { version = "1.7.3", default-features = false }
 alloy-json-rpc = { version = "1.7.3", default-features = false }
 alloy-network = { version = "1.7.3", default-features = false }
@@ -62,18 +62,18 @@ alloy-transport-http = { version = "1.7.3", default-features = false, features =
 op-alloy-network = { version = "0.24", optional = true }
 op-alloy-rpc-types = { version = "0.24", optional = true }
 backon = "1.6"
-bon = "3.9.0"
+bon = "3.9.1"
 reqwest = { version = "0.13.2", features = ["json"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 thiserror = "2.0.18"
-tokio = { version = "1.49", features = ["time", "rt"] }
+tokio = { version = "1.50", features = ["time", "rt"] }
 tracing = "0.1.44"
 url = "2.5"
-uuid = { version = "1.21.0", features = ["serde", "v4"] }
+uuid = { version = "1.22.0", features = ["serde", "v4"] }
 
 [dev-dependencies]
 wiremock = "0.6.5"
 tokio-test = "0.4"
-tokio = { version = "1.49", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.50", features = ["macros", "rt-multi-thread"] }
 http = "1.4"
