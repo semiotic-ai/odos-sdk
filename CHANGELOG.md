@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-03-21
+
+### Security
+
+- Resolved 5 security advisories in transitive TLS/crypto dependencies
+  - RUSTSEC-2026-0044: X.509 name constraints bypass in AWS-LC
+  - RUSTSEC-2026-0045: Timing side-channel in AES-CCM tag verification in AWS-LC
+  - RUSTSEC-2026-0048: CRL distribution point scope check logic error in AWS-LC (high severity)
+  - RUSTSEC-2026-0037: Denial of service in Quinn endpoints (high severity)
+  - RUSTSEC-2026-0049: CRL distribution point matching logic error in rustls-webpki
+
+### Changed
+
+- **Dependencies**: Updated and upgraded cargo dependencies
+  - alloy-chains: 0.2.30 → 0.2.32
+  - aws-lc-rs: 1.16.0 → 1.16.2 (aws-lc-sys: 0.37.1 → 0.39.0)
+  - quinn-proto: 0.11.13 → 0.11.14
+  - rustls-webpki: 0.103.9 → 0.103.10
+  - bon: 3.9.0 → 3.9.1
+  - tokio: 1.49 → 1.50
+
 ## [3.0.0] - 2026-02-25
 
 ### Removed
