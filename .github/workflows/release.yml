@@ -97,7 +97,7 @@ jobs:
           rm -rf "$baseline_dir"
           mkdir -p "$baseline_dir"
           curl -fsSL \
-            "https://crates.io/api/v1/crates/${{ steps.semver-baseline.outputs.crate_name }}/${{ steps.semver-baseline.outputs.baseline_version }}/download" \
+            "https://static.crates.io/crates/${{ steps.semver-baseline.outputs.crate_name }}/${{ steps.semver-baseline.outputs.crate_name }}-${{ steps.semver-baseline.outputs.baseline_version }}.crate" \
             -o "$baseline_archive"
           tar -xf "$baseline_archive" -C "$baseline_dir"
           test -f "$crate_root/Cargo.lock"

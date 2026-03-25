@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.3] - 2026-03-25
+
+### Fixed
+
+- Release workflow now downloads the published baseline crate from `static.crates.io`
+  - Avoids `403` responses from the crates.io API redirect endpoint in GitHub Actions
+  - Keeps semver baseline generation pinned to the published `.crate` artifact and its included `Cargo.lock`
+
 ## [3.1.2] - 2026-03-25
 
 ### Fixed
