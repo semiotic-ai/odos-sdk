@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-03-25
+
+### Fixed
+
+- Pinned direct Alloy and OP-Alloy dependencies to exact compatible versions
+  - Prevents fresh dependency resolution from selecting an incompatible `alloy`/`op-alloy` combination
+  - Fixes `cargo doc` / semver-checks style release flows when `odos-sdk` is built as a dependency in a clean workspace with `op-stack` enabled
+
 ## [3.1.0] - 2026-03-25
 
 ### Added
