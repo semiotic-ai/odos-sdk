@@ -25,19 +25,117 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Rust nightly
+        run: rustup toolchain install nightly --profile minimal
+
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
 
       - name: Run tests before publish
         run: cargo test --all-features
 
+      - name: Resolve semver baseline
+        id: semver-baseline
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          import urllib.request
+
+          metadata = json.loads(
+              subprocess.check_output(
+                  ["cargo", "metadata", "--no-deps", "--format-version", "1"],
+                  text=True,
+              )
+          )
+
+          root_id = metadata["workspace_members"][0]
+          package = next(pkg for pkg in metadata["packages"] if pkg["id"] == root_id)
+          lib_target = next(
+              (target["name"] for target in package["targets"] if "lib" in target["kind"]),
+              package["name"].replace("-", "_"),
+          )
+
+          with urllib.request.urlopen(
+              f"https://crates.io/api/v1/crates/{package['name']}",
+              timeout=30,
+          ) as response:
+              crate = json.load(response)
+
+          baseline_version = None
+          for version in crate["versions"]:
+              if version["yanked"] or version["num"] == package["version"]:
+                  continue
+              baseline_version = version["num"]
+              break
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"crate_name={package['name']}\n")
+              output.write(f"crate_target={lib_target}\n")
+              if baseline_version is None:
+                  output.write("has_baseline=false\n")
+                  sys.exit(0)
+
+              output.write("has_baseline=true\n")
+              output.write(f"baseline_version={baseline_version}\n")
+          PY
+
       - name: Install cargo-semver-checks
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-semver-checks
 
+      - name: Build baseline rustdoc JSON
+        if: steps.semver-baseline.outputs.has_baseline == 'true'
+        id: baseline-rustdoc
+        run: |
+          baseline_dir="$RUNNER_TEMP/semver-baseline"
+          baseline_archive="$RUNNER_TEMP/${{ steps.semver-baseline.outputs.crate_name }}-${{ steps.semver-baseline.outputs.baseline_version }}.crate"
+          crate_root="$baseline_dir/${{ steps.semver-baseline.outputs.crate_name }}-${{ steps.semver-baseline.outputs.baseline_version }}"
+          rm -rf "$baseline_dir"
+          mkdir -p "$baseline_dir"
+          curl -fsSL \
+            "https://crates.io/api/v1/crates/${{ steps.semver-baseline.outputs.crate_name }}/${{ steps.semver-baseline.outputs.baseline_version }}/download" \
+            -o "$baseline_archive"
+          tar -xf "$baseline_archive" -C "$baseline_dir"
+          test -f "$crate_root/Cargo.lock"
+          cargo +nightly rustdoc \
+            --manifest-path "$crate_root/Cargo.toml" \
+            --package "${{ steps.semver-baseline.outputs.crate_name }}" \
+            --lib \
+            --all-features \
+            --locked \
+            -- \
+            -Z unstable-options \
+            --output-format json
+          echo "path=$crate_root/target/doc/${{ steps.semver-baseline.outputs.crate_target }}.json" >> "$GITHUB_OUTPUT"
+
+      - name: Build current rustdoc JSON
+        if: steps.semver-baseline.outputs.has_baseline == 'true'
+        id: current-rustdoc
+        run: |
+          cargo +nightly rustdoc \
+            --package "${{ steps.semver-baseline.outputs.crate_name }}" \
+            --lib \
+            --all-features \
+            --locked \
+            -- \
+            -Z unstable-options \
+            --output-format json
+          echo "path=$GITHUB_WORKSPACE/target/doc/${{ steps.semver-baseline.outputs.crate_target }}.json" >> "$GITHUB_OUTPUT"
+
       - name: Check semver compatibility
-        run: cargo semver-checks check-release
+        if: steps.semver-baseline.outputs.has_baseline == 'true'
+        run: >
+          cargo semver-checks check-release
+          --current-rustdoc "${{ steps.current-rustdoc.outputs.path }}"
+          --baseline-rustdoc "${{ steps.baseline-rustdoc.outputs.path }}"
+
+      - name: Skip semver compatibility
+        if: steps.semver-baseline.outputs.has_baseline != 'true'
+        run: echo "No published crates.io baseline found; skipping semver check."
 
       - name: Publish to crates.io
         run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
