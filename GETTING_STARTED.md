@@ -31,10 +31,13 @@ The SDK offers granular feature flags to minimize dependencies:
 # Default: V2 + V3 routers (recommended)
 odos-sdk = "3.0"
 
-# Minimal: API client only, no contract bindings
+# Minimal: API client + agent DTOs only, no contract bindings or on-chain helpers
 odos-sdk = { version = "3.0", default-features = false, features = ["minimal"] }
 
-# All contracts: V2 + V3 + Limit Orders
+# On-chain multicall/preflight helpers only
+odos-sdk = { version = "3.0", default-features = false, features = ["multicall"] }
+
+# All contracts + multicall helpers
 odos-sdk = { version = "3.0", default-features = false, features = ["contracts"] }
 
 # Specific router versions

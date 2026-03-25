@@ -46,8 +46,10 @@ pub use crate::{AssemblyRequest, AssemblyResponse, QuoteRequest, SingleQuoteResp
 // High-level builder API
 pub use crate::SwapBuilder;
 
+// Agent-friendly DTOs
+pub use crate::{AgentQuoteSummary, AgentSwapRequest, AgentTransactionPlan};
+
 // Type-safe domain types
-#[cfg(feature = "v2")]
 pub use crate::{Chain, ReferralCode, Slippage};
 
 // Error types

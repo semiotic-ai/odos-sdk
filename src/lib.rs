@@ -418,6 +418,7 @@
 //! }
 //! ```
 
+mod agent;
 mod api;
 mod api_key;
 mod assemble;
@@ -432,6 +433,7 @@ pub mod events;
 mod integration_tests;
 #[cfg(feature = "limit-orders")]
 mod limit_order_v2;
+#[cfg(feature = "multicall")]
 pub mod multicall;
 #[cfg(feature = "op-stack")]
 pub mod op_stack;
@@ -454,6 +456,12 @@ mod v3_router;
 pub use api::{
     ApiHost, ApiVersion, Endpoint, InputToken, OdosApiErrorResponse, OutputToken, QuoteRequest,
     SingleQuoteResponse,
+};
+
+// Agent-friendly request/response DTOs
+pub use agent::{
+    AgentChainInput, AgentQuoteSummary, AgentSwapRequest, AgentTransactionPlan,
+    AgentTransactionSummary, ValidatedAgentSwapRequest,
 };
 
 // SwapInputs is only available with v2 feature (contains V2 router types)

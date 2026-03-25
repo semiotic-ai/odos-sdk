@@ -13,50 +13,48 @@ readme = "README.md"
 repository = "https://github.com/semiotic-ai/odos-sdk"
 
 [features]
-# Default features: most common use case with V2 and V3 router support
-default = ["v2", "v3"]
+# Default features: most common use case with V2/V3 router support and on-chain preflight helpers
+default = ["v2", "v3", "multicall"]
 
 # Minimal: Core API types and HTTP client only (no contract bindings)
 minimal = []
 
 # Contract binding features
 # Note: V2 is the base contract feature (provides SwapInputs type used by all routers)
-v2 = [] # V2 router contract bindings
+v2 = [
+    "dep:alloy-contract",
+    "dep:alloy-provider",
+    "dep:alloy-transport",
+] # V2 router contract bindings
 v3 = ["v2"] # V3 router contract bindings (requires v2 for SwapInputs)
 limit-orders = [
     "v2",
 ] # Limit order contract bindings (requires v2 for SwapInputs)
+
+# On-chain utilities for balances/allowances and swap preflight checks
+multicall = ["dep:alloy-contract", "dep:alloy-provider", "dep:alloy-transport"]
 
 # OP-stack chain support (Base, Optimism, Fraxtal)
 # Provides access to L1 gas information in transaction receipts
 op-stack = ["dep:op-alloy-network", "dep:op-alloy-rpc-types", "v2", "v3"]
 
 # Convenience feature to enable all contract bindings
-contracts = ["v2", "v3", "limit-orders"]
+contracts = ["v2", "v3", "limit-orders", "multicall"]
 
 [dependencies]
 alloy-chains = "0.2.32"
-alloy-contract = { version = "1.7.3", default-features = false }
-alloy-json-rpc = { version = "1.7.3", default-features = false }
+alloy-contract = { version = "1.7.3", default-features = false, optional = true }
 alloy-network = { version = "1.7.3", default-features = false }
 alloy-primitives = { version = "1.5.7", default-features = false, features = [
     "std",
     "rlp",
 ] }
 alloy-provider = { version = "1.7.3", default-features = false, features = [
-    "anvil-node",
     "reqwest",
-] }
-alloy-rpc-client = "1.7.3"
+], optional = true }
 alloy-rpc-types = "1.7.3"
-alloy-signer = { version = "1.7.3", default-features = false }
-alloy-signer-local = { version = "1.7.3", default-features = false }
 alloy-sol-types = { version = "1.5.7", features = ["json"] }
-alloy-sol-type-parser = "1.5.7"
-alloy-transport = { version = "1.7.3", default-features = false }
-alloy-transport-http = { version = "1.7.3", default-features = false, features = [
-    "reqwest",
-] }
+alloy-transport = { version = "1.7.3", default-features = false, optional = true }
 
 # OP-stack support (optional)
 op-alloy-network = { version = "0.24", optional = true }
@@ -73,6 +71,10 @@ url = "2.5"
 uuid = { version = "1.22.0", features = ["serde", "v4"] }
 
 [dev-dependencies]
+alloy-provider = { version = "1.7.3", default-features = false, features = [
+    "anvil-node",
+    "reqwest",
+] }
 wiremock = "0.6.5"
 tokio-test = "0.4"
 tokio = { version = "1.50", features = ["macros", "rt-multi-thread"] }

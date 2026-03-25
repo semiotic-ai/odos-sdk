@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-use std::fmt;
+use std::{fmt, str::FromStr};
 
 use alloy_chains::NamedChain;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -246,11 +246,17 @@ impl Chain {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn from_chain_id(id: u64) -> OdosChainResult<Self> {
-        NamedChain::try_from(id)
-            .map(Self)
-            .map_err(|_| OdosChainError::UnsupportedChain {
+        let chain = NamedChain::try_from(id).map_err(|_| OdosChainError::UnsupportedChain {
+            chain: format!("Chain ID {id}"),
+        })?;
+
+        if chain.supports_odos() {
+            Ok(Self(chain))
+        } else {
+            Err(OdosChainError::UnsupportedChain {
                 chain: format!("Chain ID {id}"),
             })
+        }
     }
 
     /// Get the chain ID
@@ -282,6 +288,46 @@ impl Chain {
     pub const fn inner(&self) -> NamedChain {
         self.0
     }
+
+    /// Parse a supported Odos chain from a common human-readable name or alias.
+    ///
+    /// Accepts common aliases such as `mainnet`, `ethereum`, `arb`, `op`, and
+    /// numeric chain IDs encoded as strings.
+    pub fn from_name(name: &str) -> OdosChainResult<Self> {
+        let normalized = normalize_chain_name(name);
+
+        if let Ok(chain_id) = normalized.parse::<u64>() {
+            return Self::from_chain_id(chain_id);
+        }
+
+        match normalized.as_str() {
+            "mainnet" | "ethereum" | "eth" | "ethereum mainnet" => Ok(Self::ethereum()),
+            "arbitrum" | "arb" | "arbitrum one" => Ok(Self::arbitrum()),
+            "optimism" | "op" => Ok(Self::optimism()),
+            "polygon" | "matic" | "polygon pos" => Ok(Self::polygon()),
+            "base" => Ok(Self::base()),
+            "bsc" | "bnb" | "bnb smart chain" | "binance smart chain" => Ok(Self::bsc()),
+            "avalanche" | "avax" | "avalanche c chain" => Ok(Self::avalanche()),
+            "linea" => Ok(Self::linea()),
+            "zksync" | "zk sync" | "zksync era" => Ok(Self::zksync()),
+            "mantle" => Ok(Self::mantle()),
+            "fraxtal" => Ok(Self::fraxtal()),
+            "sonic" => Ok(Self::sonic()),
+            "unichain" => Ok(Self::unichain()),
+            _ => Err(OdosChainError::UnsupportedChain {
+                chain: name.trim().to_string(),
+            }),
+        }
+    }
+}
+
+fn normalize_chain_name(name: &str) -> String {
+    name.trim()
+        .to_ascii_lowercase()
+        .replace(['-', '_'], " ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 impl fmt::Display for Chain {
@@ -308,6 +354,14 @@ impl From<Chain> for u64 {
     }
 }
 
+impl FromStr for Chain {
+    type Err = OdosChainError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_name(s)
+    }
+}
+
 // Custom serialization using chain ID
 impl Serialize for Chain {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -325,9 +379,7 @@ impl<'de> Deserialize<'de> for Chain {
         D: Deserializer<'de>,
     {
         let chain_id = u64::deserialize(deserializer)?;
-        NamedChain::try_from(chain_id)
-            .map(Self)
-            .map_err(serde::de::Error::custom)
+        Self::from_chain_id(chain_id).map_err(serde::de::Error::custom)
     }
 }
 
@@ -391,6 +443,18 @@ mod tests {
 
         // Unsupported chain
         assert!(Chain::from_chain_id(999999).is_err());
+        assert!(Chain::from_chain_id(11155111).is_err());
+    }
+
+    #[test]
+    fn test_from_name() {
+        assert_eq!(Chain::from_name("ethereum").unwrap(), Chain::ethereum());
+        assert_eq!(Chain::from_name("mainnet").unwrap(), Chain::ethereum());
+        assert_eq!(Chain::from_name("arb").unwrap(), Chain::arbitrum());
+        assert_eq!(Chain::from_name("op").unwrap(), Chain::optimism());
+        assert_eq!(Chain::from_name("bnb smart chain").unwrap(), Chain::bsc());
+        assert_eq!(Chain::from_name("8453").unwrap(), Chain::base());
+        assert!(Chain::from_name("sepolia").is_err());
     }
 
     #[test]

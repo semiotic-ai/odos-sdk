@@ -74,6 +74,45 @@ Three concepts, one builder, zero complexity. The SDK handles quote fetching, op
 
 **Next steps:** Check out [GETTING_STARTED.md](GETTING_STARTED.md) for a complete walkthrough, or jump to [EXAMPLES.md](EXAMPLES.md) for common patterns.
 
+### Agent Tooling
+
+For AI agents and tool runtimes, use the agent-facing JSON DTOs with the lightweight `minimal` feature set:
+
+```toml
+[dependencies]
+odos-sdk = { version = "3.0", default-features = false, features = ["minimal"] }
+```
+
+```rust
+use odos_sdk::{AgentChainInput, AgentSwapRequest, OdosClient};
+
+# async fn example() -> Result<(), Box<dyn std::error::Error>> {
+let client = OdosClient::new()?;
+
+let request = AgentSwapRequest {
+    chain: AgentChainInput::Name("base".to_string()),
+    from_token: "0x4200000000000000000000000000000000000006".to_string(),
+    from_amount: "1000000000000000".to_string(),
+    to_token: "0x833589fCD6EDb6E08f4c7C32D4f71b54bdA02913".to_string(),
+    signer: "0x742d35Cc6634C0532925a3b8D35f3e7a5edD29c0".to_string(),
+    recipient: None,
+    slippage_percent: Some(0.5),
+    slippage_bps: None,
+    referral_code: None,
+    compact: None,
+    simple: None,
+    disable_rfqs: None,
+};
+
+let quote = client.quote_for_agent(&request).await?;
+let plan = client.build_transaction_for_agent(&request).await?;
+
+println!("Quoted output: {}", quote.to_amount);
+println!("Transaction target: {}", plan.transaction.to);
+# Ok(())
+# }
+```
+
 ## Core Features
 
 ### Multi-Chain Support
@@ -319,11 +358,15 @@ Customize what gets compiled based on your needs:
 [dependencies]
 odos-sdk = "3.0"
 
-# Minimal: Just API types and HTTP client (no contract bindings)
+# Minimal: API client + agent DTOs only (no contract bindings or on-chain helpers)
 [dependencies]
 odos-sdk = { version = "3.0", default-features = false, features = ["minimal"] }
 
-# All contracts: V2 + V3 + Limit Orders
+# On-chain helpers only
+[dependencies]
+odos-sdk = { version = "3.0", default-features = false, features = ["multicall"] }
+
+# All contracts + multicall helpers
 [dependencies]
 odos-sdk = { version = "3.0", default-features = false, features = ["contracts"] }
 
@@ -334,12 +377,13 @@ odos-sdk = { version = "3.0", default-features = false, features = ["v2", "v3"] 
 
 Available features:
 
-- `minimal` - Core API types and HTTP client only
+- `minimal` - Core API types, HTTP client, and agent-facing JSON DTOs only
 - `v2` - V2 router contract bindings
 - `v3` - V3 router contract bindings (includes v2)
 - `limit-orders` - Limit order contract bindings (includes v2)
-- `contracts` - All contract bindings (v2 + v3 + limit-orders)
-- `default` - V2 + V3 routers
+- `multicall` - On-chain balance, allowance, and preflight helpers
+- `contracts` - All contract bindings plus multicall helpers
+- `default` - V2 + V3 routers plus multicall
 
 ## Documentation
 

@@ -476,6 +476,11 @@ pub struct SingleQuoteResponse {
 }
 
 impl SingleQuoteResponse {
+    /// Get the first input amount of the quote.
+    pub fn in_amount(&self) -> Option<&String> {
+        self.in_amounts.first()
+    }
+
     /// Get the data gas estimate of the quote
     pub fn data_gas_estimate(&self) -> u64 {
         self.data_gas_estimate
@@ -489,6 +494,16 @@ impl SingleQuoteResponse {
     /// Get the gas estimate of the quote
     pub fn gas_estimate(&self) -> f64 {
         self.gas_estimate
+    }
+
+    /// Get the estimated gas cost value of the quote.
+    pub fn gas_estimate_value(&self) -> f64 {
+        self.gas_estimate_value
+    }
+
+    /// Get the gas price used by the quote in gwei.
+    pub fn gwei_per_gas(&self) -> f64 {
+        self.gwei_per_gas
     }
 
     /// Get the in amounts of the quote
@@ -566,6 +581,16 @@ impl SingleQuoteResponse {
     /// Get the price impact of the quote
     pub fn price_impact(&self) -> f64 {
         self.price_impact
+    }
+
+    /// Get the net output value of the quote.
+    pub fn net_out_value(&self) -> f64 {
+        self.net_out_value
+    }
+
+    /// Get the partner fee percent applied to the quote.
+    pub fn partner_fee_percent(&self) -> f64 {
+        self.partner_fee_percent
     }
 }
 
