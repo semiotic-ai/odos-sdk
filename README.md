@@ -34,7 +34,7 @@ Add the SDK to your project:
 
 ```toml
 [dependencies]
-odos-sdk = "3.0"
+odos-sdk = "3.1"
 ```
 
 ### Your First Swap
@@ -80,7 +80,7 @@ For AI agents and tool runtimes, use the agent-facing JSON DTOs with the lightwe
 
 ```toml
 [dependencies]
-odos-sdk = { version = "3.0", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "3.1", default-features = false, features = ["minimal"] }
 ```
 
 ```rust
@@ -356,23 +356,23 @@ Customize what gets compiled based on your needs:
 ```toml
 # Default: V2 + V3 routers
 [dependencies]
-odos-sdk = "3.0"
+odos-sdk = "3.1"
 
 # Minimal: API client + agent DTOs only (no contract bindings or on-chain helpers)
 [dependencies]
-odos-sdk = { version = "3.0", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "3.1", default-features = false, features = ["minimal"] }
 
 # On-chain helpers only
 [dependencies]
-odos-sdk = { version = "3.0", default-features = false, features = ["multicall"] }
+odos-sdk = { version = "3.1", default-features = false, features = ["multicall"] }
 
 # All contracts + multicall helpers
 [dependencies]
-odos-sdk = { version = "3.0", default-features = false, features = ["contracts"] }
+odos-sdk = { version = "3.1", default-features = false, features = ["contracts"] }
 
 # Custom combination
 [dependencies]
-odos-sdk = { version = "3.0", default-features = false, features = ["v2", "v3"] }
+odos-sdk = { version = "3.1", default-features = false, features = ["v2", "v3"] }
 ```
 
 Available features:

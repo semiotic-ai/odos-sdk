@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-03-25
+
+### Added
+
+- Agent-friendly JSON DTOs for tool runtimes
+  - `AgentSwapRequest`
+  - `AgentChainInput`
+  - `AgentQuoteSummary`
+  - `AgentTransactionPlan`
+  - `ValidatedAgentSwapRequest`
+- New client helpers for agent/tool integration
+  - `OdosClient::quote_for_agent`
+  - `OdosClient::build_transaction_for_agent`
+- New chain parsing helpers
+  - `Chain::from_name`
+  - `impl FromStr for Chain`
+
+### Changed
+
+- `minimal` now truly excludes contract bindings and on-chain helper dependencies
+- Added a dedicated `multicall` feature for balance, allowance, and preflight helpers
+- `default` features now include `multicall` alongside `v2` and `v3`
+- `contracts` now enables `multicall` in addition to `v2`, `v3`, and `limit-orders`
+- `Chain::from_chain_id` and `Chain` deserialization now reject chains not supported by Odos
+- Documentation updated for the agent-facing API and revised feature matrix
+
 ## [3.0.1] - 2026-03-21
 
 ### Security

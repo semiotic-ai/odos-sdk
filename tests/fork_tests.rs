@@ -10,15 +10,22 @@
 //! Run with: `cargo test --test fork_tests -- --ignored`
 
 use alloy_chains::NamedChain;
-use alloy_network::Ethereum;
 use alloy_primitives::Address;
+use odos_sdk::{OdosChain, ODOS_V3};
+
+#[cfg(feature = "v3")]
+use alloy_network::Ethereum;
+#[cfg(any(feature = "v2", feature = "v3"))]
 use alloy_provider::ProviderBuilder;
-use odos_sdk::{OdosChain, V3Router, ODOS_V3};
+#[cfg(feature = "v3")]
+use odos_sdk::V3Router;
 
 /// Fork block number for reproducible tests
+#[cfg(any(feature = "v2", feature = "v3"))]
 const FORK_BLOCK: u64 = 21_000_000;
 
 /// Tests that we can read the V3 router owner on a forked mainnet.
+#[cfg(feature = "v3")]
 #[tokio::test]
 #[ignore = "requires Anvil and network access"]
 async fn test_v3_router_owner_on_fork() {
@@ -37,6 +44,7 @@ async fn test_v3_router_owner_on_fork() {
 }
 
 /// Tests that we can read the V3 router liquidator address on a forked mainnet.
+#[cfg(feature = "v3")]
 #[tokio::test]
 #[ignore = "requires Anvil and network access"]
 async fn test_v3_router_liquidator_on_fork() {
@@ -62,6 +70,7 @@ async fn test_v3_router_liquidator_on_fork() {
 }
 
 /// Tests that the V2 router addresses are valid on forked mainnet.
+#[cfg(feature = "v2")]
 #[tokio::test]
 #[ignore = "requires Anvil and network access"]
 async fn test_v2_router_exists_on_fork() {

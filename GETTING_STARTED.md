@@ -18,7 +18,7 @@ Add the SDK to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-odos-sdk = "3.0"
+odos-sdk = "3.1"
 alloy = { version = "1.3", features = ["full"] }  # For wallet/signer functionality
 tokio = { version = "1", features = ["full"] }
 ```
@@ -29,20 +29,20 @@ The SDK offers granular feature flags to minimize dependencies:
 
 ```toml
 # Default: V2 + V3 routers (recommended)
-odos-sdk = "3.0"
+odos-sdk = "3.1"
 
 # Minimal: API client + agent DTOs only, no contract bindings or on-chain helpers
-odos-sdk = { version = "3.0", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "3.1", default-features = false, features = ["minimal"] }
 
 # On-chain multicall/preflight helpers only
-odos-sdk = { version = "3.0", default-features = false, features = ["multicall"] }
+odos-sdk = { version = "3.1", default-features = false, features = ["multicall"] }
 
 # All contracts + multicall helpers
-odos-sdk = { version = "3.0", default-features = false, features = ["contracts"] }
+odos-sdk = { version = "3.1", default-features = false, features = ["contracts"] }
 
 # Specific router versions
-odos-sdk = { version = "3.0", default-features = false, features = ["v2"] }
-odos-sdk = { version = "3.0", default-features = false, features = ["v3"] }
+odos-sdk = { version = "3.1", default-features = false, features = ["v2"] }
+odos-sdk = { version = "3.1", default-features = false, features = ["v3"] }
 ```
 
 ## Core Concepts
@@ -509,13 +509,13 @@ Make sure you have the correct feature flags enabled:
 
 ```toml
 # For V2 router
-odos-sdk = { version = "3.0", features = ["v2"] }
+odos-sdk = { version = "3.1", features = ["v2"] }
 
 # For V3 router
-odos-sdk = { version = "3.0", features = ["v3"] }
+odos-sdk = { version = "3.1", features = ["v3"] }
 
 # For all features
-odos-sdk = { version = "3.0", features = ["contracts"] }
+odos-sdk = { version = "3.1", features = ["contracts"] }
 ```
 
 ## Support
