@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.2] - 2026-03-25
+
+### Fixed
+
+- Release workflow now builds semver baselines from the published crates.io `.crate` artifact
+  - Uses the package tarball and its included `Cargo.lock` as the source of truth
+  - Builds baseline and current rustdoc JSON explicitly with `--locked`
+  - Prevents release semver checks from failing due to fresh dependency resolution of older published versions
+
 ## [3.1.1] - 2026-03-25
 
 ### Fixed
