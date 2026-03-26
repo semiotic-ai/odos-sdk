@@ -46,8 +46,8 @@ pub use crate::{AssemblyRequest, AssemblyResponse, QuoteRequest, SingleQuoteResp
 // High-level builder API
 pub use crate::SwapBuilder;
 
-// Agent-friendly DTOs
-pub use crate::{AgentQuoteSummary, AgentSwapRequest, AgentTransactionPlan};
+// Tool/runtime-friendly DTOs
+pub use crate::tooling;
 
 // Type-safe domain types
 pub use crate::{Chain, ReferralCode, Slippage};

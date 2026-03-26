@@ -34,7 +34,7 @@ Add the SDK to your project:
 
 ```toml
 [dependencies]
-odos-sdk = "3.1"
+odos-sdk = "4"
 ```
 
 ### Your First Swap
@@ -74,23 +74,24 @@ Three concepts, one builder, zero complexity. The SDK handles quote fetching, op
 
 **Next steps:** Check out [GETTING_STARTED.md](GETTING_STARTED.md) for a complete walkthrough, or jump to [EXAMPLES.md](EXAMPLES.md) for common patterns.
 
-### Agent Tooling
+### Tooling And Automation
 
-For AI agents and tool runtimes, use the agent-facing JSON DTOs with the lightweight `minimal` feature set:
+For tool runtimes, generated integrations, and AI agents, use the stable JSON
+DTOs with the lightweight `minimal` feature set:
 
 ```toml
 [dependencies]
-odos-sdk = { version = "3.1", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "4", default-features = false, features = ["minimal"] }
 ```
 
 ```rust
-use odos_sdk::{AgentChainInput, AgentSwapRequest, OdosClient};
+use odos_sdk::{tooling, OdosClient};
 
 # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 let client = OdosClient::new()?;
 
-let request = AgentSwapRequest {
-    chain: AgentChainInput::Name("base".to_string()),
+let request = tooling::SwapRequest {
+    chain: tooling::ChainInput::Name("base".to_string()),
     from_token: "0x4200000000000000000000000000000000000006".to_string(),
     from_amount: "1000000000000000".to_string(),
     to_token: "0x833589fCD6EDb6E08f4c7C32D4f71b54bdA02913".to_string(),
@@ -104,8 +105,8 @@ let request = AgentSwapRequest {
     disable_rfqs: None,
 };
 
-let quote = client.quote_for_agent(&request).await?;
-let plan = client.build_transaction_for_agent(&request).await?;
+let quote = client.quote_for_tooling(&request).await?;
+let plan = client.build_transaction_plan(&request).await?;
 
 println!("Quoted output: {}", quote.to_amount);
 println!("Transaction target: {}", plan.transaction.to);
@@ -356,28 +357,28 @@ Customize what gets compiled based on your needs:
 ```toml
 # Default: V2 + V3 routers
 [dependencies]
-odos-sdk = "3.1"
+odos-sdk = "4"
 
-# Minimal: API client + agent DTOs only (no contract bindings or on-chain helpers)
+# Minimal: API client + tool/runtime DTOs only (no contract bindings or on-chain helpers)
 [dependencies]
-odos-sdk = { version = "3.1", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "4", default-features = false, features = ["minimal"] }
 
 # On-chain helpers only
 [dependencies]
-odos-sdk = { version = "3.1", default-features = false, features = ["multicall"] }
+odos-sdk = { version = "4", default-features = false, features = ["multicall"] }
 
 # All contracts + multicall helpers
 [dependencies]
-odos-sdk = { version = "3.1", default-features = false, features = ["contracts"] }
+odos-sdk = { version = "4", default-features = false, features = ["contracts"] }
 
 # Custom combination
 [dependencies]
-odos-sdk = { version = "3.1", default-features = false, features = ["v2", "v3"] }
+odos-sdk = { version = "4", default-features = false, features = ["v2", "v3"] }
 ```
 
 Available features:
 
-- `minimal` - Core API types, HTTP client, and agent-facing JSON DTOs only
+- `minimal` - Core API types, HTTP client, and tool/runtime JSON DTOs only
 - `v2` - V2 router contract bindings
 - `v3` - V3 router contract bindings (includes v2)
 - `limit-orders` - Limit order contract bindings (includes v2)

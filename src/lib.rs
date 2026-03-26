@@ -418,7 +418,6 @@
 //! }
 //! ```
 
-mod agent;
 mod api;
 mod api_key;
 mod assemble;
@@ -441,6 +440,7 @@ mod router_type;
 mod sor;
 mod swap;
 mod swap_builder;
+pub mod tooling;
 mod transfer;
 mod types;
 
@@ -456,12 +456,6 @@ mod v3_router;
 pub use api::{
     ApiHost, ApiVersion, Endpoint, InputToken, OdosApiErrorResponse, OutputToken, QuoteRequest,
     SingleQuoteResponse,
-};
-
-// Agent-friendly request/response DTOs
-pub use agent::{
-    AgentChainInput, AgentQuoteSummary, AgentSwapRequest, AgentTransactionPlan,
-    AgentTransactionSummary, ValidatedAgentSwapRequest,
 };
 
 // SwapInputs is only available with v2 feature (contains V2 router types)

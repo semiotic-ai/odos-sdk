@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Tool/runtime JSON DTOs now live under the public `odos_sdk::tooling` module
+  - `AgentChainInput` -> `tooling::ChainInput`
+  - `AgentSwapRequest` -> `tooling::SwapRequest`
+  - `ValidatedAgentSwapRequest` -> `tooling::ValidatedSwapRequest`
+  - `AgentQuoteSummary` -> `tooling::QuoteSummary`
+  - `AgentTransactionSummary` -> `tooling::TransactionSummary`
+  - `AgentTransactionPlan` -> `tooling::TransactionPlan`
+  - `OdosClient::quote_for_agent` -> `OdosClient::quote_for_tooling`
+  - `OdosClient::build_transaction_for_agent` -> `OdosClient::build_transaction_plan`
+- Tool/runtime DTOs are no longer re-exported from the crate root
+  - Use `odos_sdk::tooling::SwapRequest` instead of `odos_sdk::SwapRequest`
+- `use odos_sdk::prelude::*` now re-exports the `tooling` module instead of bringing the DTO names into scope directly
+  - Use `tooling::SwapRequest` after importing the prelude
+
 ## [3.1.3] - 2026-03-25
 
 ### Fixed

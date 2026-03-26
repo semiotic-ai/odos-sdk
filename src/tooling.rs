@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-//! Agent-friendly request and response types.
+//! Tool/runtime-friendly request and response types.
 //!
-//! This module provides a stable JSON boundary for AI agent tooling that needs
-//! to request quotes and build swap transactions without manually normalizing
-//! chain names, addresses, slippage, and U256 amounts.
+//! This module provides a stable JSON boundary for tool runtimes, generated
+//! integrations, MCP servers, CLIs, and backend services that need to request
+//! quotes and build swap transactions without manually normalizing chain names,
+//! addresses, slippage, and U256 amounts.
 
 use alloy_primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
@@ -19,15 +20,15 @@ use crate::{
 /// Chain selector that accepts either a numeric chain ID or a common chain name.
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
-pub enum AgentChainInput {
+pub enum ChainInput {
     /// Numeric EVM chain ID.
     Id(u64),
     /// Common chain name or alias such as `ethereum`, `mainnet`, `arb`, or `base`.
     Name(String),
 }
 
-impl AgentChainInput {
-    /// Resolve the agent-facing chain selector into a supported Odos chain.
+impl ChainInput {
+    /// Resolve this chain selector into a supported Odos chain.
     pub fn resolve(&self) -> Result<Chain> {
         match self {
             Self::Id(id) => Chain::from_chain_id(*id).map_err(|err| {
@@ -43,11 +44,11 @@ impl AgentChainInput {
     }
 }
 
-/// Single-token swap request shape optimized for agent and tool JSON boundaries.
+/// Single-token swap request shape optimized for tool/runtime JSON boundaries.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AgentSwapRequest {
-    pub chain: AgentChainInput,
+pub struct SwapRequest {
+    pub chain: ChainInput,
     pub from_token: String,
     pub from_amount: String,
     pub to_token: String,
@@ -68,9 +69,9 @@ pub struct AgentSwapRequest {
     pub disable_rfqs: Option<bool>,
 }
 
-impl AgentSwapRequest {
+impl SwapRequest {
     /// Validate and normalize the request into typed Odos/alloy values.
-    pub fn validate(&self) -> Result<ValidatedAgentSwapRequest> {
+    pub fn validate(&self) -> Result<ValidatedSwapRequest> {
         let chain = self.chain.resolve()?;
         let input_token = parse_address("fromToken", &self.from_token)?;
         let input_amount = parse_amount("fromAmount", &self.from_amount)?;
@@ -100,7 +101,7 @@ impl AgentSwapRequest {
             ));
         }
 
-        Ok(ValidatedAgentSwapRequest {
+        Ok(ValidatedSwapRequest {
             chain,
             input_token,
             input_amount,
@@ -118,7 +119,7 @@ impl AgentSwapRequest {
 
 /// Validated single-token swap request with typed values ready for execution.
 #[derive(Clone, Debug, PartialEq)]
-pub struct ValidatedAgentSwapRequest {
+pub struct ValidatedSwapRequest {
     pub chain: Chain,
     pub input_token: Address,
     pub input_amount: U256,
@@ -132,7 +133,7 @@ pub struct ValidatedAgentSwapRequest {
     pub disable_rfqs: bool,
 }
 
-impl ValidatedAgentSwapRequest {
+impl ValidatedSwapRequest {
     /// Build an Odos quote request from the validated swap inputs.
     pub fn quote_request(&self) -> QuoteRequest {
         QuoteRequest::builder()
@@ -165,10 +166,10 @@ impl ValidatedAgentSwapRequest {
     }
 }
 
-/// Compact quote summary intended for agent/tool outputs and confirmation prompts.
+/// Compact quote summary intended for tool outputs and confirmation prompts.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AgentQuoteSummary {
+pub struct QuoteSummary {
     pub chain_id: u64,
     pub chain_name: String,
     pub signer: String,
@@ -189,8 +190,8 @@ pub struct AgentQuoteSummary {
     pub warnings: Vec<String>,
 }
 
-impl AgentQuoteSummary {
-    fn from_quote(request: &ValidatedAgentSwapRequest, quote: &SingleQuoteResponse) -> Self {
+impl QuoteSummary {
+    fn from_quote(request: &ValidatedSwapRequest, quote: &SingleQuoteResponse) -> Self {
         let mut warnings = Vec::new();
 
         if quote.price_impact() >= 3.0 {
@@ -233,10 +234,10 @@ impl AgentQuoteSummary {
     }
 }
 
-/// Transaction summary intended for agent/tool outputs.
+/// Transaction summary intended for tool/runtime outputs.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AgentTransactionSummary {
+pub struct TransactionSummary {
     pub to: String,
     pub from: String,
     pub data: String,
@@ -247,7 +248,7 @@ pub struct AgentTransactionSummary {
     pub nonce: u64,
 }
 
-impl From<TransactionData> for AgentTransactionSummary {
+impl From<TransactionData> for TransactionSummary {
     fn from(value: TransactionData) -> Self {
         Self {
             to: value.to.to_string(),
@@ -262,35 +263,33 @@ impl From<TransactionData> for AgentTransactionSummary {
     }
 }
 
-/// Complete agent-facing transaction plan including both quote context and calldata.
+/// Complete tool-facing transaction plan including both quote context and calldata.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AgentTransactionPlan {
-    pub quote: AgentQuoteSummary,
-    pub transaction: AgentTransactionSummary,
+pub struct TransactionPlan {
+    pub quote: QuoteSummary,
+    pub transaction: TransactionSummary,
 }
 
 impl OdosClient {
-    /// Quote a single-token swap using the agent-friendly request shape.
-    pub async fn quote_for_agent(&self, request: &AgentSwapRequest) -> Result<AgentQuoteSummary> {
+    /// Quote a single-token swap using the generic tooling request shape.
+    pub async fn quote_for_tooling(&self, request: &SwapRequest) -> Result<QuoteSummary> {
         let request = request.validate()?;
         let quote = self.quote(&request.quote_request()).await?;
-        Ok(AgentQuoteSummary::from_quote(&request, &quote))
+        Ok(QuoteSummary::from_quote(&request, &quote))
     }
 
-    /// Build transaction calldata for a single-token swap using the agent-friendly request shape.
-    pub async fn build_transaction_for_agent(
-        &self,
-        request: &AgentSwapRequest,
-    ) -> Result<AgentTransactionPlan> {
+    /// Build a transaction plan for a single-token swap using the generic
+    /// tooling request shape.
+    pub async fn build_transaction_plan(&self, request: &SwapRequest) -> Result<TransactionPlan> {
         let request = request.validate()?;
         let quote = self.quote(&request.quote_request()).await?;
         let tx = self
             .assemble_tx_data(request.signer, request.recipient, quote.path_id())
             .await?;
 
-        Ok(AgentTransactionPlan {
-            quote: AgentQuoteSummary::from_quote(&request, &quote),
+        Ok(TransactionPlan {
+            quote: QuoteSummary::from_quote(&request, &quote),
             transaction: tx.into(),
         })
     }
@@ -341,9 +340,9 @@ mod tests {
     use alloy_primitives::address;
 
     #[test]
-    fn test_agent_swap_request_defaults() {
-        let request = AgentSwapRequest {
-            chain: AgentChainInput::Name("base".to_string()),
+    fn test_swap_request_defaults() {
+        let request = SwapRequest {
+            chain: ChainInput::Name("base".to_string()),
             from_token: "0x4200000000000000000000000000000000000006".to_string(),
             from_amount: "1000000000000000".to_string(),
             to_token: "0x833589fCD6EDb6E08f4c7C32D4f71b54bdA02913".to_string(),
@@ -368,9 +367,9 @@ mod tests {
     }
 
     #[test]
-    fn test_agent_swap_request_rejects_same_token() {
-        let request = AgentSwapRequest {
-            chain: AgentChainInput::Id(1),
+    fn test_swap_request_rejects_same_token() {
+        let request = SwapRequest {
+            chain: ChainInput::Id(1),
             from_token: address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48").to_string(),
             from_amount: "1000000".to_string(),
             to_token: address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48").to_string(),
@@ -389,9 +388,9 @@ mod tests {
     }
 
     #[test]
-    fn test_agent_swap_request_accepts_matching_slippage_inputs() {
-        let request = AgentSwapRequest {
-            chain: AgentChainInput::Name("ethereum".to_string()),
+    fn test_swap_request_accepts_matching_slippage_inputs() {
+        let request = SwapRequest {
+            chain: ChainInput::Name("ethereum".to_string()),
             from_token: address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48").to_string(),
             from_amount: "1000000".to_string(),
             to_token: address!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2").to_string(),
@@ -413,9 +412,9 @@ mod tests {
     }
 
     #[test]
-    fn test_agent_swap_request_rejects_conflicting_slippage_inputs() {
-        let request = AgentSwapRequest {
-            chain: AgentChainInput::Name("ethereum".to_string()),
+    fn test_swap_request_rejects_conflicting_slippage_inputs() {
+        let request = SwapRequest {
+            chain: ChainInput::Name("ethereum".to_string()),
             from_token: address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48").to_string(),
             from_amount: "1000000".to_string(),
             to_token: address!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2").to_string(),
