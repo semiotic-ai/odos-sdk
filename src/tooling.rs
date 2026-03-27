@@ -18,12 +18,20 @@ use crate::{
 };
 
 /// Chain selector that accepts either a numeric chain ID or a common chain name.
+///
+/// Uses `#[serde(untagged)]` so both JSON forms work:
+///
+/// - **Integer**: `{ "chain": 1 }` → `ChainInput::Id(1)` → Ethereum
+/// - **String name**: `{ "chain": "base" }` → `ChainInput::Name("base")` → Base
+/// - **String number**: `{ "chain": "1" }` → `ChainInput::Name("1")` → Ethereum
+///   (string digits are parsed back to a chain ID during [`resolve`](Self::resolve))
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ChainInput {
-    /// Numeric EVM chain ID.
+    /// Numeric EVM chain ID (e.g. `1`, `8453`).
     Id(u64),
-    /// Common chain name or alias such as `ethereum`, `mainnet`, `arb`, or `base`.
+    /// Common chain name, alias, or stringified chain ID
+    /// (e.g. `"ethereum"`, `"base"`, `"1"`).
     Name(String),
 }
 
@@ -242,7 +250,7 @@ pub struct TransactionSummary {
     pub from: String,
     pub data: String,
     pub value: String,
-    pub gas: i128,
+    pub gas: u64,
     pub gas_price: u128,
     pub chain_id: u64,
     pub nonce: u64,
@@ -255,7 +263,7 @@ impl From<TransactionData> for TransactionSummary {
             from: value.from.to_string(),
             data: value.data,
             value: value.value,
-            gas: value.gas,
+            gas: value.gas.clamp(0, i128::from(u64::MAX)) as u64,
             gas_price: value.gas_price,
             chain_id: value.chain_id,
             nonce: value.nonce,
@@ -274,24 +282,32 @@ pub struct TransactionPlan {
 impl OdosClient {
     /// Quote a single-token swap using the generic tooling request shape.
     pub async fn quote_for_tooling(&self, request: &SwapRequest) -> Result<QuoteSummary> {
-        let request = request.validate()?;
-        let quote = self.quote(&request.quote_request()).await?;
-        Ok(QuoteSummary::from_quote(&request, &quote))
+        let (validated, quote) = self.validated_quote(request).await?;
+        Ok(QuoteSummary::from_quote(&validated, &quote))
     }
 
     /// Build a transaction plan for a single-token swap using the generic
     /// tooling request shape.
     pub async fn build_transaction_plan(&self, request: &SwapRequest) -> Result<TransactionPlan> {
-        let request = request.validate()?;
-        let quote = self.quote(&request.quote_request()).await?;
+        let (validated, quote) = self.validated_quote(request).await?;
         let tx = self
-            .assemble_tx_data(request.signer, request.recipient, quote.path_id())
+            .assemble_tx_data(validated.signer, validated.recipient, quote.path_id())
             .await?;
 
         Ok(TransactionPlan {
-            quote: QuoteSummary::from_quote(&request, &quote),
+            quote: QuoteSummary::from_quote(&validated, &quote),
             transaction: tx.into(),
         })
+    }
+
+    /// Shared validation and quoting step used by all tooling entry points.
+    async fn validated_quote(
+        &self,
+        request: &SwapRequest,
+    ) -> Result<(ValidatedSwapRequest, SingleQuoteResponse)> {
+        let validated = request.validate()?;
+        let quote = self.quote(&validated.quote_request()).await?;
+        Ok((validated, quote))
     }
 }
 
@@ -338,6 +354,7 @@ fn resolve_slippage(percent: Option<f64>, bps: Option<u16>) -> Result<Slippage> 
 mod tests {
     use super::*;
     use alloy_primitives::address;
+    use serde_json::json;
 
     #[test]
     fn test_swap_request_defaults() {
@@ -430,5 +447,76 @@ mod tests {
 
         let err = request.validate().unwrap_err();
         assert!(err.to_string().contains("disagree"));
+    }
+
+    #[test]
+    fn test_chain_input_deserializes_integer() {
+        let input: ChainInput = serde_json::from_value(json!(1)).unwrap();
+        assert_eq!(input, ChainInput::Id(1));
+        assert_eq!(input.resolve().unwrap(), Chain::ethereum());
+    }
+
+    #[test]
+    fn test_chain_input_deserializes_string_name() {
+        let input: ChainInput = serde_json::from_value(json!("base")).unwrap();
+        assert_eq!(input, ChainInput::Name("base".to_string()));
+        assert_eq!(input.resolve().unwrap(), Chain::base());
+    }
+
+    #[test]
+    fn test_chain_input_deserializes_string_number() {
+        let input: ChainInput = serde_json::from_value(json!("1")).unwrap();
+        assert_eq!(input, ChainInput::Name("1".to_string()));
+        assert_eq!(input.resolve().unwrap(), Chain::ethereum());
+    }
+
+    #[test]
+    fn test_chain_input_round_trip_id() {
+        let original = ChainInput::Id(8453);
+        let json = serde_json::to_value(&original).unwrap();
+        let deserialized: ChainInput = serde_json::from_value(json).unwrap();
+        assert_eq!(deserialized, original);
+        assert_eq!(deserialized.resolve().unwrap(), Chain::base());
+    }
+
+    #[test]
+    fn test_chain_input_round_trip_name() {
+        let original = ChainInput::Name("arbitrum".to_string());
+        let json = serde_json::to_value(&original).unwrap();
+        let deserialized: ChainInput = serde_json::from_value(json).unwrap();
+        assert_eq!(deserialized, original);
+        assert_eq!(deserialized.resolve().unwrap(), Chain::arbitrum());
+    }
+
+    #[test]
+    fn test_swap_request_deserializes_from_json() {
+        let json = json!({
+            "chain": 1,
+            "fromToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "fromAmount": "1000000",
+            "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+            "signer": "0x742d35Cc6634C0532925a3b8D35f3e7a5edD29c0"
+        });
+        let request: SwapRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(request.chain, ChainInput::Id(1));
+
+        let validated = request.validate().unwrap();
+        assert_eq!(validated.chain, Chain::ethereum());
+    }
+
+    #[test]
+    fn test_swap_request_deserializes_string_chain() {
+        let json = json!({
+            "chain": "base",
+            "fromToken": "0x4200000000000000000000000000000000000006",
+            "fromAmount": "1000000000000000",
+            "toToken": "0x833589fCD6EDb6E08f4c7C32D4f71b54bdA02913",
+            "signer": "0x742d35Cc6634C0532925a3b8D35f3e7a5edD29c0"
+        });
+        let request: SwapRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(request.chain, ChainInput::Name("base".to_string()));
+
+        let validated = request.validate().unwrap();
+        assert_eq!(validated.chain, Chain::base());
     }
 }
