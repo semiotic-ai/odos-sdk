@@ -257,13 +257,24 @@ pub struct TransactionSummary {
 }
 
 impl From<TransactionData> for TransactionSummary {
+    /// Converts API transaction data, clamping `gas` from `i128` to `u64`.
+    /// A negative or overflowing value from the API is clamped and logged as a
+    /// warning since it signals an upstream bug.
     fn from(value: TransactionData) -> Self {
+        let gas = value.gas.clamp(0, i128::from(u64::MAX)) as u64;
+        if i128::from(gas) != value.gas {
+            tracing::warn!(
+                raw_gas = value.gas,
+                clamped_gas = gas,
+                "API returned out-of-range gas value; clamped to u64",
+            );
+        }
         Self {
             to: value.to.to_string(),
             from: value.from.to_string(),
             data: value.data,
             value: value.value,
-            gas: value.gas.clamp(0, i128::from(u64::MAX)) as u64,
+            gas,
             gas_price: value.gas_price,
             chain_id: value.chain_id,
             nonce: value.nonce,
@@ -518,5 +529,36 @@ mod tests {
 
         let validated = request.validate().unwrap();
         assert_eq!(validated.chain, Chain::base());
+    }
+
+    fn make_tx_data(gas: i128) -> TransactionData {
+        TransactionData {
+            to: address!("0000000000000000000000000000000000000001"),
+            from: address!("0000000000000000000000000000000000000002"),
+            data: "0x".to_string(),
+            value: "0".to_string(),
+            gas,
+            gas_price: 1,
+            chain_id: 1,
+            nonce: 0,
+        }
+    }
+
+    #[test]
+    fn test_transaction_summary_clamps_negative_gas() {
+        let summary: TransactionSummary = make_tx_data(-1).into();
+        assert_eq!(summary.gas, 0);
+    }
+
+    #[test]
+    fn test_transaction_summary_clamps_overflow_gas() {
+        let summary: TransactionSummary = make_tx_data(i128::MAX).into();
+        assert_eq!(summary.gas, u64::MAX);
+    }
+
+    #[test]
+    fn test_transaction_summary_preserves_valid_gas() {
+        let summary: TransactionSummary = make_tx_data(300_000).into();
+        assert_eq!(summary.gas, 300_000);
     }
 }

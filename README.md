@@ -74,7 +74,7 @@ Three concepts, one builder, zero complexity. The SDK handles quote fetching, op
 
 **Next steps:** Check out [GETTING_STARTED.md](GETTING_STARTED.md) for a complete walkthrough, or jump to [EXAMPLES.md](EXAMPLES.md) for common patterns.
 
-### Tooling And Automation
+### Tooling and Automation
 
 For tool runtimes, generated integrations, and AI agents, use the stable JSON
 DTOs with the lightweight `minimal` feature set:
