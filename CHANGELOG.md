@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2] - 2026-04-17
+
+### Changed
+
+- Relaxed direct Alloy and OP-Alloy dependency pins so downstream consumers can pick up Alloy patch releases without a new `odos-sdk` release
+  - `alloy-contract`, `alloy-network`, `alloy-provider`, `alloy-rpc-types`, and `alloy-transport` now use `~1.7`; held below `1.8` to stay compatible with `op-alloy-*` `0.24`
+  - `alloy-primitives` and `alloy-sol-types` now use `^1.5`
+  - `alloy-chains` now uses `^0.2`; `op-alloy-network` and `op-alloy-rpc-types` now use `^0.24`
+- Resolved `alloy-chains` now bumps from 0.2.32 to 0.2.34
+- Updated `tokio` from 1.51 to 1.52
+- Updated `uuid` from 1.23.0 to 1.23.1
+- Refreshed transitive dependencies via `cargo update`
+
 ## [4.0.1] - 2026-04-10
 
 ### Changed
