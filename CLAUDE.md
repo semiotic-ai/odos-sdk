@@ -33,7 +33,6 @@ The crate is sliced by feature flag and **modules in `lib.rs` are `#[cfg]`-gated
 - `v3` — V3 bindings (requires `v2`).
 - `limit-orders` — limit-order bindings (requires `v2`).
 - `multicall` — on-chain balance/allowance and preflight helpers.
-- `op-stack` — Optimism/Base/Fraxtal network type for L1 gas info (requires `v2` + `v3`).
 - `contracts` — convenience: all contract features + `multicall`.
 - `default` — `v2 + v3 + multicall`.
 
@@ -58,7 +57,7 @@ The crate is sliced by feature flag and **modules in `lib.rs` are `#[cfg]`-gated
 - `error.rs` / `error_code.rs` — `OdosError` (with trace-ID + `Retry-After`) and strongly-typed `OdosErrorCode` categories (1XXX general, 2XXX algo/quote, 3XXX internal service, 4XXX validation, 5XXX internal).
 - `tooling.rs` — stable JSON DTOs for AI-agent/runtime integrations (available under `minimal`).
 - `events.rs` — swap event filters/decoders (`v2` or `v3` feature).
-- `multicall.rs`, `op_stack.rs`, `transfer.rs`, `router_type.rs`, `api_key.rs`, `limit_order_v2.rs` — feature-gated helpers.
+- `multicall.rs`, `transfer.rs`, `router_type.rs`, `api_key.rs`, `limit_order_v2.rs` — feature-gated helpers.
 - `v2_router.rs` / `v3_router.rs` — `sol!`-generated bindings; ABIs live in `abis/` and are `include_str!`ed.
 
 ### Design conventions

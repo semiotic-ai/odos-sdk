@@ -289,6 +289,26 @@ impl Chain {
         self.0
     }
 
+    /// Returns `true` if this is an OP-stack chain (Optimism, Base, Fraxtal).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use odos_sdk::Chain;
+    ///
+    /// assert!(Chain::optimism().is_op_stack());
+    /// assert!(Chain::base().is_op_stack());
+    /// assert!(Chain::fraxtal().is_op_stack());
+    /// assert!(!Chain::ethereum().is_op_stack());
+    /// assert!(!Chain::arbitrum().is_op_stack());
+    /// ```
+    pub const fn is_op_stack(&self) -> bool {
+        matches!(
+            self.0,
+            NamedChain::Optimism | NamedChain::Base | NamedChain::Fraxtal
+        )
+    }
+
     /// Parse a supported Odos chain from a common human-readable name or alias.
     ///
     /// Accepts common aliases such as `mainnet`, `ethereum`, `arb`, `op`, and
@@ -496,6 +516,17 @@ mod tests {
         assert!(chain.supports_v3());
         assert!(chain.v2_router_address().is_ok());
         assert!(chain.v3_router_address().is_ok());
+    }
+
+    #[test]
+    fn test_is_op_stack() {
+        assert!(Chain::optimism().is_op_stack());
+        assert!(Chain::base().is_op_stack());
+        assert!(Chain::fraxtal().is_op_stack());
+
+        assert!(!Chain::ethereum().is_op_stack());
+        assert!(!Chain::arbitrum().is_op_stack());
+        assert!(!Chain::polygon().is_op_stack());
     }
 
     #[test]

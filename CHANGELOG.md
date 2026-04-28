@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `Chain::is_op_stack(&self) -> bool` — typed replacement for the removed `is_op_stack_chain(u64)` free function.
+
+### Removed
+
+- **BREAKING**: `op-stack` cargo feature removed.
+- **BREAKING**: `odos_sdk::op_stack` module removed in its entirety. The `Optimism` and `OpTransactionReceipt` re-exports are gone; consumers needing OP-stack network types should depend on `op-alloy-network` and `op-alloy-rpc-types` directly. The `is_op_stack_chain(u64)` free function is replaced by [`Chain::is_op_stack`](https://docs.rs/odos-sdk/latest/odos_sdk/struct.Chain.html#method.is_op_stack). `V2Router` and `V3Router` remain generic over `N: Network`, so passing `op_alloy_network::Optimism` works exactly as before.
+- `op-alloy-network` and `op-alloy-rpc-types` dependencies removed. This decouples `odos-sdk`'s alloy version cadence from op-alloy's release cycle.
+
+### Migration
+
+Before:
+
+```toml
+[dependencies]
+odos-sdk = { version = "4", features = ["op-stack"] }
+```
+
+```rust
+use odos_sdk::op_stack::{is_op_stack_chain, Optimism};
+
+if is_op_stack_chain(chain_id) { /* ... */ }
+```
+
+After:
+
+```toml
+[dependencies]
+odos-sdk = "5"
+op-alloy-network = "*"  # pick the release that matches your alloy version
+```
+
+```rust
+use odos_sdk::Chain;
+use op_alloy_network::Optimism;
+
+if Chain::from_chain_id(chain_id)?.is_op_stack() { /* ... */ }
+```
+
 ## [4.0.2] - 2026-04-17
 
 ### Changed

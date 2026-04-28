@@ -343,27 +343,26 @@
 //!
 //! ### OP-Stack Chains (Base, Optimism, Fraxtal)
 //!
-//! For OP-stack chains, use the `Optimism` network type to access L1 gas information:
+//! Both routers are generic over `N: Network`. To target OP-stack chains and
+//! get L1 gas info in receipts, pull `op_alloy_network::Optimism` directly:
 //!
 //! ```rust,ignore
-//! #[cfg(feature = "op-stack")]
-//! {
-//!     use odos_sdk::op_stack::Optimism;
-//!     use alloy_provider::ProviderBuilder;
+//! use op_alloy_network::Optimism;
+//! use alloy_provider::ProviderBuilder;
 //!
-//!     // Create a provider for OP-stack chains
-//!     let provider = ProviderBuilder::new()
-//!         .with_recommended_fillers()
-//!         .network::<Optimism>()
-//!         .connect_http("https://mainnet.base.org".parse()?);
+//! let provider = ProviderBuilder::new()
+//!     .with_recommended_fillers()
+//!     .network::<Optimism>()
+//!     .connect_http("https://mainnet.base.org".parse()?);
 //!
-//!     // Transaction receipts will include L1 gas information
-//!     let receipt = provider.get_transaction_receipt(tx_hash).await?;
-//!     if let Some(l1_fee) = receipt.inner.l1_fee {
-//!         println!("L1 fee: {l1_fee}");
-//!     }
+//! let receipt = provider.get_transaction_receipt(tx_hash).await?;
+//! if let Some(l1_fee) = receipt.inner.l1_fee {
+//!     println!("L1 fee: {l1_fee}");
 //! }
 //! ```
+//!
+//! [`Chain::is_op_stack`] is available for runtime chain-family checks
+//! without depending on op-alloy.
 //!
 //! ### Sharing Providers
 //!
@@ -434,8 +433,6 @@ mod integration_tests;
 mod limit_order_v2;
 #[cfg(feature = "multicall")]
 pub mod multicall;
-#[cfg(feature = "op-stack")]
-pub mod op_stack;
 mod router_type;
 mod sor;
 mod swap;

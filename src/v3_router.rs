@@ -37,15 +37,12 @@ use OdosV3Router::{swapCall, OdosV3RouterCalls, OdosV3RouterInstance, Swap, Swap
 /// let provider = ProviderBuilder::new().connect_http("https://eth.llamarpc.com".parse()?);
 /// let router: V3Router<Ethereum, _> = V3Router::new(address, provider);
 ///
-/// // OP-stack usage (requires op-stack feature)
-/// #[cfg(feature = "op-stack")]
-/// {
-///     use odos_sdk::op_stack::Optimism;
-///     let op_provider = ProviderBuilder::new()
-///         .network::<Optimism>()
-///         .connect_http("https://mainnet.base.org".parse()?);
-///     let op_router: V3Router<Optimism, _> = V3Router::new(address, op_provider);
-/// }
+/// // OP-stack usage
+/// use op_alloy_network::Optimism;
+/// let op_provider = ProviderBuilder::new()
+///     .network::<Optimism>()
+///     .connect_http("https://mainnet.base.org".parse()?);
+/// let op_router: V3Router<Optimism, _> = V3Router::new(address, op_provider);
 /// ```
 #[derive(Debug, Clone)]
 pub struct V3Router<N: Network = Ethereum, P: Provider<N> = alloy_provider::RootProvider<N>> {
