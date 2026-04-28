@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-04-28
+
 ### Added
 
 - `Chain::is_op_stack(&self) -> bool` — typed replacement for the removed `is_op_stack_chain(u64)` free function.
