@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Chain::is_op_stack(&self) -> bool` — typed replacement for the removed `is_op_stack_chain(u64)` free function.
 
+### Changed
+
+- Move the core Alloy crates from `~1.7` to `1.8` (caret), unlocking the 1.8.x line. The tilde ceiling was held in place to stay compatible with `op-alloy` 0.24; with op-alloy removed, there's no longer a reason to pin away from minor bumps.
+  - `alloy-contract`, `alloy-network`, `alloy-provider`, `alloy-rpc-types`, `alloy-transport`: `~1.7` → `1.8`.
+  - `alloy-primitives`, `alloy-sol-types`: unchanged at `^1.5` (latest 1.x).
+  - `alloy-chains`: unchanged at `^0.2`.
+
 ### Removed
 
 - **BREAKING**: `op-stack` cargo feature removed.

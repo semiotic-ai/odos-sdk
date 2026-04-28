@@ -39,18 +39,18 @@ contracts = ["v2", "v3", "limit-orders", "multicall"]
 
 [dependencies]
 alloy-chains = "0.2"
-alloy-contract = { version = "~1.7", default-features = false, optional = true }
-alloy-network = { version = "~1.7", default-features = false }
+alloy-contract = { version = "1.8", default-features = false, optional = true }
+alloy-network = { version = "1.8", default-features = false }
 alloy-primitives = { version = "1.5", default-features = false, features = [
     "std",
     "rlp",
 ] }
-alloy-provider = { version = "~1.7", default-features = false, features = [
+alloy-provider = { version = "1.8", default-features = false, features = [
     "reqwest",
 ], optional = true }
-alloy-rpc-types = "~1.7"
+alloy-rpc-types = "1.8"
 alloy-sol-types = { version = "1.5", features = ["json"] }
-alloy-transport = { version = "~1.7", default-features = false, optional = true }
+alloy-transport = { version = "1.8", default-features = false, optional = true }
 
 backon = "1.6"
 bon = "3.9.1"
@@ -64,7 +64,7 @@ url = "2.5"
 uuid = { version = "1.23.1", features = ["serde", "v4"] }
 
 [dev-dependencies]
-alloy-provider = { version = "~1.7", default-features = false, features = [
+alloy-provider = { version = "1.8", default-features = false, features = [
     "anvil-node",
     "reqwest",
 ] }
