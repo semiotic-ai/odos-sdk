@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.0.0] - 2026-04-29
+
 ### Changed
 
 - **BREAKING**: `OdosErrorCode::AlgoInternal` (2999) is no longer classified as retryable. Production evidence shows 2999 responses do not recover within request timescales — they reflect routing-algorithm state for marginal-liquidity tokens, not transient infrastructure failures. Consumers who relied on in-call retries for 2999 can opt back in by setting a `RetryConfig::retry_predicate`.
