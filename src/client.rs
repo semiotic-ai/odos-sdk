@@ -505,7 +505,7 @@ impl OdosHttpClient {
             return false;
         }
 
-        match &retry_config.retry_predicate {
+        match retry_config.retry_predicate {
             RetryPredicate::Replace(p) => return p(error),
             RetryPredicate::DefaultExcept(veto) if veto(error) => return false,
             RetryPredicate::Default | RetryPredicate::DefaultExcept(_) => {}
@@ -630,18 +630,29 @@ mod tests {
         }
     }
 
-    /// Helper to create a test client with custom config
-    fn create_test_client(max_retries: u32, timeout_ms: u64) -> OdosHttpClient {
+    /// Helper to create a test client with custom config and an explicit
+    /// [`RetryPredicate`].
+    fn create_test_client_with_predicate(
+        max_retries: u32,
+        timeout_ms: u64,
+        retry_predicate: RetryPredicate,
+    ) -> OdosHttpClient {
         let config = ClientConfig {
             timeout: Duration::from_millis(timeout_ms),
             retry_config: RetryConfig {
                 max_retries,
                 initial_backoff_ms: 10,
+                retry_predicate,
                 ..Default::default()
             },
             ..Default::default()
         };
         OdosHttpClient::with_config(config).unwrap()
+    }
+
+    /// Helper to create a test client with the default retry predicate.
+    fn create_test_client(max_retries: u32, timeout_ms: u64) -> OdosHttpClient {
+        create_test_client_with_predicate(max_retries, timeout_ms, RetryPredicate::Default)
     }
 
     #[test]
@@ -994,25 +1005,6 @@ mod tests {
             }
             other => panic!("Expected OdosError::Api with AlgoTimeout, got: {other:?}"),
         }
-    }
-
-    /// Helper to create a test client with a specific `RetryPredicate`.
-    fn create_test_client_with_predicate(
-        max_retries: u32,
-        timeout_ms: u64,
-        retry_predicate: RetryPredicate,
-    ) -> OdosHttpClient {
-        let config = ClientConfig {
-            timeout: Duration::from_millis(timeout_ms),
-            retry_config: RetryConfig {
-                max_retries,
-                initial_backoff_ms: 10,
-                retry_predicate,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-        OdosHttpClient::with_config(config).unwrap()
     }
 
     #[tokio::test]
