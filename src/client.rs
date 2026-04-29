@@ -470,9 +470,7 @@ impl OdosHttpClient {
         // `retry_server_errors=false` is an unconditional opt-out for any
         // API 5xx retry. Apply it before delegating to `is_retryable`, which
         // would otherwise honour the typed classification regardless.
-        if !retry_config.retry_server_errors
-            && matches!(error, OdosError::Api { status, .. } if status.is_server_error())
-        {
+        if !retry_config.retry_server_errors && error.is_server_error() {
             return false;
         }
 
@@ -561,6 +559,7 @@ impl Default for OdosHttpClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::error_code::OdosErrorCode;
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
     use wiremock::{
@@ -891,8 +890,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_algo_internal_2999_not_retried() {
-        use crate::error_code::OdosErrorCode;
-
         let mock_server = MockServer::start().await;
 
         let error_json = r#"{
@@ -925,8 +922,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_typed_retryable_code_still_retried() {
-        use crate::error_code::OdosErrorCode;
-
         let mock_server = MockServer::start().await;
 
         // 2998 = AlgoTimeout, classified as retryable via is_timeout()
@@ -1176,8 +1171,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_structured_error_response() {
-        use crate::error_code::OdosErrorCode;
-
         // Create a mock response with structured error
         let error_json = r#"{
             "detail": "Error getting quote, please try again",
