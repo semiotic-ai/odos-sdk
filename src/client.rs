@@ -1102,7 +1102,12 @@ mod tests {
             .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
             .await;
 
-        assert!(response.is_err());
+        match response {
+            Err(OdosError::Api { status, .. }) => {
+                assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+            }
+            other => panic!("Expected OdosError::Api with 500 status, got: {other:?}"),
+        }
     }
 
     #[tokio::test]
