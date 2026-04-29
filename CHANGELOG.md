@@ -7,13 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- `OdosApiErrorResponse` now deserializes responses where `traceId` is `null` or omitted. Previously, any error body with `"traceId": null` (the norm for `errorCode` 2999, and common for several other codes) failed to parse, causing `OdosError::error_code()` to fall back to `Unknown(0)` and discarding the real code. Closes [#5](https://github.com/semiotic-ai/odos-sdk/issues/5).
-
 ### Changed
 
-- **BREAKING**: `OdosApiErrorResponse.trace_id` is now `Option<TraceId>` (was `TraceId`). Direct readers of the field must handle the `None` case; consumers using `OdosError::trace_id()` are unaffected since that accessor was already `Option<TraceId>`.
+- **BREAKING**: `OdosApiErrorResponse.trace_id` is now `Option<TraceId>` (was `TraceId`), with `#[serde(default)]` so `null` and absent both round-trip cleanly. Previously, any error body with `"traceId": null` (the norm for `errorCode` 2999, and common for several other codes) failed to parse, causing `OdosError::error_code()` to fall back to `Unknown(0)` and discard the real code. Direct readers of the field must handle the `None` case; consumers using `OdosError::trace_id()` are unaffected since that accessor was already `Option<TraceId>`. Closes [#5](https://github.com/semiotic-ai/odos-sdk/issues/5).
 
 ## [8.0.0] - 2026-04-29
 

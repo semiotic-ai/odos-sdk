@@ -598,8 +598,9 @@ impl SingleQuoteResponse {
 ///
 /// When the Odos API returns an error, it includes:
 /// - `detail`: Human-readable error message
-/// - `traceId`: UUID for tracking the error in Odos logs; may be `null` (notably on
-///   `errorCode` 2999) or omitted entirely
+/// - `traceId`: UUID for tracking the error in Odos logs; may be `null` for some
+///   error codes (notably [`AlgoInternal`](crate::error_code::OdosErrorCode::AlgoInternal))
+///   or omitted entirely
 /// - `errorCode`: Numeric error code indicating the specific error type
 ///
 /// Example error response:
@@ -901,7 +902,10 @@ mod tests {
         let body = r#"{"detail":"x","traceId":null,"errorCode":2999}"#;
         let parsed: OdosApiErrorResponse = serde_json::from_str(body).unwrap();
         assert_eq!(parsed.trace_id, None);
-        assert_eq!(parsed.error_code, 2999);
+        assert_eq!(
+            parsed.error_code,
+            crate::error_code::OdosErrorCode::AlgoInternal.code()
+        );
     }
 
     #[test]
@@ -909,7 +913,10 @@ mod tests {
         let body = r#"{"detail":"x","errorCode":2999}"#;
         let parsed: OdosApiErrorResponse = serde_json::from_str(body).unwrap();
         assert_eq!(parsed.trace_id, None);
-        assert_eq!(parsed.error_code, 2999);
+        assert_eq!(
+            parsed.error_code,
+            crate::error_code::OdosErrorCode::AlgoInternal.code()
+        );
     }
 
     #[test]
@@ -918,6 +925,9 @@ mod tests {
             r#"{"detail":"x","traceId":"10becdc8-a021-4491-8201-a17b657204e0","errorCode":2999}"#;
         let parsed: OdosApiErrorResponse = serde_json::from_str(body).unwrap();
         assert!(parsed.trace_id.is_some());
-        assert_eq!(parsed.error_code, 2999);
+        assert_eq!(
+            parsed.error_code,
+            crate::error_code::OdosErrorCode::AlgoInternal.code()
+        );
     }
 }
