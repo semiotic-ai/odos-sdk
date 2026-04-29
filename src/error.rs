@@ -246,8 +246,12 @@ impl OdosError {
     /// source of truth: a known code's [`OdosErrorCode::is_retryable`]
     /// classification is honoured directly. Only [`OdosErrorCode::Unknown`]
     /// falls back to the HTTP status code (500/502/503/504 → retryable).
-    /// `OdosHttpClient::should_retry` consults this method, so changing a
-    /// code's classification flows directly into client retry behaviour.
+    ///
+    /// `OdosHttpClient::should_retry` consults this method for the default
+    /// retry policy, but two client-side gates take precedence: a
+    /// `RetryConfig::retry_predicate` overrides this method entirely, and
+    /// `retry_server_errors=false` short-circuits any 5xx [`OdosError::Api`]
+    /// retry regardless of the typed classification.
     pub fn is_retryable(&self) -> bool {
         match self {
             // HTTP errors that are typically retryable
