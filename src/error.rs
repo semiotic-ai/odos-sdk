@@ -248,10 +248,16 @@ impl OdosError {
     /// falls back to the HTTP status code (500/502/503/504 → retryable).
     ///
     /// `OdosHttpClient::should_retry` consults this method for the default
-    /// retry policy, but two client-side gates take precedence: a
-    /// `RetryConfig::retry_predicate` overrides this method entirely, and
-    /// `retry_server_errors=false` short-circuits any 5xx [`OdosError::Api`]
-    /// retry regardless of the typed classification.
+    /// retry policy, but client-side gates can take precedence:
+    /// - [`RetryPredicate::Replace`] overrides this method entirely.
+    /// - [`RetryPredicate::DefaultExcept`] vetoes retries for matched errors
+    ///   while otherwise deferring to this method.
+    /// - `retry_server_errors=false` short-circuits any 5xx [`OdosError::Api`]
+    ///   retry regardless of the typed classification (honoured for
+    ///   `RetryPredicate::Default` and `DefaultExcept`).
+    ///
+    /// [`RetryPredicate::Replace`]: crate::RetryPredicate::Replace
+    /// [`RetryPredicate::DefaultExcept`]: crate::RetryPredicate::DefaultExcept
     pub fn is_retryable(&self) -> bool {
         match self {
             // HTTP errors that are typically retryable

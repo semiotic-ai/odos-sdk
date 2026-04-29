@@ -395,7 +395,7 @@ async fn main() -> Result<()> {
         max_retries: 3,
         initial_backoff_ms: 100,
         retry_server_errors: true,
-        retry_predicate: None,
+        retry_predicate: RetryPredicate::Default,
     })?;
 
     // Token addresses (Ethereum mainnet)

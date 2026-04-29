@@ -119,14 +119,14 @@ let api_key = std::env::var("ODOS_API_KEY")
 The SDK implements client-side retry logic, but you should also implement application-level rate limiting:
 
 ```rust
-use odos_sdk::RetryConfig;
+use odos_sdk::{RetryConfig, RetryPredicate};
 
 // Conservative retry configuration for production
 let retry_config = RetryConfig {
     max_retries: 3,
     initial_backoff_ms: 200,
     retry_server_errors: true,
-    retry_predicate: None,
+    retry_predicate: RetryPredicate::Default,
 };
 
 let client = OdosClient::with_retry_config(retry_config)?;

@@ -16,6 +16,38 @@ use crate::{
     error_code::OdosErrorCode,
 };
 
+/// How a caller-supplied predicate composes with the SDK's default retry
+/// decision tree.
+///
+/// The default decision tree is [`OdosError::is_retryable`] gated by
+/// [`RetryConfig::retry_server_errors`]. Each variant chooses how a custom
+/// predicate interacts with that tree:
+///
+/// - [`RetryPredicate::Default`] uses only the built-in tree.
+/// - [`RetryPredicate::Replace`] replaces the tree entirely; the predicate is
+///   the sole authority on whether to retry.
+/// - [`RetryPredicate::DefaultExcept`] runs the built-in tree but vetoes
+///   retries when the predicate returns `true`. Useful for blacklisting
+///   specific error shapes without reimplementing the default policy.
+///
+/// `max_retries` and the rate-limit / 429 hard-gate apply to every variant.
+#[derive(Debug, Clone, Copy, Default)]
+pub enum RetryPredicate {
+    /// Use the SDK's built-in decision tree.
+    #[default]
+    Default,
+
+    /// Replace the default decision tree entirely. The predicate is the sole
+    /// authority on whether to retry. The [`RetryConfig::retry_server_errors`]
+    /// flag is bypassed under this variant.
+    Replace(fn(&OdosError) -> bool),
+
+    /// Run the default decision tree, but veto retries when the predicate
+    /// returns `true`. Equivalent to
+    /// `!veto(err) && default_should_retry(err)`.
+    DefaultExcept(fn(&OdosError) -> bool),
+}
+
 /// Configuration for retry behavior
 ///
 /// Controls which errors should be retried and how retries are executed.
@@ -23,7 +55,7 @@ use crate::{
 /// # Examples
 ///
 /// ```rust
-/// use odos_sdk::RetryConfig;
+/// use odos_sdk::{RetryConfig, RetryPredicate};
 ///
 /// // No retries - all errors return immediately
 /// let config = RetryConfig::no_retries();
@@ -34,14 +66,20 @@ use crate::{
 /// // Default retries - network errors and server errors
 /// let config = RetryConfig::default();
 ///
-/// // Custom retry logic
+/// // Replace the default policy with custom logic
 /// let config = RetryConfig {
 ///     max_retries: 2,
 ///     retry_server_errors: false,
-///     retry_predicate: Some(|err| {
+///     retry_predicate: RetryPredicate::Replace(|err| {
 ///         // Custom logic to determine if error should be retried
 ///         err.is_retryable()
 ///     }),
+///     ..Default::default()
+/// };
+///
+/// // Keep the default policy but veto a specific error shape
+/// let config = RetryConfig {
+///     retry_predicate: RetryPredicate::DefaultExcept(|err| err.is_rate_limit()),
 ///     ..Default::default()
 /// };
 /// ```
@@ -56,11 +94,9 @@ pub struct RetryConfig {
     /// Whether to retry server errors (5xx)
     pub retry_server_errors: bool,
 
-    /// Custom retry predicate (advanced use)
-    ///
-    /// When provided, this function overrides the default retry logic.
-    /// Return `true` to retry the error, `false` to return it immediately.
-    pub retry_predicate: Option<fn(&OdosError) -> bool>,
+    /// How a caller-supplied predicate composes with the default decision
+    /// tree. See [`RetryPredicate`] for the semantics of each variant.
+    pub retry_predicate: RetryPredicate,
 }
 
 impl Default for RetryConfig {
@@ -69,7 +105,7 @@ impl Default for RetryConfig {
             max_retries: 3,
             initial_backoff_ms: 100,
             retry_server_errors: true,
-            retry_predicate: None,
+            retry_predicate: RetryPredicate::Default,
         }
     }
 }
@@ -437,12 +473,18 @@ impl OdosHttpClient {
     /// Delegates to [`OdosError::is_retryable`] so that the typed
     /// [`OdosErrorCode`](crate::error_code::OdosErrorCode) classification is
     /// the single source of truth for whether an API error warrants another
-    /// attempt. The retry configuration adds two gates on top:
+    /// attempt. The retry configuration adds these gates on top:
     /// - NEVER retry past `max_retries` attempts.
+    /// - The [`RetryPredicate`] in `retry_predicate` chooses how a caller
+    ///   predicate composes with the default tree:
+    ///   - [`RetryPredicate::Default`] runs only the default tree.
+    ///   - [`RetryPredicate::Replace`] is the sole authority and bypasses the
+    ///     `retry_server_errors` flag and `is_retryable`.
+    ///   - [`RetryPredicate::DefaultExcept`] vetoes retries when the predicate
+    ///     returns `true`, otherwise falls through to the default tree.
     /// - When `retry_server_errors` is `false`, no `OdosError::Api` 5xx is
-    ///   retried regardless of the typed classification.
-    /// - When `retry_predicate` is set, it overrides the default policy
-    ///   entirely (preserved for advanced use).
+    ///   retried regardless of the typed classification (honoured for
+    ///   `Default` and `DefaultExcept`; bypassed by `Replace`).
     ///
     /// For `OdosError::Api` errors with a known `OdosErrorCode`, retryability
     /// is determined by `OdosErrorCode::is_retryable`. For `OdosErrorCode::Unknown(_)`,
@@ -463,8 +505,10 @@ impl OdosHttpClient {
             return false;
         }
 
-        if let Some(predicate) = retry_config.retry_predicate {
-            return predicate(error);
+        match &retry_config.retry_predicate {
+            RetryPredicate::Replace(p) => return p(error),
+            RetryPredicate::DefaultExcept(veto) if veto(error) => return false,
+            RetryPredicate::Default | RetryPredicate::DefaultExcept(_) => {}
         }
 
         // `retry_server_errors=false` is an unconditional opt-out for any
@@ -950,6 +994,158 @@ mod tests {
             }
             other => panic!("Expected OdosError::Api with AlgoTimeout, got: {other:?}"),
         }
+    }
+
+    /// Helper to create a test client with a specific `RetryPredicate`.
+    fn create_test_client_with_predicate(
+        max_retries: u32,
+        timeout_ms: u64,
+        retry_predicate: RetryPredicate,
+    ) -> OdosHttpClient {
+        let config = ClientConfig {
+            timeout: Duration::from_millis(timeout_ms),
+            retry_config: RetryConfig {
+                max_retries,
+                initial_backoff_ms: 10,
+                retry_predicate,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        OdosHttpClient::with_config(config).unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_retry_predicate_default_matches_built_in_tree() {
+        // Explicit `RetryPredicate::Default` must behave identically to the
+        // implicit default: 502 retries, 2999 does not.
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(create_retry_mock(502, "Bad gateway".to_string(), 2))
+            .mount(&mock_server)
+            .await;
+
+        let client = create_test_client_with_predicate(3, 30000, RetryPredicate::Default);
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(
+            response.is_ok(),
+            "502 should still be retried under RetryPredicate::Default"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_retry_predicate_replace_can_disable_retries() {
+        // `Replace(|_| false)` makes a normally-retryable 500 not retry.
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(500).set_body_string("Internal error"))
+            .expect(1) // No retries despite max_retries=3 and 500 being retryable by default
+            .mount(&mock_server)
+            .await;
+
+        let client =
+            create_test_client_with_predicate(3, 30000, RetryPredicate::Replace(|_err| false));
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(response.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_retry_predicate_replace_can_force_retries() {
+        // `Replace(|_| true)` makes a normally-non-retryable 400 retry, proving
+        // Replace bypasses the default `is_retryable` decision tree.
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(400).set_body_string("Bad request"))
+            .expect(3) // max_retries gates total attempts; see should_retry
+            .mount(&mock_server)
+            .await;
+
+        let client =
+            create_test_client_with_predicate(3, 30000, RetryPredicate::Replace(|_err| true));
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(response.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_retry_predicate_default_except_vetoes_retryable_code() {
+        // `DefaultExcept` vetoes a code that the default tree would retry.
+        // 3130 = PricingInternal is classified as retryable by
+        // `OdosErrorCode::is_retryable`, so without the veto it would retry.
+        let mock_server = MockServer::start().await;
+
+        let error_json = r#"{
+            "detail": "Pricing service internal error",
+            "traceId": "30becdc8-a021-4491-8201-a17b657204e0",
+            "errorCode": 3130
+        }"#;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(500).set_body_string(error_json))
+            .expect(1) // Vetoed → no retries
+            .mount(&mock_server)
+            .await;
+
+        let client = create_test_client_with_predicate(
+            3,
+            30000,
+            RetryPredicate::DefaultExcept(|err| {
+                err.error_code() == Some(&OdosErrorCode::PricingInternal)
+            }),
+        );
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(response.is_err());
+        match response {
+            Err(OdosError::Api { code, .. }) => {
+                assert_eq!(code, OdosErrorCode::PricingInternal);
+            }
+            other => panic!("Expected OdosError::Api with PricingInternal, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_retry_predicate_default_except_falls_through_when_not_matched() {
+        // When the veto returns `false`, behaviour must match the default tree:
+        // 502 still retries to success.
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(create_retry_mock(502, "Bad gateway".to_string(), 2))
+            .mount(&mock_server)
+            .await;
+
+        let client = create_test_client_with_predicate(
+            3,
+            30000,
+            RetryPredicate::DefaultExcept(|_err| false),
+        );
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(
+            response.is_ok(),
+            "502 should still be retried when DefaultExcept veto returns false"
+        );
     }
 
     #[tokio::test]

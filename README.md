@@ -201,22 +201,28 @@ Configurable retry behavior with exponential backoff:
 
 ```rust
 use std::time::Duration;
-use odos_sdk::{OdosClient, RetryConfig};
+use odos_sdk::{OdosClient, RetryConfig, RetryPredicate};
 
 // Conservative preset - only retry network errors
 let client = OdosClient::with_retry_config(RetryConfig::conservative())?;
 
-// Custom retry configuration
+// Replace the default policy with custom logic
 let client = OdosClient::with_retry_config(RetryConfig {
     max_retries: 5,
     initial_backoff_ms: 200,
     retry_server_errors: true,
-    retry_predicate: Some(|err| {
-        // Custom logic to determine if an error should be retried
-        err.is_timeout() || (err.is_api_error() && !err.is_validation_error())
-    }),
+    retry_predicate: RetryPredicate::Replace(|err| err.is_retryable()),
+})?;
+
+// Or keep the default policy but veto retries for a specific error shape
+let client = OdosClient::with_retry_config(RetryConfig {
+    retry_predicate: RetryPredicate::DefaultExcept(|err| err.is_rate_limit()),
+    ..Default::default()
 })?;
 ```
+
+`RetryPredicate::Default` (the field default) uses the SDK's built-in decision tree.
+`Replace` overrides it entirely; `DefaultExcept` keeps the default but blacklists matching errors — useful when you only want to *subtract* from the default policy without reimplementing it.
 
 Rate limits are detected but **not** automatically retried - you control the global rate limiting strategy.
 

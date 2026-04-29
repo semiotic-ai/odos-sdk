@@ -56,7 +56,7 @@ pub use crate::{Chain, ReferralCode, Slippage};
 pub use crate::{OdosError, Result};
 
 // Configuration
-pub use crate::{ClientConfig, Endpoint, RetryConfig};
+pub use crate::{ClientConfig, Endpoint, RetryConfig, RetryPredicate};
 
 // Chain support trait
 pub use crate::OdosChain;

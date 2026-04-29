@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: `RetryConfig::retry_predicate` is now a `RetryPredicate` enum instead of `Option<fn(&OdosError) -> bool>`. The new variants make the compose-vs-replace semantic explicit at the call site:
+  - `RetryPredicate::Default` runs only the SDK's built-in decision tree (the previous `None`).
+  - `RetryPredicate::Replace(fn)` replaces the default tree entirely; the predicate is the sole authority on whether to retry (the previous `Some(p)`). The `retry_server_errors` flag is bypassed under this variant.
+  - `RetryPredicate::DefaultExcept(fn)` runs the default tree but vetoes retries when the predicate returns `true` — letting callers blacklist specific error shapes without reimplementing the default policy.
+
+  Migration: `None` → `RetryPredicate::Default`; `Some(p)` → `RetryPredicate::Replace(p)`. There is deliberately no `From<fn> for RetryPredicate` impl, since silently coercing a bare `fn` would re-introduce the very ambiguity this enum exists to remove. Closes [#4](https://github.com/semiotic-ai/odos-sdk/issues/4).
+
 ## [7.0.0] - 2026-04-29
 
 ### Changed

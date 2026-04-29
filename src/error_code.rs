@@ -94,10 +94,12 @@ pub enum OdosErrorCode {
     /// "please try again" wording in the API response, production evidence
     /// shows these do not recover within request timescales — successive
     /// retries return the same error until upstream liquidity changes.
-    /// Classified as **not** in-call retryable; consumers who need different
-    /// behaviour can override via [`RetryConfig::retry_predicate`].
+    /// Classified as **not** in-call retryable; consumers who need to opt
+    /// back in to retrying 2999 can replace the default policy via
+    /// [`RetryPredicate::Replace`] (a `DefaultExcept` veto can only subtract
+    /// from the default tree, so it cannot promote a non-retryable code).
     ///
-    /// [`RetryConfig::retry_predicate`]: crate::RetryConfig::retry_predicate
+    /// [`RetryPredicate::Replace`]: crate::RetryPredicate::Replace
     AlgoInternal,
 
     // Odos Internal Service errors (3XXX)
@@ -368,8 +370,13 @@ impl OdosErrorCode {
     /// `AlgoInternal` (2999) is **not** classified as retryable: production
     /// evidence shows it reflects routing-algorithm state for marginal-liquidity
     /// tokens that does not stabilise within request timescales. Consumers who
-    /// want in-call retries for 2999 can override the default policy with
-    /// [`RetryConfig::retry_predicate`](crate::RetryConfig::retry_predicate).
+    /// want in-call retries for 2999 can opt back in by replacing the default
+    /// policy with
+    /// [`RetryPredicate::Replace`](crate::RetryPredicate::Replace).
+    /// Conversely,
+    /// [`RetryPredicate::DefaultExcept`](crate::RetryPredicate::DefaultExcept)
+    /// can be used to veto retries for any *currently retryable* code without
+    /// reimplementing the default decision tree.
     pub fn is_retryable(&self) -> bool {
         self.is_timeout()
             || self.is_connection_error()

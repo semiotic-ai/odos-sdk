@@ -111,7 +111,7 @@
 //!         max_retries: 3,
 //!         initial_backoff_ms: 100,
 //!         retry_server_errors: true,
-//!         retry_predicate: None,
+//!         retry_predicate: RetryPredicate::Default,
 //!     },
 //!     max_connections: 20,
 //!     pool_idle_timeout: Duration::from_secs(90),
@@ -282,7 +282,7 @@
 //!     max_retries: 5,
 //!     initial_backoff_ms: 200,
 //!     retry_server_errors: false,  // Don't retry 5xx errors
-//!     retry_predicate: None,
+//!     retry_predicate: RetryPredicate::Default,
 //! };
 //! let client = OdosClient::with_retry_config(retry_config)?;
 //! # Ok(())
@@ -471,7 +471,7 @@ pub use assemble::{
 pub use chain::{OdosChain, OdosChainError, OdosChainResult, OdosRouterSelection};
 
 // HTTP client configuration
-pub use client::{ClientConfig, OdosHttpClient, RetryConfig};
+pub use client::{ClientConfig, OdosHttpClient, RetryConfig, RetryPredicate};
 
 // Contract addresses and chain helpers
 pub use contract::{
