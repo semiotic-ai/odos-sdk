@@ -569,7 +569,7 @@ async fn parse_error_response(response: Response) -> ParsedErrorResponse {
             ParsedErrorResponse {
                 message: error_response.detail,
                 code: error_code,
-                trace_id: Some(error_response.trace_id),
+                trace_id: error_response.trace_id,
             }
         }
         Err(_) => {
@@ -1474,6 +1474,34 @@ mod tests {
         } else {
             panic!("Expected error, got success");
         }
+    }
+
+    #[tokio::test]
+    async fn test_api_error_with_null_trace_id_preserves_error_code() {
+        let mock_server = MockServer::start().await;
+
+        let error_json = r#"{
+            "detail": "Error getting quote, please try again",
+            "traceId": null,
+            "errorCode": 2999
+        }"#;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(500).set_body_string(error_json))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = create_test_client(0, 30000);
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        let err = response.expect_err("expected API error");
+        assert!(matches!(err, OdosError::Api { .. }));
+        assert_eq!(err.error_code(), Some(&OdosErrorCode::AlgoInternal));
+        assert_eq!(err.trace_id(), None);
     }
 
     #[tokio::test]

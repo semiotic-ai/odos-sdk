@@ -598,7 +598,8 @@ impl SingleQuoteResponse {
 ///
 /// When the Odos API returns an error, it includes:
 /// - `detail`: Human-readable error message
-/// - `traceId`: UUID for tracking the error in Odos logs
+/// - `traceId`: UUID for tracking the error in Odos logs; may be `null` (notably on
+///   `errorCode` 2999) or omitted entirely
 /// - `errorCode`: Numeric error code indicating the specific error type
 ///
 /// Example error response:
@@ -614,8 +615,10 @@ impl SingleQuoteResponse {
 pub struct OdosApiErrorResponse {
     /// Human-readable error message
     pub detail: String,
-    /// Trace ID for debugging (UUID)
-    pub trace_id: TraceId,
+    /// Trace ID for debugging (UUID); `None` when the API returns `"traceId": null`
+    /// or omits the field.
+    #[serde(default)]
+    pub trace_id: Option<TraceId>,
     /// Numeric error code
     pub error_code: u16,
 }
@@ -891,5 +894,30 @@ mod tests {
         );
         assert_ne!(Endpoint::public_v2(), Endpoint::public_v3());
         assert_ne!(Endpoint::public_v2(), Endpoint::enterprise_v2());
+    }
+
+    #[test]
+    fn test_odos_api_error_response_accepts_null_trace_id() {
+        let body = r#"{"detail":"x","traceId":null,"errorCode":2999}"#;
+        let parsed: OdosApiErrorResponse = serde_json::from_str(body).unwrap();
+        assert_eq!(parsed.trace_id, None);
+        assert_eq!(parsed.error_code, 2999);
+    }
+
+    #[test]
+    fn test_odos_api_error_response_accepts_missing_trace_id() {
+        let body = r#"{"detail":"x","errorCode":2999}"#;
+        let parsed: OdosApiErrorResponse = serde_json::from_str(body).unwrap();
+        assert_eq!(parsed.trace_id, None);
+        assert_eq!(parsed.error_code, 2999);
+    }
+
+    #[test]
+    fn test_odos_api_error_response_accepts_present_trace_id() {
+        let body =
+            r#"{"detail":"x","traceId":"10becdc8-a021-4491-8201-a17b657204e0","errorCode":2999}"#;
+        let parsed: OdosApiErrorResponse = serde_json::from_str(body).unwrap();
+        assert!(parsed.trace_id.is_some());
+        assert_eq!(parsed.error_code, 2999);
     }
 }

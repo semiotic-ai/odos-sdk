@@ -301,11 +301,7 @@ impl OdosClient {
                 match serde_json::from_str::<OdosApiErrorResponse>(&body_text) {
                     Ok(error_response) => {
                         let error_code = OdosErrorCode::from(error_response.error_code);
-                        (
-                            error_response.detail,
-                            error_code,
-                            Some(error_response.trace_id),
-                        )
+                        (error_response.detail, error_code, error_response.trace_id)
                     }
                     Err(_) => (body_text, OdosErrorCode::Unknown(0), None),
                 };
@@ -422,11 +418,7 @@ impl OdosClient {
                 match serde_json::from_str::<OdosApiErrorResponse>(&body_text) {
                     Ok(error_response) => {
                         let error_code = OdosErrorCode::from(error_response.error_code);
-                        (
-                            error_response.detail,
-                            error_code,
-                            Some(error_response.trace_id),
-                        )
+                        (error_response.detail, error_code, error_response.trace_id)
                     }
                     Err(_) => (body_text, OdosErrorCode::Unknown(0), None),
                 };
