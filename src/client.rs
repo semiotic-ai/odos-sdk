@@ -434,12 +434,19 @@ impl OdosHttpClient {
 
     /// Determine if an error should be retried based on retry configuration
     ///
-    /// Uses the retry configuration to decide whether a specific error warrants
-    /// another attempt. This implements smart retry logic that:
-    /// - NEVER retries rate limits (must be handled globally)
-    /// - NEVER retries client errors (4xx - invalid input)
-    /// - CONDITIONALLY retries server errors (5xx - based on config)
-    /// - ALWAYS retries network/timeout errors (transient failures)
+    /// Delegates to [`OdosError::is_retryable`] so that the typed
+    /// [`OdosErrorCode`](crate::error_code::OdosErrorCode) classification is
+    /// the single source of truth for whether an API error warrants another
+    /// attempt. The retry configuration adds two gates on top:
+    /// - NEVER retry past `max_retries` attempts.
+    /// - When `retry_server_errors` is `false`, no `OdosError::Api` 5xx is
+    ///   retried regardless of the typed classification.
+    /// - When `retry_predicate` is set, it overrides the default policy
+    ///   entirely (preserved for advanced use).
+    ///
+    /// For `OdosError::Api` errors with a known `OdosErrorCode`, retryability
+    /// is determined by `OdosErrorCode::is_retryable`. For `OdosErrorCode::Unknown(_)`,
+    /// `OdosError::is_retryable` falls back to checking the HTTP status (500/502/503/504).
     ///
     /// # Arguments
     ///
@@ -452,38 +459,24 @@ impl OdosHttpClient {
     fn should_retry(&self, error: &OdosError, attempts: u32) -> bool {
         let retry_config = &self.config.retry_config;
 
-        // Check attempt limit
         if attempts >= retry_config.max_retries {
             return false;
         }
 
-        // Check custom predicate first
         if let Some(predicate) = retry_config.retry_predicate {
             return predicate(error);
         }
 
-        // Default retry logic
-        match error {
-            // NEVER retry rate limits - application must handle globally
-            OdosError::RateLimit { .. } => false,
-
-            // NEVER retry client errors - invalid input
-            OdosError::Api { status, .. } if status.is_client_error() => false,
-
-            // MAYBE retry server errors - configurable
-            OdosError::Api { status, .. } if status.is_server_error() => {
-                retry_config.retry_server_errors
-            }
-
-            // ALWAYS retry network errors - transient
-            OdosError::Http(err) => err.is_timeout() || err.is_connect() || err.is_request(),
-
-            // ALWAYS retry timeout errors
-            OdosError::Timeout(_) => true,
-
-            // Don't retry anything else by default
-            _ => false,
+        // `retry_server_errors=false` is an unconditional opt-out for any
+        // API 5xx retry. Apply it before delegating to `is_retryable`, which
+        // would otherwise honour the typed classification regardless.
+        if !retry_config.retry_server_errors
+            && matches!(error, OdosError::Api { status, .. } if status.is_server_error())
+        {
+            return false;
         }
+
+        error.is_retryable()
     }
 }
 
@@ -894,6 +887,74 @@ mod tests {
             .await;
 
         assert!(response.is_ok(), "504 error should be retried and succeed");
+    }
+
+    #[tokio::test]
+    async fn test_algo_internal_2999_not_retried() {
+        use crate::error_code::OdosErrorCode;
+
+        let mock_server = MockServer::start().await;
+
+        let error_json = r#"{
+            "detail": "Error getting quote, please try again",
+            "traceId": "10becdc8-a021-4491-8201-a17b657204e0",
+            "errorCode": 2999
+        }"#;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(500).set_body_string(error_json))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = create_test_client(3, 30000);
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(response.is_err());
+        match response {
+            Err(OdosError::Api { code, status, .. }) => {
+                assert_eq!(code, OdosErrorCode::AlgoInternal);
+                assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+            }
+            other => panic!("Expected OdosError::Api with AlgoInternal, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_typed_retryable_code_still_retried() {
+        use crate::error_code::OdosErrorCode;
+
+        let mock_server = MockServer::start().await;
+
+        // 2998 = AlgoTimeout, classified as retryable via is_timeout()
+        let error_json = r#"{
+            "detail": "Algorithm timeout",
+            "traceId": "20becdc8-a021-4491-8201-a17b657204e0",
+            "errorCode": 2998
+        }"#;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(500).set_body_string(error_json))
+            .expect(3) // max_retries gates total attempts; see should_retry
+            .mount(&mock_server)
+            .await;
+
+        let client = create_test_client(3, 30000);
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(response.is_err());
+        match response {
+            Err(OdosError::Api { code, .. }) => {
+                assert_eq!(code, OdosErrorCode::AlgoTimeout);
+            }
+            other => panic!("Expected OdosError::Api with AlgoTimeout, got: {other:?}"),
+        }
     }
 
     #[tokio::test]

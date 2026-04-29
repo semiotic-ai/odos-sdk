@@ -242,8 +242,12 @@ impl OdosError {
 
     /// Check if the error is retryable
     ///
-    /// For API errors, the retryability is determined by the error code.
-    /// For Unknown error codes, falls back to HTTP status code checking.
+    /// For [`OdosError::Api`] errors, the typed [`OdosErrorCode`] is the
+    /// source of truth: a known code's [`OdosErrorCode::is_retryable`]
+    /// classification is honoured directly. Only [`OdosErrorCode::Unknown`]
+    /// falls back to the HTTP status code (500/502/503/504 → retryable).
+    /// `OdosHttpClient::should_retry` consults this method, so changing a
+    /// code's classification flows directly into client retry behaviour.
     pub fn is_retryable(&self) -> bool {
         match self {
             // HTTP errors that are typically retryable

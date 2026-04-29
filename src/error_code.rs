@@ -88,6 +88,16 @@ pub enum OdosErrorCode {
     /// Algorithm timeout (2998)
     AlgoTimeout,
     /// Algorithm internal error (2999)
+    ///
+    /// Returned when the Odos routing algorithm cannot stabilise on a path,
+    /// typically for marginal-liquidity or low-value tokens. Despite the
+    /// "please try again" wording in the API response, production evidence
+    /// shows these do not recover within request timescales — successive
+    /// retries return the same error until upstream liquidity changes.
+    /// Classified as **not** in-call retryable; consumers who need different
+    /// behaviour can override via [`RetryConfig::retry_predicate`].
+    ///
+    /// [`RetryConfig::retry_predicate`]: crate::RetryConfig::retry_predicate
     AlgoInternal,
 
     // Odos Internal Service errors (3XXX)
@@ -352,15 +362,20 @@ impl OdosErrorCode {
     /// Retryable errors include:
     /// - Timeouts (algo, config, assembly, chain data, pricing, gas)
     /// - Connection errors (all services)
-    /// - Internal errors (algo, services, general)
+    /// - Internal errors (config, assembly, chain data, pricing, gas, services, general)
     /// - Gas unavailable
+    ///
+    /// `AlgoInternal` (2999) is **not** classified as retryable: production
+    /// evidence shows it reflects routing-algorithm state for marginal-liquidity
+    /// tokens that does not stabilise within request timescales. Consumers who
+    /// want in-call retries for 2999 can override the default policy with
+    /// [`RetryConfig::retry_predicate`](crate::RetryConfig::retry_predicate).
     pub fn is_retryable(&self) -> bool {
         self.is_timeout()
             || self.is_connection_error()
             || matches!(
                 self,
-                Self::AlgoInternal
-                    | Self::ConfigInternal
+                Self::ConfigInternal
                     | Self::TxnAssemblyInternal
                     | Self::ChainDataInternal
                     | Self::PricingInternal
@@ -599,9 +614,12 @@ mod tests {
         assert!(OdosErrorCode::PricingConnectionError.is_retryable());
 
         // Internal errors are retryable
-        assert!(OdosErrorCode::AlgoInternal.is_retryable());
         assert!(OdosErrorCode::InternalServiceError.is_retryable());
         assert!(OdosErrorCode::GasUnavailable.is_retryable());
+
+        // AlgoInternal is not retryable: routing-algorithm state for
+        // marginal-liquidity tokens does not stabilise within request timescales.
+        assert!(!OdosErrorCode::AlgoInternal.is_retryable());
 
         // Validation errors are not retryable
         assert!(!OdosErrorCode::InvalidChainId.is_retryable());

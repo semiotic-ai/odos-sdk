@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: `OdosErrorCode::AlgoInternal` (2999) is no longer classified as retryable. Production evidence shows 2999 responses do not recover within request timescales — they reflect routing-algorithm state for marginal-liquidity tokens, not transient infrastructure failures. Consumers who relied on in-call retries for 2999 can opt back in by setting a `RetryConfig::retry_predicate`.
+- **BREAKING**: `OdosHttpClient::should_retry` now consults the typed `OdosErrorCode` classification for `OdosError::Api` errors via `OdosError::is_retryable`. Previously it only considered HTTP status. For API errors with `OdosErrorCode::Unknown(_)` (no parseable typed code), the prior status-based behaviour is preserved by `OdosError::is_retryable`'s `Unknown` fallback (500/502/503/504 → retryable). The `retry_server_errors` flag continues to act as an unconditional opt-out for any 5xx retry.
+
 ## [6.0.0] - 2026-04-29
 
 ### Changed
