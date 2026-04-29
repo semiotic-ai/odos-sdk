@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-04-29
+
 ### Changed
 
 - **BREAKING**: Move the core Alloy crates from `1.8` to `2.0`. Consumers that share Alloy types with `odos-sdk` in their public API must update their own Alloy pin in lockstep, since `1.x` and `2.x` types are not interchangeable.

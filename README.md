@@ -34,7 +34,7 @@ Add the SDK to your project:
 
 ```toml
 [dependencies]
-odos-sdk = "4"
+odos-sdk = "6"
 ```
 
 ### Your First Swap
@@ -81,7 +81,7 @@ DTOs with the lightweight `minimal` feature set:
 
 ```toml
 [dependencies]
-odos-sdk = { version = "4", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "6", default-features = false, features = ["minimal"] }
 ```
 
 ```rust
@@ -357,23 +357,23 @@ Customize what gets compiled based on your needs:
 ```toml
 # Default: V2 + V3 routers
 [dependencies]
-odos-sdk = "4"
+odos-sdk = "6"
 
 # Minimal: API client + tool/runtime DTOs only (no contract bindings or on-chain helpers)
 [dependencies]
-odos-sdk = { version = "4", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "6", default-features = false, features = ["minimal"] }
 
 # On-chain helpers only
 [dependencies]
-odos-sdk = { version = "4", default-features = false, features = ["multicall"] }
+odos-sdk = { version = "6", default-features = false, features = ["multicall"] }
 
 # All contracts + multicall helpers
 [dependencies]
-odos-sdk = { version = "4", default-features = false, features = ["contracts"] }
+odos-sdk = { version = "6", default-features = false, features = ["contracts"] }
 
 # Custom combination
 [dependencies]
-odos-sdk = { version = "4", default-features = false, features = ["v2", "v3"] }
+odos-sdk = { version = "6", default-features = false, features = ["v2", "v3"] }
 ```
 
 Available features:
