@@ -1074,6 +1074,38 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_retry_predicate_replace_bypasses_retry_server_errors_gate() {
+        // `Replace` is the sole authority on whether to retry — it must
+        // bypass `retry_server_errors=false`, which would otherwise hard-stop
+        // any 5xx retry under `Default` / `DefaultExcept`.
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(500).set_body_string("Internal error"))
+            .expect(3)
+            .mount(&mock_server)
+            .await;
+
+        let config = ClientConfig {
+            timeout: Duration::from_millis(30000),
+            retry_config: RetryConfig {
+                max_retries: 3,
+                initial_backoff_ms: 10,
+                retry_server_errors: false,
+                retry_predicate: RetryPredicate::Replace(|_err| true),
+            },
+            ..Default::default()
+        };
+        let client = OdosHttpClient::with_config(config).unwrap();
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(response.is_err());
+    }
+
+    #[tokio::test]
     async fn test_retry_predicate_default_except_vetoes_retryable_code() {
         // `DefaultExcept` vetoes a code that the default tree would retry.
         // 3130 = PricingInternal is classified as retryable by
