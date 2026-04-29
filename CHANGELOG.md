@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: Move the core Alloy crates from `1.8` to `2.0`. Consumers that share Alloy types with `odos-sdk` in their public API must update their own Alloy pin in lockstep, since `1.x` and `2.x` types are not interchangeable.
+  - `alloy-contract`, `alloy-network`, `alloy-provider`, `alloy-rpc-types`, `alloy-transport`: `1.8` → `2.0`.
+  - `alloy-primitives`, `alloy-sol-types`: unchanged at `^1.5`.
+  - `alloy-chains`: unchanged at `^0.2`.
+- Loosened minimum-version pins on `bon`, `reqwest`, `serde`, `serde_json`, `thiserror`, `tracing`, `uuid`, and `wiremock` so downstream consumers have more flexibility resolving compatible versions.
+
 ## [5.0.0] - 2026-04-28
 
 ### Added
