@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.0.0] - 2026-04-29
+
 ### Changed
 
 - **BREAKING**: `RetryConfig::retry_predicate` is now a `RetryPredicate` enum instead of `Option<fn(&OdosError) -> bool>`. The new variants make the compose-vs-replace semantic explicit at the call site:

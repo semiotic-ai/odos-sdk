@@ -81,7 +81,7 @@ DTOs with the lightweight `minimal` feature set:
 
 ```toml
 [dependencies]
-odos-sdk = { version = "7", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "8", default-features = false, features = ["minimal"] }
 ```
 
 ```rust
@@ -367,19 +367,19 @@ odos-sdk = "7"
 
 # Minimal: API client + tool/runtime DTOs only (no contract bindings or on-chain helpers)
 [dependencies]
-odos-sdk = { version = "7", default-features = false, features = ["minimal"] }
+odos-sdk = { version = "8", default-features = false, features = ["minimal"] }
 
 # On-chain helpers only
 [dependencies]
-odos-sdk = { version = "7", default-features = false, features = ["multicall"] }
+odos-sdk = { version = "8", default-features = false, features = ["multicall"] }
 
 # All contracts + multicall helpers
 [dependencies]
-odos-sdk = { version = "7", default-features = false, features = ["contracts"] }
+odos-sdk = { version = "8", default-features = false, features = ["contracts"] }
 
 # Custom combination
 [dependencies]
-odos-sdk = { version = "7", default-features = false, features = ["v2", "v3"] }
+odos-sdk = { version = "8", default-features = false, features = ["v2", "v3"] }
 ```
 
 Available features:
