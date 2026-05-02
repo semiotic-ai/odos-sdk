@@ -534,13 +534,13 @@ fn extract_retry_after(response: &Response) -> Option<Duration> {
 
 /// Parsed error response from Odos API
 #[derive(Debug, Clone)]
-struct ParsedErrorResponse {
+pub(crate) struct ParsedErrorResponse {
     /// Human-readable error message
-    message: String,
+    pub(crate) message: String,
     /// Odos API error code
-    code: OdosErrorCode,
+    pub(crate) code: OdosErrorCode,
     /// Optional trace ID for debugging
-    trace_id: Option<crate::error_code::TraceId>,
+    pub(crate) trace_id: Option<crate::error_code::TraceId>,
 }
 
 /// Parse structured error response from Odos API
@@ -548,7 +548,7 @@ struct ParsedErrorResponse {
 /// Attempts to parse the response body as a structured error JSON.
 /// Returns the parsed error response with message, error code, and optional trace ID.
 /// Falls back to the raw body text with an Unknown error code if JSON parsing fails.
-async fn parse_error_response(response: Response) -> ParsedErrorResponse {
+pub(crate) async fn parse_error_response(response: Response) -> ParsedErrorResponse {
     // Get the response body as text
     let body_text = match response.text().await {
         Ok(text) => text,

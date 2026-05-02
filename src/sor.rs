@@ -10,9 +10,8 @@ use serde_json::Value;
 use tracing::instrument;
 
 use crate::{
-    api::OdosApiErrorResponse, error_code::OdosErrorCode, parse_value, AssembleRequest,
-    AssemblyRequest, AssemblyResponse, ClientConfig, OdosError, OdosHttpClient, Result,
-    RetryConfig, SwapBuilder,
+    client::parse_error_response, parse_value, AssembleRequest, AssemblyRequest, AssemblyResponse,
+    ClientConfig, OdosError, OdosHttpClient, Result, RetryConfig, SwapBuilder,
 };
 
 use super::TransactionData;
@@ -290,24 +289,12 @@ impl OdosClient {
             Ok(single_quote_response)
         } else {
             let status = response.status();
-
-            // Try to parse structured error response
-            let body_text = response
-                .text()
-                .await
-                .unwrap_or_else(|e| format!("Failed to read response body: {}", e));
-
-            let (message, code, trace_id) =
-                match serde_json::from_str::<OdosApiErrorResponse>(&body_text) {
-                    Ok(error_response) => {
-                        let error_code = OdosErrorCode::from(error_response.error_code);
-                        (error_response.detail, error_code, error_response.trace_id)
-                    }
-                    Err(_) => (body_text, OdosErrorCode::Unknown(0), None),
-                };
-
+            let parsed = parse_error_response(response).await;
             Err(OdosError::api_error_with_code(
-                status, message, code, trace_id,
+                status,
+                parsed.message,
+                parsed.code,
+                parsed.trace_id,
             ))
         }
     }
@@ -407,24 +394,12 @@ impl OdosClient {
 
         if !response.status().is_success() {
             let status = response.status();
-
-            // Try to parse structured error response
-            let body_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Failed to get error message".to_string());
-
-            let (message, code, trace_id) =
-                match serde_json::from_str::<OdosApiErrorResponse>(&body_text) {
-                    Ok(error_response) => {
-                        let error_code = OdosErrorCode::from(error_response.error_code);
-                        (error_response.detail, error_code, error_response.trace_id)
-                    }
-                    Err(_) => (body_text, OdosErrorCode::Unknown(0), None),
-                };
-
+            let parsed = parse_error_response(response).await;
             return Err(OdosError::api_error_with_code(
-                status, message, code, trace_id,
+                status,
+                parsed.message,
+                parsed.code,
+                parsed.trace_id,
             ));
         }
 
