@@ -70,7 +70,9 @@ The crate is sliced by feature flag and **modules in `lib.rs` are `#[cfg]`-gated
 ## Repository conventions
 
 - **Conventional Commits** are CI-enforced (commitizen); breaking changes use `!` or `BREAKING CHANGE:`.
+<!-- REUSE-IgnoreStart -->
 - **REUSE compliance** is CI-enforced — every source file needs `SPDX-FileCopyrightText` + `SPDX-License-Identifier: Apache-2.0` headers (see existing files for the pattern).
+<!-- REUSE-IgnoreEnd -->
 - **CHANGELOG.md** must be updated under `[Unreleased]` for user-visible changes.
 - **Releases** are tag-driven: bumping `Cargo.toml` + tagging `vX.Y.Z` triggers the crates.io publish workflow.
 - **Contract ABIs** in `abis/` are compiled into bindings at build time — regenerate bindings when ABIs change.
