@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **BREAKING**: `tokio::time::timeout` failures in `OdosHttpClient::execute_with_retry` now respect the configured `RetryPredicate`. Previously the timeout arm bypassed `should_retry`, so a `RetryPredicate::Replace(|_| false)` veto silently still allowed timeouts to retry up to `max_retries`. Callers that relied on timeouts always retrying — even when they had explicitly disabled retries via `Replace` — will now see those timeouts surface immediately.
+
 ## [9.0.0] - 2026-04-29
 
 ### Changed

@@ -358,12 +358,11 @@ impl OdosHttpClient {
         let initial_backoff_duration =
             Duration::from_millis(self.config.retry_config.initial_backoff_ms);
 
-        // Create an exponential backoff iterator
-        // backon uses an iterator-based API for generating backoff delays
+        // +1 because backon counts total attempts, not retries
         let backoff = ExponentialBuilder::default()
             .with_min_delay(initial_backoff_duration)
-            .with_max_delay(Duration::from_secs(30)) // Max backoff of 30 seconds
-            .with_max_times(self.config.retry_config.max_retries as usize + 1); // +1 because backon counts total attempts
+            .with_max_delay(Duration::from_secs(30))
+            .with_max_times(self.config.retry_config.max_retries as usize + 1);
 
         let mut backoff_iter = backoff.build();
         let mut attempt = 0;
@@ -385,8 +384,7 @@ impl OdosHttpClient {
                     let status = response.status();
 
                     if status == StatusCode::TOO_MANY_REQUESTS {
-                        // Rate limits are never retried - return immediately
-                        // Application must handle rate limiting globally
+                        // Rate limits are never retried - application must handle globally
                         let retry_after = extract_retry_after(&response);
                         let parsed = parse_error_response(response).await;
                         return Err(OdosError::rate_limit_error_with_retry_after_and_trace(
@@ -396,7 +394,6 @@ impl OdosHttpClient {
                             parsed.trace_id,
                         ));
                     } else {
-                        // Parse structured error response
                         let parsed = parse_error_response(response).await;
 
                         let error = OdosError::api_error_with_code(
@@ -433,6 +430,10 @@ impl OdosHttpClient {
                 }
                 Err(_) => {
                     let error = OdosError::timeout_error("Request timed out");
+
+                    if !self.should_retry(&error, attempt) {
+                        return Err(error);
+                    }
                     debug!(
                         error_type = "timeout",
                         attempt,
@@ -443,16 +444,13 @@ impl OdosHttpClient {
                 }
             };
 
-            // Check if we've exhausted retries
             if attempt >= self.config.retry_config.max_retries {
                 return Err(last_error);
             }
 
-            // Get next backoff delay from iterator
             if let Some(delay) = backoff_iter.next() {
                 tokio::time::sleep(delay).await;
             } else {
-                // No more backoff attempts available
                 return Err(last_error);
             }
         }
@@ -549,7 +547,6 @@ pub(crate) struct ParsedErrorResponse {
 /// Returns the parsed error response with message, error code, and optional trace ID.
 /// Falls back to the raw body text with an Unknown error code if JSON parsing fails.
 pub(crate) async fn parse_error_response(response: Response) -> ParsedErrorResponse {
-    // Get the response body as text
     let body_text = match response.text().await {
         Ok(text) => text,
         Err(e) => {
@@ -561,10 +558,8 @@ pub(crate) async fn parse_error_response(response: Response) -> ParsedErrorRespo
         }
     };
 
-    // Try to parse as structured error JSON
     match serde_json::from_str::<OdosApiErrorResponse>(&body_text) {
         Ok(error_response) => {
-            // Successfully parsed structured error
             let error_code = OdosErrorCode::from(error_response.error_code);
             ParsedErrorResponse {
                 message: error_response.detail,
@@ -572,14 +567,11 @@ pub(crate) async fn parse_error_response(response: Response) -> ParsedErrorRespo
                 trace_id: error_response.trace_id,
             }
         }
-        Err(_) => {
-            // Failed to parse as structured error, return raw body with Unknown code
-            ParsedErrorResponse {
-                message: body_text,
-                code: OdosErrorCode::Unknown(0),
-                trace_id: None,
-            }
-        }
+        Err(_) => ParsedErrorResponse {
+            message: body_text,
+            code: OdosErrorCode::Unknown(0),
+            trace_id: None,
+        },
     }
 }
 
@@ -1044,6 +1036,32 @@ mod tests {
 
         let client =
             create_test_client_with_predicate(3, 30000, RetryPredicate::Replace(|_err| false));
+        let response = client
+            .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
+            .await;
+
+        assert!(response.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_retry_predicate_applies_to_timeouts() {
+        // Regression: the `Err(_)` (tokio timeout) arm previously bypassed
+        // `should_retry`, so `Replace(|_| false)` would still retry timeouts.
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_string("Success")
+                    .set_delay(Duration::from_secs(5)),
+            )
+            .expect(1) // Replace(|_| false) must veto the retry
+            .mount(&mock_server)
+            .await;
+
+        let client =
+            create_test_client_with_predicate(3, 100, RetryPredicate::Replace(|_err| false));
         let response = client
             .execute_with_retry(|| client.inner().get(format!("{}/test", mock_server.uri())))
             .await;

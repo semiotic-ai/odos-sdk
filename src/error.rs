@@ -134,12 +134,7 @@ pub enum OdosError {
 impl OdosError {
     /// Create an API error from response (without error code or trace ID)
     pub fn api_error(status: StatusCode, message: String) -> Self {
-        Self::Api {
-            status,
-            message,
-            code: OdosErrorCode::Unknown(0),
-            trace_id: None,
-        }
+        Self::api_error_with_code(status, message, OdosErrorCode::Unknown(0), None)
     }
 
     /// Create an API error with error code and trace ID
@@ -199,12 +194,7 @@ impl OdosError {
 
     /// Create a rate limit error with optional retry-after duration
     pub fn rate_limit_error(message: impl Into<String>) -> Self {
-        Self::RateLimit {
-            message: message.into(),
-            retry_after: None,
-            code: OdosErrorCode::Unknown(429),
-            trace_id: None,
-        }
+        Self::rate_limit_error_with_retry_after(message, None)
     }
 
     /// Create a rate limit error with retry-after duration
@@ -212,12 +202,12 @@ impl OdosError {
         message: impl Into<String>,
         retry_after: Option<Duration>,
     ) -> Self {
-        Self::RateLimit {
-            message: message.into(),
+        Self::rate_limit_error_with_retry_after_and_trace(
+            message,
             retry_after,
-            code: OdosErrorCode::Unknown(429),
-            trace_id: None,
-        }
+            OdosErrorCode::Unknown(429),
+            None,
+        )
     }
 
     /// Create a rate limit error with all fields
@@ -260,16 +250,9 @@ impl OdosError {
     /// [`RetryPredicate::DefaultExcept`]: crate::RetryPredicate::DefaultExcept
     pub fn is_retryable(&self) -> bool {
         match self {
-            // HTTP errors that are typically retryable
-            OdosError::Http(err) => {
-                // Timeout, connection errors, etc.
-                err.is_timeout() || err.is_connect() || err.is_request()
-            }
-            // API errors - use error code retryability logic
+            OdosError::Http(err) => err.is_timeout() || err.is_connect() || err.is_request(),
             OdosError::Api { status, code, .. } => {
-                // If we have a known error code, use its retryability logic
                 if matches!(code, OdosErrorCode::Unknown(_)) {
-                    // Fall back to status code checking for unknown error codes
                     matches!(
                         *status,
                         StatusCode::INTERNAL_SERVER_ERROR
@@ -281,11 +264,9 @@ impl OdosError {
                     code.is_retryable()
                 }
             }
-            // Other retryable errors
             OdosError::Timeout(_) => true,
             // NEVER retry rate limits - application must handle globally
             OdosError::RateLimit { .. } => false,
-            // Non-retryable errors
             OdosError::Json(_)
             | OdosError::Hex(_)
             | OdosError::InvalidInput(_)
