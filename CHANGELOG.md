@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: `OdosError::Api` and `OdosError::RateLimit` now carry their shared `message` / `code` / `trace_id` fields inside a new public `ApiErrorBody` struct. The variants reshape to `Api { status, body }` and `RateLimit { retry_after, body }`. Constructors (`api_error`, `api_error_with_code`, `rate_limit_error`, `rate_limit_error_with_retry_after`, `rate_limit_error_with_retry_after_and_trace`) and accessors (`error_code`, `trace_id`, `retry_after`, `is_client_error`, `is_server_error`, `is_rate_limit`) keep their existing signatures, so callers using those helpers are unaffected. Direct field-shorthand pattern matches must be migrated:
+
+  ```rust
+  // Before
+  match err {
+      OdosError::Api { status, message, code, trace_id } => { /* ... */ }
+      OdosError::RateLimit { message, retry_after, code, trace_id } => { /* ... */ }
+      _ => {}
+  }
+
+  // After
+  match err {
+      OdosError::Api { status, body } => {
+          let ApiErrorBody { message, code, trace_id } = body;
+          // or: body.message, body.code, body.trace_id
+      }
+      OdosError::RateLimit { retry_after, body } => { /* same shape */ }
+      _ => {}
+  }
+  ```
+
+  Closes [#7](https://github.com/semiotic-ai/odos-sdk/issues/7).
+
 ## [10.0.1] - 2026-05-04
 
 ### Documentation

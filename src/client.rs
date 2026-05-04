@@ -12,7 +12,7 @@ use tracing::{debug, instrument};
 use crate::{
     api::OdosApiErrorResponse,
     api_key::ApiKey,
-    error::{OdosError, Result},
+    error::{ApiErrorBody, OdosError, Result},
     error_code::OdosErrorCode,
 };
 
@@ -386,22 +386,11 @@ impl OdosHttpClient {
                     if status == StatusCode::TOO_MANY_REQUESTS {
                         // Rate limits are never retried - application must handle globally
                         let retry_after = extract_retry_after(&response);
-                        let parsed = parse_error_response(response).await;
-                        return Err(OdosError::rate_limit_error_with_retry_after_and_trace(
-                            parsed.message,
-                            retry_after,
-                            parsed.code,
-                            parsed.trace_id,
-                        ));
+                        let body = parse_error_response(response).await;
+                        return Err(OdosError::RateLimit { retry_after, body });
                     } else {
-                        let parsed = parse_error_response(response).await;
-
-                        let error = OdosError::api_error_with_code(
-                            status,
-                            parsed.message,
-                            parsed.code,
-                            parsed.trace_id,
-                        );
+                        let body = parse_error_response(response).await;
+                        let error = OdosError::Api { status, body };
 
                         if !self.should_retry(&error, attempt) {
                             return Err(error);
@@ -530,44 +519,31 @@ fn extract_retry_after(response: &Response) -> Option<Duration> {
         .map(Duration::from_secs)
 }
 
-/// Parsed error response from Odos API
-#[derive(Debug, Clone)]
-pub(crate) struct ParsedErrorResponse {
-    /// Human-readable error message
-    pub(crate) message: String,
-    /// Odos API error code
-    pub(crate) code: OdosErrorCode,
-    /// Optional trace ID for debugging
-    pub(crate) trace_id: Option<crate::error_code::TraceId>,
-}
-
-/// Parse structured error response from Odos API
+/// Parse structured error response from Odos API into an [`ApiErrorBody`].
 ///
-/// Attempts to parse the response body as a structured error JSON.
-/// Returns the parsed error response with message, error code, and optional trace ID.
-/// Falls back to the raw body text with an Unknown error code if JSON parsing fails.
-pub(crate) async fn parse_error_response(response: Response) -> ParsedErrorResponse {
+/// Attempts to parse the response body as a structured error JSON. Returns the
+/// shared body with message, error code, and optional trace ID populated, or
+/// falls back to the raw body text with an `Unknown` error code if JSON
+/// parsing fails.
+pub(crate) async fn parse_error_response(response: Response) -> ApiErrorBody {
     let body_text = match response.text().await {
         Ok(text) => text,
         Err(e) => {
-            return ParsedErrorResponse {
-                message: format!("Failed to read response body: {}", e),
+            return ApiErrorBody {
+                message: format!("Failed to read response body: {e}"),
                 code: OdosErrorCode::Unknown(0),
                 trace_id: None,
-            }
+            };
         }
     };
 
     match serde_json::from_str::<OdosApiErrorResponse>(&body_text) {
-        Ok(error_response) => {
-            let error_code = OdosErrorCode::from(error_response.error_code);
-            ParsedErrorResponse {
-                message: error_response.detail,
-                code: error_code,
-                trace_id: error_response.trace_id,
-            }
-        }
-        Err(_) => ParsedErrorResponse {
+        Ok(error_response) => ApiErrorBody {
+            message: error_response.detail,
+            code: OdosErrorCode::from(error_response.error_code),
+            trace_id: error_response.trace_id,
+        },
+        Err(_) => ApiErrorBody {
             message: body_text,
             code: OdosErrorCode::Unknown(0),
             trace_id: None,
@@ -707,12 +683,10 @@ mod tests {
         );
 
         if let Err(OdosError::RateLimit {
-            message,
-            retry_after,
-            ..
+            retry_after, body, ..
         }) = response
         {
-            assert!(message.contains("Rate limit"));
+            assert!(body.message.contains("Rate limit"));
             assert_eq!(retry_after, Some(Duration::from_secs(1)));
         } else {
             panic!("Expected RateLimit error, got: {response:?}");
@@ -743,12 +717,10 @@ mod tests {
         );
 
         if let Err(OdosError::RateLimit {
-            message,
-            retry_after,
-            ..
+            retry_after, body, ..
         }) = response
         {
-            assert!(message.contains("Rate limit"));
+            assert!(body.message.contains("Rate limit"));
             assert_eq!(retry_after, None);
         } else {
             panic!("Expected RateLimit error, got: {response:?}");
@@ -959,8 +931,8 @@ mod tests {
 
         assert!(response.is_err());
         match response {
-            Err(OdosError::Api { code, status, .. }) => {
-                assert_eq!(code, OdosErrorCode::AlgoInternal);
+            Err(OdosError::Api { status, body }) => {
+                assert_eq!(body.code, OdosErrorCode::AlgoInternal);
                 assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
             }
             other => panic!("Expected OdosError::Api with AlgoInternal, got: {other:?}"),
@@ -992,8 +964,8 @@ mod tests {
 
         assert!(response.is_err());
         match response {
-            Err(OdosError::Api { code, .. }) => {
-                assert_eq!(code, OdosErrorCode::AlgoTimeout);
+            Err(OdosError::Api { body, .. }) => {
+                assert_eq!(body.code, OdosErrorCode::AlgoTimeout);
             }
             other => panic!("Expected OdosError::Api with AlgoTimeout, got: {other:?}"),
         }
@@ -1161,8 +1133,8 @@ mod tests {
 
         assert!(response.is_err());
         match response {
-            Err(OdosError::Api { code, .. }) => {
-                assert_eq!(code, OdosErrorCode::PricingInternal);
+            Err(OdosError::Api { body, .. }) => {
+                assert_eq!(body.code, OdosErrorCode::PricingInternal);
             }
             other => panic!("Expected OdosError::Api with PricingInternal, got: {other:?}"),
         }
@@ -1319,12 +1291,10 @@ mod tests {
         );
 
         if let Err(OdosError::RateLimit {
-            message,
-            retry_after,
-            ..
+            retry_after, body, ..
         }) = response
         {
-            assert!(message.contains("Rate limit"));
+            assert!(body.message.contains("Rate limit"));
             assert_eq!(retry_after, Some(Duration::from_secs(0)));
         } else {
             panic!("Expected RateLimit error, got: {response:?}");

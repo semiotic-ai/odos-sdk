@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-use std::time::Duration;
+use std::{fmt, time::Duration};
 
 use alloy_primitives::hex;
 use reqwest::StatusCode;
@@ -15,6 +15,37 @@ use crate::{
 
 /// Result type alias for Odos SDK operations
 pub type Result<T> = std::result::Result<T, OdosError>;
+
+/// Shared payload for API-shaped [`OdosError`] variants.
+///
+/// `ApiErrorBody` collects the fields that are common to every error the Odos
+/// service returns over HTTP — the human-readable message, the strongly-typed
+/// [`OdosErrorCode`], and an optional [`TraceId`] for support correspondence.
+/// It is used by both [`OdosError::Api`] (status-bearing failures) and
+/// [`OdosError::RateLimit`] (retry-after-bearing failures) so the orthogonal
+/// per-variant fields are the only thing those variants carry directly.
+///
+/// The [`Display`] impl renders `"<message>[ [trace: <id>]]"`, which the
+/// surrounding variants embed into their own format strings.
+#[derive(Debug, Clone)]
+pub struct ApiErrorBody {
+    /// Human-readable error message returned by the API.
+    pub message: String,
+    /// Strongly-typed Odos error code.
+    pub code: OdosErrorCode,
+    /// Trace ID for support correspondence, if the API returned one.
+    pub trace_id: Option<TraceId>,
+}
+
+impl fmt::Display for ApiErrorBody {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)?;
+        if let Some(trace_id) = self.trace_id {
+            write!(f, " [trace: {trace_id}]")?;
+        }
+        Ok(())
+    }
+}
 
 /// Comprehensive error types for the Odos SDK
 ///
@@ -66,12 +97,10 @@ pub enum OdosError {
     Http(#[from] reqwest::Error),
 
     /// API errors returned by the Odos service
-    #[error("Odos API error (status: {status}): {message}{}", trace_id.map(|tid| format!(" [trace: {}]", tid)).unwrap_or_default())]
+    #[error("Odos API error (status: {status}): {body}")]
     Api {
         status: StatusCode,
-        message: String,
-        code: OdosErrorCode,
-        trace_id: Option<TraceId>,
+        body: ApiErrorBody,
     },
 
     /// JSON serialization/deserialization errors
@@ -117,13 +146,11 @@ pub enum OdosError {
     /// Rate limit exceeded
     ///
     /// Contains an optional `retry_after` duration from the Retry-After HTTP header,
-    /// the error code from the Odos API, and an optional `trace_id` for debugging.
-    #[error("Rate limit exceeded: {message}{}", trace_id.map(|tid| format!(" [trace: {}]", tid)).unwrap_or_default())]
+    /// alongside the shared [`ApiErrorBody`] (message, error code, and trace ID).
+    #[error("Rate limit exceeded: {body}")]
     RateLimit {
-        message: String,
         retry_after: Option<Duration>,
-        code: OdosErrorCode,
-        trace_id: Option<TraceId>,
+        body: ApiErrorBody,
     },
 
     /// Generic internal error
@@ -146,9 +173,11 @@ impl OdosError {
     ) -> Self {
         Self::Api {
             status,
-            message,
-            code,
-            trace_id,
+            body: ApiErrorBody {
+                message,
+                code,
+                trace_id,
+            },
         }
     }
 
@@ -218,10 +247,12 @@ impl OdosError {
         trace_id: Option<TraceId>,
     ) -> Self {
         Self::RateLimit {
-            message: message.into(),
             retry_after,
-            code,
-            trace_id,
+            body: ApiErrorBody {
+                message: message.into(),
+                code,
+                trace_id,
+            },
         }
     }
 
@@ -251,8 +282,8 @@ impl OdosError {
     pub fn is_retryable(&self) -> bool {
         match self {
             OdosError::Http(err) => err.is_timeout() || err.is_connect() || err.is_request(),
-            OdosError::Api { status, code, .. } => {
-                if matches!(code, OdosErrorCode::Unknown(_)) {
+            OdosError::Api { status, body } => {
+                if matches!(body.code, OdosErrorCode::Unknown(_)) {
                     matches!(
                         *status,
                         StatusCode::INTERNAL_SERVER_ERROR
@@ -261,7 +292,7 @@ impl OdosError {
                             | StatusCode::GATEWAY_TIMEOUT
                     )
                 } else {
-                    code.is_retryable()
+                    body.code.is_retryable()
                 }
             }
             OdosError::Timeout(_) => true,
@@ -358,11 +389,7 @@ impl OdosError {
     /// }
     /// ```
     pub fn error_code(&self) -> Option<&OdosErrorCode> {
-        match self {
-            OdosError::Api { code, .. } => Some(code),
-            OdosError::RateLimit { code, .. } => Some(code),
-            _ => None,
-        }
+        self.api_error_body().map(|body| &body.code)
     }
 
     /// Get the Odos API trace ID if available
@@ -382,9 +409,15 @@ impl OdosError {
     /// # }
     /// ```
     pub fn trace_id(&self) -> Option<TraceId> {
+        self.api_error_body().and_then(|body| body.trace_id)
+    }
+
+    /// Borrow the shared payload that backs both API-shaped variants
+    /// ([`OdosError::Api`] and [`OdosError::RateLimit`]); returns `None`
+    /// for any other error.
+    pub fn api_error_body(&self) -> Option<&ApiErrorBody> {
         match self {
-            OdosError::Api { trace_id, .. } => *trace_id,
-            OdosError::RateLimit { trace_id, .. } => *trace_id,
+            OdosError::Api { body, .. } | OdosError::RateLimit { body, .. } => Some(body),
             _ => None,
         }
     }

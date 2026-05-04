@@ -161,17 +161,17 @@
 //!
 //!         // Handle by error type
 //!         match err {
-//!             OdosError::Api { status, message, .. } => {
-//!                 eprintln!("API error {}: {}", status, message);
+//!             OdosError::Api { status, body } => {
+//!                 eprintln!("API error {}: {}", status, body.message);
 //!             }
 //!             OdosError::Timeout(msg) => {
 //!                 eprintln!("Request timed out: {}", msg);
 //!             }
-//!             OdosError::RateLimit { message, retry_after, .. } => {
+//!             OdosError::RateLimit { retry_after, body } => {
 //!                 if let Some(duration) = retry_after {
-//!                     eprintln!("Rate limited: {}. Retry after {} seconds", message, duration.as_secs());
+//!                     eprintln!("Rate limited: {}. Retry after {} seconds", body.message, duration.as_secs());
 //!                 } else {
-//!                     eprintln!("Rate limited: {}", message);
+//!                     eprintln!("Rate limited: {}", body.message);
 //!                 }
 //!             }
 //!             _ => eprintln!("Error: {}", err),
