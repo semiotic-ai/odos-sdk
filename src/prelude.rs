@@ -53,7 +53,7 @@ pub use crate::tooling;
 pub use crate::{Chain, ReferralCode, Slippage};
 
 // Error types
-pub use crate::{OdosError, Result};
+pub use crate::{ApiErrorBody, OdosError, Result};
 
 // Configuration
 pub use crate::{ClientConfig, Endpoint, RetryConfig, RetryPredicate};

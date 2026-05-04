@@ -488,7 +488,7 @@ pub use contract::{
 };
 
 // Error handling
-pub use error::{OdosError, Result};
+pub use error::{ApiErrorBody, OdosError, Result};
 
 // Limit order contract bindings
 #[cfg(feature = "limit-orders")]

@@ -25,8 +25,8 @@ pub type Result<T> = std::result::Result<T, OdosError>;
 /// [`OdosError::RateLimit`] (retry-after-bearing failures) so the orthogonal
 /// per-variant fields are the only thing those variants carry directly.
 ///
-/// The [`Display`] impl renders `"<message>[ [trace: <id>]]"`, which the
-/// surrounding variants embed into their own format strings.
+/// The [`Display`](fmt::Display) impl renders `"<message>[ [trace: <id>]]"`,
+/// which the surrounding variants embed into their own format strings.
 #[derive(Debug, Clone)]
 pub struct ApiErrorBody {
     /// Human-readable error message returned by the API.
