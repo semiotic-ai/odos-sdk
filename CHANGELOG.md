@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Document `OdosClient` reuse semantics on the type-level rustdoc and the `new` / `with_config` constructors. The client is `Clone`-cheap and shares its `reqwest` connection pool across clones; reconstructing per request discards pooled idle connections and TLS sessions. Closes [#6](https://github.com/semiotic-ai/odos-sdk/issues/6).
+
 ## [10.0.0] - 2026-05-04
 
 ### Fixed

@@ -31,6 +31,24 @@ use crate::{QuoteRequest, SingleQuoteResponse};
 /// - Rate limit handling
 /// - Timeout management
 ///
+/// # Reuse
+///
+/// The client is cheap to clone — internally it holds an `Arc`-shared
+/// `reqwest::Client` and connection pool. Construct one client per
+/// process and clone it into worker tasks; reconstructing per request
+/// allocates a fresh connection pool and discards any pooled idle
+/// connections and TLS sessions.
+///
+/// ```rust
+/// use odos_sdk::OdosClient;
+///
+/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let client = OdosClient::new()?;
+/// let worker_client = client.clone();
+/// # Ok(())
+/// # }
+/// ```
+///
 /// # Examples
 ///
 /// ## Basic usage with defaults
@@ -81,6 +99,9 @@ impl OdosClient {
     /// - 30 second timeout
     /// - 3 retry attempts with exponential backoff
     ///
+    /// Construct one client per process and `clone()` it into worker tasks —
+    /// see the [type-level docs](OdosClient#reuse) for why.
+    ///
     /// # Errors
     ///
     /// Returns an error if the underlying HTTP client cannot be initialized.
@@ -106,6 +127,9 @@ impl OdosClient {
     ///
     /// Allows full control over client behavior including timeouts,
     /// retries, endpoint selection, and API version.
+    ///
+    /// Construct one client per process and `clone()` it into worker tasks —
+    /// see the [type-level docs](OdosClient#reuse) for why.
     ///
     /// # Arguments
     ///
